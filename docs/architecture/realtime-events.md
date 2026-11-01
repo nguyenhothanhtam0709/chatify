@@ -145,3 +145,17 @@ Socket.IO events pushed from server to client (the socket is push-only, ADR 0001
 ```ts
 {}
 ```
+
+## `typing.updated`
+
+```ts
+{
+  conversationId: string; // uuid
+  state: 'typing' | 'stopped';
+  user: {
+    id: string; // uuid
+    username: string;
+    nickname: string | null;
+  };
+}
+```

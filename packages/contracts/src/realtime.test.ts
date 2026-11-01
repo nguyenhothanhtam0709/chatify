@@ -121,9 +121,9 @@ describe('realtime event contracts', () => {
     expect(
       TypingUpdatedEventSchema.safeParse({ conversationId: id, state: 'idle', user }).success,
     ).toBe(false);
-    expect(TypingUpdatedEventSchema.safeParse({ conversationId: id, state: 'typing' }).success).toBe(
-      false,
-    );
+    expect(
+      TypingUpdatedEventSchema.safeParse({ conversationId: id, state: 'typing' }).success,
+    ).toBe(false);
     expect(TypingUpdatedEventSchema.safeParse({ state: 'typing', user }).success).toBe(false);
   });
 

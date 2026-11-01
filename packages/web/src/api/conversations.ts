@@ -5,6 +5,7 @@ import {
   MarkReadResponseSchema,
   type ConversationSummary,
   type Message,
+  type TypingState,
 } from '@chat/contracts';
 
 export type ListConversationsResult =
@@ -130,4 +131,24 @@ export async function markRead(
   return parsed.success
     ? { ok: true, upToSequence: parsed.data.upToSequence }
     : { ok: false, error: 'Something went wrong. Try again.' };
+}
+
+/**
+ * `POST /api/v1/conversations/:id/typing`: a best-effort Typing Indicator signal. Failures and
+ * rate limits are ignored on purpose; the other side's indicator just expires.
+ */
+export async function signalTyping(
+  accessToken: string,
+  conversationId: string,
+  state: TypingState,
+): Promise<void> {
+  try {
+    await fetch(new URL(`/api/v1/conversations/${conversationId}/typing`, window.location.origin), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ state }),
+    });
+  } catch {
+    // Ignored: typing is only a hint.
+  }
 }

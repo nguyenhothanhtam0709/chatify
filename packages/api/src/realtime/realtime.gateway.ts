@@ -8,6 +8,7 @@ import {
 import { RealtimeEvent, type RealtimeEventName } from '@chat/contracts';
 import type { Logger } from 'pino';
 import type { IoServer as Server, IoSocket as Socket } from './socket-types.js';
+import { readProperty } from '../common/read-property.js';
 import { AccessTokenAuthenticator } from '../auth/access-token-authenticator.js';
 import { GroupMemberships } from '../memberships/group-memberships.js';
 import { PINO } from '../logging/logging.module.js';
@@ -46,7 +47,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
   }
 
   private async authenticate(socket: Socket): Promise<Error | undefined> {
-    const token: unknown = (socket.handshake.auth as { token?: unknown } | undefined)?.token;
+    const token: unknown = readProperty(socket.handshake.auth, 'token');
     const result = await this.authenticator.check(typeof token === 'string' ? token : undefined);
     if (!result.ok) {
       this.logger.warn({ socketId: socket.id, code: result.code }, 'socket auth failed');
@@ -95,11 +96,12 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
   }
 
   handleConnection(socket: Socket): void {
-    const { userId, sessionId, groupRooms } = socket.data as {
-      userId: string;
-      sessionId: string;
-      groupRooms: string[];
-    };
+    // `socket.data` is `any` and `authenticate` set it before the connection was accepted.
+    const {
+      userId,
+      sessionId,
+      groupRooms,
+    }: { userId: string; sessionId: string; groupRooms: string[] } = socket.data;
     // The User room first, so an add or removal from here on reaches this socket. The Group
     // rooms read in the handshake may be stale by now, so they are checked again below.
     void socket.join([userRoom(userId), sessionRoom(sessionId), ...groupRooms]);

@@ -5,6 +5,7 @@ import { ErrorCode, type RegisterResponse, type SearchUsersResponse } from '@cha
 import * as argon2 from 'argon2';
 import { and, eq, gt, ne, or, sql } from 'drizzle-orm';
 import { DomainException } from '../common/all-exceptions.filter.js';
+import { readProperty } from '../common/read-property.js';
 import type { Config } from '../config/config.js';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import type { Database } from '../db/database.module.js';
@@ -245,8 +246,9 @@ export class AuthService {
  * (which contains the offending value).
  */
 function translateUniqueViolation(error: unknown): DomainException | undefined {
-  const { code, constraint } = (error as { code?: string; constraint?: string } | null) ?? {};
-  const cause = (error as { cause?: unknown } | null)?.cause;
+  const code = readProperty(error, 'code');
+  const constraint = readProperty(error, 'constraint');
+  const cause = readProperty(error, 'cause');
   if (code !== UNIQUE_VIOLATION && cause) return translateUniqueViolation(cause);
   if (code !== UNIQUE_VIOLATION) return undefined;
   if (constraint === 'users_username_lower_unique') {

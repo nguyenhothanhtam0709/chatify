@@ -19,7 +19,10 @@ function validate(values: Values) {
     password: values.password,
     ...(values.nickname === '' ? {} : { nickname: values.nickname }),
   });
-  if (result.success) return { data: result.data, errors: {} as Errors };
+  if (result.success) {
+    const noErrors: Errors = {};
+    return { data: result.data, errors: noErrors };
+  }
   const errors: Errors = {};
   for (const issue of result.error.issues) {
     const name = FIELDS.find((f) => f === issue.path[0]);

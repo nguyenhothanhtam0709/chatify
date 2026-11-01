@@ -1,9 +1,10 @@
 import type { Pool } from 'pg';
 import type { Logger } from 'pino';
+import { readProperty } from '../common/read-property.js';
 
 function sqlText(first: unknown): string {
   if (typeof first === 'string') return first;
-  const text = (first as { text?: unknown } | null)?.text;
+  const text = readProperty(first, 'text');
   return typeof text === 'string' ? text : '<unknown query>';
 }
 
@@ -12,7 +13,8 @@ function sqlText(first: unknown): string {
  * than `slowQueryMs` at warn. Bound parameters are never logged.
  */
 export function instrumentPool(pool: Pool, logger: Logger, slowQueryMs: number): Pool {
-  const original = pool.query.bind(pool) as (...args: unknown[]) => unknown;
+  const originalQuery = pool.query;
+  const original = (...args: unknown[]): unknown => Reflect.apply(originalQuery, pool, args);
 
   const instrumented = (...args: unknown[]): unknown => {
     const start = performance.now();
@@ -29,6 +31,6 @@ export function instrumentPool(pool: Pool, logger: Logger, slowQueryMs: number):
     return result;
   };
 
-  (pool as unknown as { query: unknown }).query = instrumented;
+  Reflect.set(pool, 'query', instrumented);
   return pool;
 }

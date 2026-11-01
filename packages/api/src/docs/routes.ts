@@ -2,6 +2,8 @@ import { RequestMethod, type DynamicModule, type Type } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { generatedDocHeader } from './generated-doc-header.js';
 
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- Nest writes this metadata with Reflect and its decorators, so Reflect.getMetadata returns untyped values of the documented shapes; this generator is checked by `pnpm docs:check` against the controllers */
+
 const GENERATOR = 'packages/api/src/docs/routes.ts';
 const SOURCE = 'packages/api/src/**/*.controller.ts';
 

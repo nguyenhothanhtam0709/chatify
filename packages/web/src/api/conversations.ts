@@ -34,7 +34,8 @@ async function get(accessToken: string, path: string, signal?: AbortSignal) {
     return { ok: false, error: 'Could not reach the server. Try again.' } as const;
   }
   if (!res.ok) return { ok: false, error: 'Something went wrong. Try again.' } as const;
-  return { ok: true, payload: (await res.json().catch(() => undefined)) as unknown } as const;
+  const payload: unknown = await res.json().catch(() => undefined);
+  return { ok: true, payload } as const;
 }
 
 /** `GET /api/v1/conversations`: already sorted, most recently active first. */

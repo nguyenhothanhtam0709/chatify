@@ -8,6 +8,9 @@ import { AppThrottlerGuard } from './app-throttler.guard.js';
 
 const SEARCH_URL = '/api/v1/users/search';
 const SEND_URLS = ['/api/v1/direct-messages', '/api/v1/conversations/:id/messages'];
+const TYPING_URL = '/api/v1/conversations/:id/typing';
+const isTypingRoute = (req: FastifyRequest): boolean =>
+  req.method === 'POST' && req.routeOptions?.url === TYPING_URL;
 const isSendRoute = (req: FastifyRequest): boolean =>
   req.method === 'POST' && SEND_URLS.includes(req.routeOptions?.url ?? '');
 
@@ -28,7 +31,11 @@ const isAuthenticated = (req: object): boolean =>
             ttl: config.get('THROTTLE_TTL_MS', { infer: true }),
             // Route-level guards run after authentication; the global guard has already
             // counted the request by then.
-            skipIf: (context) => isAuthenticated(context.switchToHttp().getRequest()),
+            // Typing signals have their own limit and do not count against this one.
+            skipIf: (context) => {
+              const req = context.switchToHttp().getRequest<FastifyRequest>();
+              return isAuthenticated(req) || isTypingRoute(req);
+            },
           },
           // User search only: 30 per minute per User, counted by the route-level guard
           // once the caller is authenticated.
@@ -52,6 +59,19 @@ const isAuthenticated = (req: object): boolean =>
               return !isAuthenticated(req) || !isSendRoute(req);
             },
             getTracker: (req) => `user:${String(authenticatedUserId(req))}`,
+          },
+          // Typing Indicator signals only: 2 per 2 s per User and Conversation (a refresh plus
+          // a `stopped`).
+          {
+            name: 'typing',
+            limit: 2,
+            ttl: 2 * 1000,
+            skipIf: (context) => {
+              const req = context.switchToHttp().getRequest<FastifyRequest>();
+              return !isAuthenticated(req) || !isTypingRoute(req);
+            },
+            getTracker: (req) =>
+              `user:${String(authenticatedUserId(req))}:${String((req['params'] as { id?: unknown } | undefined)?.id)}`,
           },
           // Login only: 5 attempts per 15 minutes per identifier (the per-IP limit is on
           // the route itself).

@@ -118,7 +118,9 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
     conversationId: string,
   ): void {
     this.server.to(userIds.map(userRoom)).emit(event, payload);
-    this.logger.info({ event, targetUsers: userIds.length, conversationId }, 'socket push');
+    // Typing is frequent, so it is logged at debug: a deliberate exception to "every push is info".
+    const level = event === RealtimeEvent.TYPING_UPDATED ? 'debug' : 'info';
+    this.logger[level]({ event, targetUsers: userIds.length, conversationId }, 'socket push');
   }
 
   /** Pushes to every socket in the Group's room, i.e. those of its current Members. */

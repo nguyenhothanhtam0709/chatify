@@ -9,6 +9,7 @@ import type {
   GroupClosedEvent,
   GroupMembershipEndedEvent,
   MessageCreatedEvent,
+  TypingUpdatedEvent,
 } from '@chat/contracts';
 
 /** An already-decoded, contracts-validated server push. */
@@ -23,6 +24,7 @@ export type RealtimeEvent =
   | ({ type: 'group.owner_changed' } & GroupOwnerChangedEvent)
   | ({ type: 'group.closed' } & GroupClosedEvent)
   | ({ type: 'group.membership_ended' } & GroupMembershipEndedEvent)
+  | ({ type: 'typing.updated' } & TypingUpdatedEvent)
   | { type: 'session.revoked' };
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';

@@ -11,9 +11,10 @@ import {
   type Message,
   type SendDirectMessageRequest,
   type SendMessageRequest,
+  type TypingState,
   type GroupMembershipResponse,
 } from '@chat/contracts';
-import { and, asc, desc, eq, exists, gt, lt, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, exists, gt, lt, lte, ne, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 import { PINO } from '../logging/logging.module.js';
 import { RealtimeGateway } from '../realtime/realtime.gateway.js';
@@ -253,6 +254,44 @@ export class MessagesService {
         RealtimeEvent.CONVERSATION_RECEIPT,
         [receipt.otherId],
         payload,
+        conversationId,
+      );
+    } catch (error) {
+      this.logger.error({ err: error, conversationId }, 'socket push failed');
+    }
+  }
+
+  /**
+   * Relays a Typing Indicator signal to the other User of a Direct Conversation. Nothing is
+   * stored, and there is no Conversation lock or commit-order serializer: a late signal just
+   * expires on the receiver (ADR-0009). Access is the same as for sending a Message. Push is
+   * best-effort, like every push.
+   */
+  async signalTyping(userId: string, conversationId: string, state: TypingState): Promise<void> {
+    await requireMember(this.db, conversationId, userId, true);
+    try {
+      const [typist] = await this.db
+        .select({ id: users.id, username: users.username, nickname: users.nickname })
+        .from(users)
+        .where(eq(users.id, userId));
+      const others = await this.db
+        .select({ userId: conversationMembers.userId })
+        .from(conversationMembers)
+        .innerJoin(
+          directConversations,
+          eq(directConversations.conversationId, conversationMembers.conversationId),
+        )
+        .where(
+          and(
+            eq(conversationMembers.conversationId, conversationId),
+            ne(conversationMembers.userId, userId),
+          ),
+        );
+      if (!typist || others.length === 0) return;
+      this.realtime.push(
+        RealtimeEvent.TYPING_UPDATED,
+        others.map((m) => m.userId),
+        { conversationId, state, user: typist },
         conversationId,
       );
     } catch (error) {

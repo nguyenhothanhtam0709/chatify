@@ -15,6 +15,7 @@ import {
   MarkReadRequestSchema,
   SendDirectMessageRequestSchema,
   SendMessageRequestSchema,
+  TypingRequestSchema,
   type GetConversationResponse,
   type GetMessagesQuery,
   type ListConversationsResponse,
@@ -25,10 +26,11 @@ import {
   type SendDirectMessageResponse,
   type SendMessageRequest,
   type SendMessageResponse,
+  type TypingRequest,
 } from '@chat/contracts';
 import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { SendThrottlerGuard } from '../throttling/app-throttler.guard.js';
+import { SendThrottlerGuard, TypingThrottlerGuard } from '../throttling/app-throttler.guard.js';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import { Auth, AuthGuard, type AuthContext } from '../auth/auth.guard.js';
 import { MessagesService } from './messages.service.js';
@@ -103,5 +105,17 @@ export class MessagesController {
     @Body(new ZodValidationPipe(MarkReadRequestSchema)) body: MarkReadRequest,
   ): Promise<MarkReadResponse> {
     return this.messages.markRead(auth.userId, conversationId, body.upToSequence);
+  }
+
+  /** Ephemeral (ADR-0009): relayed to the other Members, never stored. */
+  @Post('conversations/:id/typing')
+  @HttpCode(204)
+  @UseGuards(AuthGuard, TypingThrottlerGuard)
+  async typing(
+    @Auth() auth: AuthContext,
+    @Param('id', ConversationIdPipe) conversationId: string,
+    @Body(new ZodValidationPipe(TypingRequestSchema)) body: TypingRequest,
+  ): Promise<void> {
+    await this.messages.signalTyping(auth.userId, conversationId, body.state);
   }
 }

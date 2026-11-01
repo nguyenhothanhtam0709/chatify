@@ -22,15 +22,15 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A Member gets `204`, and the other User's sockets receive `typing.updated` with the right payload. None of the typist's own sockets receives it.
-- [ ] A never-Member gets `404 CONVERSATION_NOT_FOUND`, and an invalid `state` gets `400 VALIDATION_FAILED`
-- [ ] The third request within 2 s for the same User and Conversation gets `429 RATE_LIMITED`. Typing doesn't consume the generic limit, and a different Conversation isn't throttled.
-- [ ] Typing pushes don't appear in logs at the default level
-- [ ] The SPA shows "X is typing…" with the Nickname or else the Username, keeps it while refreshed, and clears it on `stopped`, on the typist's Message, after about 6 s, on switching Conversation and on losing the connection
-- [ ] The composer sends `typing` at most every 3 s, sends `stopped` on clear or blur, and sends nothing more for text left untouched. A failed or rate-limited request shows no error.
-- [ ] The new schemas have contracts tests
+- [x] A Member gets `204`, and the other User's sockets receive `typing.updated` with the right payload. None of the typist's own sockets receives it.
+- [x] A never-Member gets `404 CONVERSATION_NOT_FOUND`, and an invalid `state` gets `400 VALIDATION_FAILED`
+- [x] The third request within 2 s for the same User and Conversation gets `429 RATE_LIMITED`. Typing doesn't consume the generic limit, and a different Conversation isn't throttled.
+- [x] Typing pushes don't appear in logs at the default level
+- [x] The SPA shows "X is typing…" with the Nickname or else the Username, keeps it while refreshed, and clears it on `stopped`, on the typist's Message, after about 6 s, on switching Conversation and on losing the connection
+- [x] The composer sends `typing` at most every 3 s, sends `stopped` on clear or blur, and sends nothing more for text left untouched. A failed or rate-limited request shows no error.
+- [x] The new schemas have contracts tests
 
 **Verification:**
 - API behaviour tests with a real `socket.io-client`, with lowered limits in test config and the in-memory log destination.
@@ -40,3 +40,5 @@
 **Out of scope:** Groups, the multi-typist text, and Former Member and Closed Group handling (ticket 02). Presence. An opt-out.
 
 ## Comments
+
+Resolved. Verified with `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm docs:check` and a browser check with two Users in two isolated browser contexts (Alice typing showed "alice is typing…" for Bob, and it faded after about 6 s). Assumption: Groups get no push yet (ticket 02): `signalTyping` relays only in Direct Conversations, after the same membership checks as a send. The SPA also already has the one/two/several text.

@@ -59,7 +59,7 @@ export function LoginForm({ ...props }: React.ComponentProps<typeof Card>) {
         <CardDescription>Enter your username or email and password below</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSubmit} noValidate>
+        <form onSubmit={(e) => void onSubmit(e)} noValidate>
           <FieldGroup>
             <Field data-invalid={errors.identifier ? true : undefined}>
               <FieldLabel htmlFor="identifier">Username or email</FieldLabel>

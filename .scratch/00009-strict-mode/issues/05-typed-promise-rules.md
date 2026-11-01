@@ -15,16 +15,20 @@
 
 **Blocked by:** 02, 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `pnpm lint` passes with both rules on, with no `eslint-disable` added for them
-- [ ] A floating promise and an async function passed as a void callback each fail lint in package source
-- [ ] `pnpm lint` passes with no contracts `dist` present
-- [ ] The only `package.json` change is the root `lint` script, and the lockfile is unchanged
-- [ ] The general conventions are updated
+- [x] `pnpm lint` passes with both rules on, with no `eslint-disable` added for them
+- [x] A floating promise and an async function passed as a void callback each fail lint in package source
+- [x] `pnpm lint` passes with no contracts `dist` present
+- [x] The only `package.json` change is the root `lint` script, and the lockfile is unchanged
+- [x] The general conventions are updated
 
 **Verification:** No new tests: this is a refactor, so existing tests stay green. Check the `dist` criterion by deleting it and running `pnpm lint`. Typed lint took about 4s against 1s at commit 71e66a6; note the new time in this Ticket's `## Comments`.
 
 **Out of scope:** `strictTypeChecked` and `no-confusing-void-expression`. Typed rules on root config files or `scripts/`. Changing what the handlers do.
 
 ## Comments
+
+Resolved. Both rules are on for `packages/*/src/**` and `packages/api/test/**` via `projectService`; the root `lint` script now starts with `pnpm build:contracts`. The 7 `no-misused-promises` reports were wrapped with `void`; no `eslint-disable` added. Verified: a temporary file with a floating call and an async `forEach` callback failed both rules; `pnpm lint` passes with `packages/contracts/dist` deleted; `pnpm lint`, `typecheck`, `test`, `docs:check` pass. Only `package.json` change is the `lint` script; lockfile unchanged. Timing: `eslint .` takes about 5s wall time (1s before), and full `pnpm lint` about 6s including the contracts build.
+
+Assumptions: none. Docs: the "Enforced by tools" line in `docs/conventions/general.md` now lists the two rules.

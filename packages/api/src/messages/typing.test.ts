@@ -205,7 +205,12 @@ describe('POST /conversations/:id/typing in a Direct Conversation', () => {
       expect((await typing(app, alice, upper, 'typing')).statusCode).toBe(204);
       expect(await first).toMatchObject({ conversationId: direct.id });
       expect((await typing(app, alice, direct.id, 'typing')).statusCode).toBe(204);
-      const limited = await typing(app, alice, upper.replace(/^./, (c) => c.toLowerCase()), 'stopped');
+      const limited = await typing(
+        app,
+        alice,
+        upper.replace(/^./, (c) => c.toLowerCase()),
+        'stopped',
+      );
 
       expect(limited.statusCode).toBe(429);
     });

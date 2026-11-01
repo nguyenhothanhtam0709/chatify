@@ -20,15 +20,21 @@ The API clients call `parse` on a 2xx response outside their error handling, so 
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] For each flow in the table, a malformed 2xx shows `Something went wrong. Try again.` and the control can be used again
-- [ ] A malformed 2xx causes no unhandled rejection in those flows
-- [ ] Results for valid responses and for other failures are unchanged
-- [ ] Other API clients are unchanged
+- [x] For each flow in the table, a malformed 2xx shows `Something went wrong. Try again.` and the control can be used again
+- [x] A malformed 2xx causes no unhandled rejection in those flows
+- [x] Results for valid responses and for other failures are unchanged
+- [x] Other API clients are unchanged
 
 **Verification:** Web behaviour tests, written first: render `<App />`, have MSW return a malformed 2xx for each flow, and check the message and that the control recovers. Show them failing before the fix. No browser check here: the real API can't easily return bad data, and Ticket 07's browser check covers these flows on valid responses.
 
 **Out of scope:** Other API clients with the same pattern: note any you see in this Ticket's `## Comments`, for Ticket 07 to log. Adding `try/finally` to handlers. Changing the API.
 
 ## Comments
+
+00009-04 done: `createGroup`, `changeMembers` (add/remove), `leaveGroup`, `login`, `register` and `updateProfile` now `safeParse` a 2xx body and return their existing `ok: false` shape with `Something went wrong. Try again.` (sign up uses `formError`). Handlers untouched.
+- Tests: `packages/web/src/malformed-2xx.test.tsx`, 7 flows, written first and shown failing (message missing, unhandled ZodError rejections), now passing.
+- Checks: lint, typecheck, test (187/312/195), docs:check pass. No browser check, as the Ticket says.
+- Assumptions: none.
+- Other clients with the same pattern, for Ticket 07 to log: `getGroup` (groups.ts), `refreshAccessToken` and `fetchCurrentUser` (auth.ts, caught by try/catch so they return undefined), `conversations.ts` (list, get, messages), `messages.ts` (send direct/group), `users.ts` (search), `health.ts`.

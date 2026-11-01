@@ -37,7 +37,10 @@ export async function register(
 
   const payload: unknown = await res.json().catch(() => undefined);
   if (res.ok) {
-    return { ok: true, user: RegisterResponseSchema.parse(payload).user };
+    const parsed = RegisterResponseSchema.safeParse(payload);
+    return parsed.success
+      ? { ok: true, user: parsed.data.user }
+      : { ok: false, fieldErrors: {}, formError: 'Something went wrong. Try again.' };
   }
 
   const parsed = ErrorResponseSchema.safeParse(payload);

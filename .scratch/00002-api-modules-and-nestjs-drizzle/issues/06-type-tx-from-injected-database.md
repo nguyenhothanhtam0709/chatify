@@ -14,4 +14,4 @@
 
 ## Comments
 
-2026-10-31, the human's decision: closed here because the Spec is resolved. The question moves to a [brief](../../00008-typed-transaction/brief.md), for a grilling session after spec 00007.
+2026-10-31, the human's decision: closed here because the Spec is resolved. The question moves to [spec 00008](../../00008-typed-transaction/spec.md).

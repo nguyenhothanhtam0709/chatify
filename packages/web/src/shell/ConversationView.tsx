@@ -3,6 +3,7 @@ import {
   MessageBodySchema,
   type Message as ChatMessage,
   type SystemMessageKind,
+  type TypingState,
   type User,
 } from '@chat/contracts';
 import { ArrowDown, ArrowUp, Info } from 'lucide-react';
@@ -16,7 +17,11 @@ import {
   type UIEvent,
 } from 'react';
 import { useAuth } from '@/auth/AuthProvider';
-import { useReconnected, useRealtimeEvents } from '@/realtime/RealtimeProvider';
+import {
+  useConnectionStatus,
+  useReconnected,
+  useRealtimeEvents,
+} from '@/realtime/RealtimeProvider';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
 import {
@@ -92,6 +97,20 @@ const MARK_READ_DEBOUNCE_MS = 300;
 /** A failed mark-read is tried again after these waits, then given up on until the next change. */
 const MARK_READ_RETRY_MS = [1000, 3000, 9000];
 
+/** An indicator shows for this long after the last signal from that Member. */
+const TYPING_EXPIRY_MS = 6000;
+
+/** While input continues, the composer repeats `typing` at most this often. */
+const TYPING_REPEAT_MS = 3000;
+
+/** The text of the Typing Indicator for the Members typing now, or undefined for none. */
+function typingText(names: string[]): string | undefined {
+  if (names.length === 0) return undefined;
+  if (names.length === 1) return `${names[0]} is typing…`;
+  if (names.length === 2) return `${names[0]} and ${names[1]} are typing…`;
+  return 'Several people are typing…';
+}
+
 /** Reaching within this many pixels of the top counts as the top. */
 const TOP_THRESHOLD = 48;
 
@@ -128,8 +147,38 @@ const mergeMessages = (current: ChatMessage[], incoming: ChatMessage[]): ChatMes
   return [...incoming, ...current.filter((m) => !ids.has(m.id))].sort(bySequence);
 };
 
-function Composer({ onSend }: { onSend: (body: string) => void }) {
+function Composer({
+  onSend,
+  onTyping,
+}: {
+  onSend: (body: string) => void;
+  /** Reports a Typing Indicator signal to send; the caller ignores any failure. */
+  onTyping: (state: TypingState) => void;
+}) {
   const [text, setText] = useState('');
+  // Whether the other side may be showing us as typing, and when `typing` was last sent.
+  const signalled = useRef(false);
+  const lastSignal = useRef(0);
+  const sendButton = useRef<HTMLButtonElement>(null);
+
+  function signal(state: TypingState) {
+    if (state === 'stopped') {
+      if (!signalled.current) return;
+      signalled.current = false;
+    } else {
+      const now = Date.now();
+      if (signalled.current && now - lastSignal.current < TYPING_REPEAT_MS) return;
+      signalled.current = true;
+      lastSignal.current = now;
+    }
+    onTyping(state);
+  }
+
+  function onChange(value: string) {
+    setText(value);
+    signal(value === '' ? 'stopped' : 'typing');
+  }
+
   const length = [...text].length;
   const sendable = MessageBodySchema.safeParse(text).success;
 
@@ -137,6 +186,8 @@ function Composer({ onSend }: { onSend: (body: string) => void }) {
     if (!sendable) return;
     onSend(text);
     setText('');
+    // The Message itself clears the indicator on the other side: no `stopped` is needed.
+    signalled.current = false;
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -160,7 +211,12 @@ function Composer({ onSend }: { onSend: (body: string) => void }) {
           rows={1}
           className="max-h-40 min-h-10"
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={(e) => {
+            // Going to the Send button is a send, whose Message clears the indicator itself.
+            if (e.relatedTarget === sendButton.current) return;
+            signal('stopped');
+          }}
           onKeyDown={onKeyDown}
         />
         <InputGroupAddon align="block-end" className="p-2">
@@ -174,6 +230,9 @@ function Composer({ onSend }: { onSend: (body: string) => void }) {
             variant="default"
             size="icon-sm"
             aria-label="Send"
+            ref={sendButton}
+            // Keeps focus in the textarea, so a click or tap does not blur it before the send.
+            onMouseDown={(e) => e.preventDefault()}
             disabled={!sendable}
             className="ml-auto"
           >
@@ -232,8 +291,15 @@ export function ConversationView({
    */
   reading?: boolean;
 }) {
-  const { sendDirectMessage, sendMessage, messagesPage, getGroup, markRead, readReceipt } =
-    useAuth();
+  const {
+    sendDirectMessage,
+    sendMessage,
+    messagesPage,
+    getGroup,
+    markRead,
+    readReceipt,
+    signalTyping,
+  } = useAuth();
   // Only the Conversation this view was opened with is loaded; a later change of the prop is
   // just the first send reporting the Conversation it created.
   const [openedWith] = useState(initialConversationId);
@@ -442,6 +508,29 @@ export function ConversationView({
     };
   }, [reading, mayMark, conversationId, newestSequence, markRead, markAttempt]);
 
+  // Who is typing here now, by User ID, each with a timer that drops them 6 s after their last
+  // signal. This side owns the expiry: the server relays and forgets (ADR 0009).
+  const [typists, setTypists] = useState<Record<string, string>>({});
+  const typistTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const dropTypist = useCallback((userId: string) => {
+    clearTimeout(typistTimers.current.get(userId));
+    typistTimers.current.delete(userId);
+    setTypists((current) => {
+      if (!(userId in current)) return current;
+      return Object.fromEntries(Object.entries(current).filter(([id]) => id !== userId));
+    });
+  }, []);
+  const clearTypists = useCallback(() => {
+    typistTimers.current.forEach((timer) => clearTimeout(timer));
+    typistTimers.current.clear();
+    setTypists({});
+  }, []);
+  useEffect(() => clearTypists, [clearTypists]);
+  const connection = useConnectionStatus();
+  useEffect(() => {
+    if (connection === 'disconnected') clearTypists();
+  }, [connection, clearTypists]);
+
   const [outgoing, setOutgoing] = useState<Outgoing[]>([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -483,6 +572,29 @@ export function ConversationView({
   useRealtimeEvents(
     useCallback(
       (event) => {
+        if (event.type !== 'typing.updated') return;
+        const ours = conversationId
+          ? event.conversationId === conversationId
+          : target.kind === 'direct' && event.user.id === target.peer.id;
+        if (!ours || event.user.id === user.id) return;
+        if (event.state === 'stopped') {
+          dropTypist(event.user.id);
+          return;
+        }
+        clearTimeout(typistTimers.current.get(event.user.id));
+        typistTimers.current.set(
+          event.user.id,
+          setTimeout(() => dropTypist(event.user.id), TYPING_EXPIRY_MS),
+        );
+        setTypists((current) => ({ ...current, [event.user.id]: displayName(event.user) }));
+      },
+      [conversationId, target, user.id, dropTypist],
+    ),
+  );
+
+  useRealtimeEvents(
+    useCallback(
+      (event) => {
         if (event.type !== 'message.created') return;
         const { message } = event;
         // A Message from the peer starts the Conversation this view was opened without.
@@ -491,12 +603,13 @@ export function ConversationView({
           : target.kind === 'direct' && message.senderId === target.peer.id;
         if (!ours) return;
         if (!conversationId) setConversationId(message.conversationId);
+        dropTypist(message.senderId);
         setMessages((current) => mergeMessages(current, [message]));
         setOutgoing((current) =>
           current.filter((o) => o.clientMessageId !== message.clientMessageId),
         );
       },
-      [conversationId, target],
+      [conversationId, target, dropTypist],
     ),
   );
 
@@ -726,8 +839,18 @@ export function ConversationView({
           )}
         </MessageScrollerProvider>
       </div>
+      {canPost && (
+        <p role="status" className="h-5 truncate px-4 text-sm text-muted-foreground">
+          {typingText(Object.values(typists))}
+        </p>
+      )}
       {canPost ? (
-        <Composer onSend={send} />
+        <Composer
+          onSend={send}
+          onTyping={(state) => {
+            if (conversationId) void signalTyping(conversationId, state);
+          }}
+        />
       ) : (
         <p className="border-t p-4 text-center text-sm text-muted-foreground">
           {closed

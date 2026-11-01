@@ -4,6 +4,7 @@ import {
   ConversationSummarySchema,
   MessageSchema,
   ReadMarkerSchema,
+  TypingStateSchema,
 } from './message.js';
 
 /** Server-to-client Socket.IO events. The socket is push-only (ADR-0001). */
@@ -19,6 +20,7 @@ export const RealtimeEvent = {
   GROUP_CLOSED: 'group.closed',
   GROUP_MEMBERSHIP_ENDED: 'group.membership_ended',
   SESSION_REVOKED: 'session.revoked',
+  TYPING_UPDATED: 'typing.updated',
 } as const;
 
 export type RealtimeEventName = (typeof RealtimeEvent)[keyof typeof RealtimeEvent];
@@ -104,6 +106,18 @@ export type GroupMembershipEndedEvent = z.infer<typeof GroupMembershipEndedEvent
 /** Pushed to every socket of a session that was ended (logout); the server then disconnects them. */
 export const SessionRevokedEventSchema = z.object({});
 
+/**
+ * Pushed to the other current Members of a Conversation (never the typist's own sockets) when
+ * a Member starts or stops typing. Ephemeral: never stored, and the receiver owns the expiry.
+ */
+export const TypingUpdatedEventSchema = z.object({
+  conversationId: z.uuid(),
+  state: TypingStateSchema,
+  user: ConversationMemberSchema,
+});
+
+export type TypingUpdatedEvent = z.infer<typeof TypingUpdatedEventSchema>;
+
 export const RealtimeEventSchemas = {
   [RealtimeEvent.MESSAGE_CREATED]: MessageCreatedEventSchema,
   [RealtimeEvent.CONVERSATION_CREATED]: ConversationCreatedEventSchema,
@@ -116,4 +130,5 @@ export const RealtimeEventSchemas = {
   [RealtimeEvent.GROUP_CLOSED]: GroupClosedEventSchema,
   [RealtimeEvent.GROUP_MEMBERSHIP_ENDED]: GroupMembershipEndedEventSchema,
   [RealtimeEvent.SESSION_REVOKED]: SessionRevokedEventSchema,
+  [RealtimeEvent.TYPING_UPDATED]: TypingUpdatedEventSchema,
 } as const;

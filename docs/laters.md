@@ -139,3 +139,7 @@ MVP1 has only the Owner role and no renaming, deletion or invitations needing ac
 ## CI pipeline and deployment
 
 CI, deployment and OpenAPI docs were out of scope for MVP1. The required CI checks are already listed under "Enforce the doc and convention rules" and OpenAPI under "Contract-first development"; this entry is the rest: a hosting target, environment config and a deploy pipeline.
+
+## Typing Indicator in a new Direct view
+
+A Direct view opened through the new-conversation dialog sends no Typing Indicator signal until its first Message, even when the Conversation already exists, because the route needs a Conversation ID. Fix by resolving the existing Direct Conversation for the picked User when the view opens.

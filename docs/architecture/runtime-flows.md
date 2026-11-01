@@ -46,3 +46,11 @@ What holds on the main paths today and can't be seen by reading one file. Hand-w
 - A reader sees only Messages whose sequence falls inside one of their membership periods. That is how a Former Member keeps what they were present for and nothing later.
 - The Conversation list stays current from pushes, including each entry's last-Message preview and Unread Count. It reloads when a push names a Conversation it doesn't list, or when a Group ends for the User.
 - After the socket reconnects, the web app reloads the list and fetches the open Conversation's Messages with `?after=` its newest sequence, page by page, merging by ID.
+
+## Typing Indicator
+
+- `POST /conversations/:id/typing` (`typing` or `stopped`) is relayed and never stored (ADR 0009). It takes no Conversation lock and does not wait on `CommitOrder`; access is the same as for sending a Message. The reply is `204`.
+- `typing.updated` goes to the other User of a Direct Conversation, or to a Group's room except every socket of the typist. Like every push it is best effort, and it is logged at debug rather than info.
+- It is limited to 2 per 2 s per User and Conversation once authenticated. Before authentication it is limited per IP, with its own counter, so the generic limit doesn't count typing.
+- The receiving view owns the expiry: it drops a Member 6 s after their last signal, on `stopped`, on a Message from them, and when the socket is disconnected.
+- The composer sends `typing` on input, repeated at most every 3 s, and `stopped` when the text is emptied or the textarea loses focus. Sending a Message sends no `stopped`, because the Message clears the indicator. A view with no Conversation yet sends nothing.

@@ -23,4 +23,4 @@ Then open http://localhost:5173 with the Chrome DevTools MCP. The seeded Users a
 - Before starting, check that nothing already holds the ports: `lsof -i :3000 -i :5173`. Another worktree's dev stack is stopped by whoever started it.
 - Group checks into one `evaluate_script` call. Use `take_snapshot` or a screenshot only to look at layout: they are large and stay in the context for the rest of the run.
 - The PR says what was checked. It needs no attached images.
-- Stop the dev stack before reporting done.
+- Stop the dev stack before reporting done. `dev:api` runs under `node --watch`, which restarts its child if only the child is killed, so stop the watcher too. Wait a few seconds, then confirm with `lsof -i :3000 -i :5173` that the ports are still free.

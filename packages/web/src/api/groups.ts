@@ -60,7 +60,7 @@ export async function getGroup(
   try {
     res = await fetch(new URL(`/api/v1/conversations/${groupId}`, window.location.origin), {
       headers: { authorization: `Bearer ${accessToken}` },
-      signal,
+      signal: signal ?? null,
     });
   } catch {
     return { ok: false, error: UNREACHABLE };

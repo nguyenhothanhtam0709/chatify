@@ -29,7 +29,7 @@ export async function register(
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(input),
-      signal,
+      signal: signal ?? null,
     });
   } catch {
     return { ok: false, fieldErrors: {}, formError: 'Could not reach the server. Try again.' };

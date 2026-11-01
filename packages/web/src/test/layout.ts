@@ -24,9 +24,9 @@ export function stubLayout() {
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
     this: HTMLElement,
   ) {
-    if (this.dataset.slot === 'message-scroller-viewport') return rect(0, VIEWPORT_HEIGHT);
+    if (this.dataset['slot'] === 'message-scroller-viewport') return rect(0, VIEWPORT_HEIGHT);
     const content = this.parentElement;
-    if (content?.dataset.slot === 'message-scroller-content') {
+    if (content?.dataset['slot'] === 'message-scroller-content') {
       const viewport = content.closest<HTMLElement>('[data-slot="message-scroller-viewport"]')!;
       const items = Array.from(content.children).filter(
         (child) => !(child as HTMLElement).hasAttribute('data-message-scroller-spacer'),
@@ -39,7 +39,7 @@ export function stubLayout() {
   HTMLElement.prototype.scrollTo = function (this: HTMLElement, options?: unknown) {
     this.scrollTop = (options as ScrollToOptions).top ?? 0;
   } as typeof HTMLElement.prototype.scrollTo;
-  const isViewport = (el: HTMLElement) => el.dataset.slot === 'message-scroller-viewport';
+  const isViewport = (el: HTMLElement) => el.dataset['slot'] === 'message-scroller-viewport';
   Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
     configurable: true,
     get() {

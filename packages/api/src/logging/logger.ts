@@ -35,7 +35,7 @@ interface FileStream extends DestinationStream {
 
 async function buildStreams(
   config: Config,
-): Promise<{ streams: StreamEntry<Level>[]; file?: FileStream }> {
+): Promise<{ streams: StreamEntry<Level>[]; file: FileStream | undefined }> {
   const streams: StreamEntry<Level>[] = [];
   let file: FileStream | undefined;
   if (config.LOG_CONSOLE_ENABLED) {

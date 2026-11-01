@@ -28,7 +28,7 @@ async function get(accessToken: string, path: string, signal?: AbortSignal) {
   try {
     res = await fetch(new URL(path, window.location.origin), {
       headers: { authorization: `Bearer ${accessToken}` },
-      signal,
+      signal: signal ?? null,
     });
   } catch {
     return { ok: false, error: 'Could not reach the server. Try again.' } as const;

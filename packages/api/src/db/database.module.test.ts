@@ -24,7 +24,7 @@ describe('DatabaseModule', () => {
       await db.execute(sql`select 42 as answer`);
 
       expect(
-        logs.lines.find((l) => l.msg === 'slow db query' && l.sql === 'select 42 as answer'),
+        logs.lines.find((l) => l.msg === 'slow db query' && l['sql'] === 'select 42 as answer'),
       ).toBeDefined();
     });
   });

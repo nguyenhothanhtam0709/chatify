@@ -157,7 +157,7 @@ describe('conversation.receipt', () => {
       expect(receipts(bobSocket)).toEqual([]);
       const pushes = logs.lines
         .slice(logsBefore)
-        .filter((l) => l.msg === 'socket push' && l.event === 'conversation.receipt');
+        .filter((l) => l.msg === 'socket push' && l['event'] === 'conversation.receipt');
       expect(pushes).toEqual([
         expect.objectContaining({ targetUsers: 1, conversationId: direct.id }),
       ]);

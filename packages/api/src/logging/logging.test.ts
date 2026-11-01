@@ -16,11 +16,11 @@ describe('database query logging', () => {
     await withApp({ config: { LOG_LEVEL: 'debug' } }, async (app, logs) => {
       const res = await app.inject({ method: 'GET', url: '/api/v1/health' });
 
-      const query = logs.lines.find((l) => l.msg === 'db query' && l.sql === 'select 1');
+      const query = logs.lines.find((l) => l.msg === 'db query' && l['sql'] === 'select 1');
       expect(query).toBeDefined();
       expect(query!.level).toBe(LEVEL.debug);
-      expect(typeof query!.durationMs).toBe('number');
-      expect(query!.requestId).toBe(res.headers['x-request-id']);
+      expect(typeof query!['durationMs']).toBe('number');
+      expect(query!['requestId']).toBe(res.headers['x-request-id']);
       expect(query).not.toHaveProperty('params');
       expect(query).not.toHaveProperty('values');
     });
@@ -63,9 +63,9 @@ describe('request context', () => {
 
     const [before, after, outside] = logs.lines;
     expect(before).toMatchObject({ requestId: 'req-1', msg: 'before auth' });
-    expect(before!.userId).toBeUndefined();
+    expect(before!['userId']).toBeUndefined();
     expect(after).toMatchObject({ requestId: 'req-1', userId: 'user-1' });
-    expect(outside!.requestId).toBeUndefined();
+    expect(outside!['requestId']).toBeUndefined();
   });
 
   it('redacts secrets and message bodies that code tries to log', async () => {

@@ -9,7 +9,7 @@ import { runMigrations } from '../src/db/migrate.js';
 export default async function setup(project: {
   provide: (key: string, value: string) => void;
 }): Promise<() => Promise<void>> {
-  let url = process.env.TEST_DATABASE_URL;
+  let url = process.env['TEST_DATABASE_URL'];
   let stop = async () => {};
 
   if (!url) {

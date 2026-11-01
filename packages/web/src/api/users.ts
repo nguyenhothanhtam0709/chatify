@@ -18,7 +18,10 @@ export async function searchUsers(
   url.searchParams.set('q', q);
   let res: Response;
   try {
-    res = await fetch(url, { headers: { authorization: `Bearer ${accessToken}` }, signal });
+    res = await fetch(url, {
+      headers: { authorization: `Bearer ${accessToken}` },
+      signal: signal ?? null,
+    });
   } catch {
     return { ok: false, error: 'Could not reach the server. Try again.' };
   }

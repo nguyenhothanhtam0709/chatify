@@ -52,6 +52,7 @@ export function createSocketRealtime({
         console.warn(`Dropped invalid realtime event "${name}"`, parsed.error.issues);
         return;
       }
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- `name` and `parsed.data` come from the same schema entry, but TypeScript cannot correlate them into the union
       const event = { type: name, ...parsed.data } as RealtimeEvent;
       listeners.forEach((listener) => listener(event));
     });

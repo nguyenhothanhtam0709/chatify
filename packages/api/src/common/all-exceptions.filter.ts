@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ErrorCode, type ErrorResponse } from '@chat/contracts';
 import type { FastifyReply } from 'fastify';
+import { readProperty } from './read-property.js';
 import { ValidationFailedException } from './zod-validation.pipe.js';
 
 /** Thrown by domain code to answer with a specific status and stable ErrorCode. */
@@ -37,7 +38,7 @@ function codeForStatus(status: number): ErrorCode {
 
 /** Shape of Fastify's own errors (e.g. malformed JSON): they carry a 4xx `statusCode`. */
 function fastifyClientStatus(exception: unknown): number | undefined {
-  const status = (exception as { statusCode?: unknown } | null)?.statusCode;
+  const status = readProperty(exception, 'statusCode');
   return typeof status === 'number' && status >= 400 && status < 500 ? status : undefined;
 }
 

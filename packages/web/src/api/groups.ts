@@ -9,6 +9,8 @@ import {
   type Group,
 } from '@chat/contracts';
 
+const GENERIC_ERROR = 'Something went wrong. Try again.';
+
 export type CreateGroupResult = { ok: true; group: Group } | { ok: false; error: string };
 
 /** `POST /api/v1/groups`: the caller becomes the Owner. */
@@ -31,7 +33,7 @@ export async function createGroup(
     const parsed = CreateGroupResponseSchema.safeParse(payload);
     return parsed.success
       ? { ok: true, group: parsed.data.conversation }
-      : { ok: false, error: 'Something went wrong. Try again.' };
+      : { ok: false, error: GENERIC_ERROR };
   }
   const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
   if (code === ErrorCode.GROUP_FULL) {
@@ -43,7 +45,7 @@ export async function createGroup(
   if (code === ErrorCode.VALIDATION_FAILED) {
     return { ok: false, error: 'That Group name is not allowed. Use 1-100 plain characters.' };
   }
-  return { ok: false, error: 'Something went wrong. Try again.' };
+  return { ok: false, error: GENERIC_ERROR };
 }
 
 export type GroupResult<G extends Group = Group> =
@@ -52,7 +54,6 @@ export type GroupResult<G extends Group = Group> =
 /** A Group as `GET /conversations/:id` tells it to the caller (adds `isMember`). */
 export type GroupDetail = Extract<GetConversationResponse['conversation'], { kind: 'group' }>;
 
-const GENERIC_ERROR = 'Something went wrong. Try again.';
 const UNREACHABLE = 'Could not reach the server. Try again.';
 
 /** `GET /api/v1/conversations/:id` for a Group: its Members and Owner. */

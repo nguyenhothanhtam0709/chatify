@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 import { hashPassword } from '../auth/password-hash.js';
 import { exactlyOne, nextSequence, type Tx } from '../messages/message-rows.js';
+import * as schema from './schema.js';
 import {
   conversationMembers,
   conversations,
@@ -33,7 +34,7 @@ export function assertNotProduction(env: Record<string, string | undefined>): vo
  * seeds it all or nothing. Returns whether it seeded.
  */
 export async function seedDatabase(pool: Pool): Promise<boolean> {
-  const db = drizzle(pool);
+  const db = drizzle(pool, { schema });
   const passwordHash = await hashPassword(SEED_PASSWORD);
 
   return db.transaction(async (tx) => {

@@ -48,9 +48,9 @@ describe('signup page', () => {
         {
           user: {
             id: USER_ID,
-            username: body.username,
-            email: body.email,
-            nickname: body.nickname ?? null,
+            username: body['username'],
+            email: body['email'],
+            nickname: body['nickname'] ?? null,
             shareReadReceipts: true,
           },
         },
@@ -85,8 +85,8 @@ describe('signup page', () => {
         {
           user: {
             id: USER_ID,
-            username: body.username,
-            email: body.email,
+            username: body['username'],
+            email: body['email'],
             nickname: null,
             shareReadReceipts: true,
           },

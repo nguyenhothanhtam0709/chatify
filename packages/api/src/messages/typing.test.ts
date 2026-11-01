@@ -228,7 +228,7 @@ describe('POST /conversations/:id/typing in a Direct Conversation', () => {
       await typing(app, alice, direct.id, 'typing');
       await pushed;
 
-      expect(logs.lines.filter((l) => l.event === 'typing.updated')).toEqual([]);
+      expect(logs.lines.filter((l) => l['event'] === 'typing.updated')).toEqual([]);
     });
     await withApp({ config: { LOG_LEVEL: 'debug' } }, async (app, logs) => {
       const alice = await signUp(app, 'Alice');
@@ -241,7 +241,7 @@ describe('POST /conversations/:id/typing in a Direct Conversation', () => {
       await typing(app, alice, direct.id, 'typing');
       await pushed;
 
-      const lines = logs.lines.filter((l) => l.event === 'typing.updated');
+      const lines = logs.lines.filter((l) => l['event'] === 'typing.updated');
       expect(lines).toEqual([
         expect.objectContaining({ level: 20, targetUsers: 1, conversationId: direct.id }),
       ]);
@@ -346,7 +346,7 @@ describe('POST /conversations/:id/typing in a Group', () => {
         await typing(app, alice, group.id, 'typing');
         await pushed;
 
-        lines = logs.lines.filter((l) => l.event === 'typing.updated');
+        lines = logs.lines.filter((l) => l['event'] === 'typing.updated');
         groupId = group.id;
       });
 

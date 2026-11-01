@@ -70,7 +70,7 @@ describe('access token', () => {
         ).json(),
       );
       expect(payload.sub).toBe(me.user.id);
-      expect(payload.sid).toEqual(expect.any(String));
+      expect(payload['sid']).toEqual(expect.any(String));
       expect(payload.jti).toEqual(expect.any(String));
       expect(payload.iat).toBe(Date.parse('2030-01-01T00:00:00Z') / 1000);
       expect(payload.exp).toBe(payload.iat! + 15 * 60);

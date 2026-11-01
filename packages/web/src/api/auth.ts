@@ -48,7 +48,7 @@ export async function refreshAccessToken(signal?: AbortSignal): Promise<string |
     const res = await fetch(url('/auth/refresh'), {
       method: 'POST',
       credentials: 'same-origin',
-      signal,
+      signal: signal ?? null,
     });
     if (!res.ok) return undefined;
     return RefreshResponseSchema.parse(await res.json()).accessToken;
@@ -78,7 +78,7 @@ export async function fetchCurrentUser(
   try {
     const res = await fetch(url('/users/me'), {
       headers: { authorization: `Bearer ${accessToken}` },
-      signal,
+      signal: signal ?? null,
     });
     if (!res.ok) return undefined;
     return MeResponseSchema.parse(await res.json()).user;

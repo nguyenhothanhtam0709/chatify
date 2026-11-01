@@ -32,7 +32,7 @@ Rules for `packages/api`, on top of the [general conventions](general.md).
 
 ## Throttling
 
-The global default limit comes from `ThrottlingModule` and `AppThrottlerGuard`. Per-User named throttlers (search, send) are set in the module. Per-IP limits are `@Throttle` on the route.
+The global default limit comes from `ThrottlingModule` and `AppThrottlerGuard`. Named throttlers keyed by User (search, send, typing) are set in the module. Per-IP limits are `@Throttle` on the route. The exception is `typingIp`, a named per-IP throttler with its own counter, so typing doesn't count against the default limit.
 
 ## Config and logging
 

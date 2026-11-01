@@ -1,6 +1,6 @@
 # Spec: Live Signals (Typing Indicators)
 
-Status: ready-for-agent
+Status: resolved
 
 ## Problem Statement
 

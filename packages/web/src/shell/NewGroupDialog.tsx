@@ -45,7 +45,7 @@ function NewGroupForm({ onCreated }: { onCreated: (group: Group) => void }) {
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-4">
+    <form onSubmit={(e) => void submit(e)} className="grid gap-4">
       <Field>
         <FieldLabel htmlFor={nameId}>Group name</FieldLabel>
         <Input

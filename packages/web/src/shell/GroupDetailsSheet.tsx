@@ -205,19 +205,21 @@ export function GroupDetailsSheet({
               <AlertDialogAction
                 variant="destructive"
                 disabled={busy}
-                onClick={async () => {
-                  setBusy(true);
-                  setError(undefined);
-                  const result = await leaveGroup(groupId);
-                  setBusy(false);
-                  setLeaving(false);
-                  if (!result.ok) {
-                    setError(result.error);
-                    return;
-                  }
-                  setGroup(result.group);
-                  onLeft?.(result.group);
-                }}
+                onClick={() =>
+                  void (async () => {
+                    setBusy(true);
+                    setError(undefined);
+                    const result = await leaveGroup(groupId);
+                    setBusy(false);
+                    setLeaving(false);
+                    if (!result.ok) {
+                      setError(result.error);
+                      return;
+                    }
+                    setGroup(result.group);
+                    onLeft?.(result.group);
+                  })()
+                }
               >
                 Leave
               </AlertDialogAction>
@@ -240,12 +242,14 @@ export function GroupDetailsSheet({
               <AlertDialogAction
                 variant="destructive"
                 disabled={busy}
-                onClick={async () => {
-                  if (!removing) return;
-                  const target = removing;
-                  await change(() => removeGroupMember(groupId, target.id));
-                  setRemoving(undefined);
-                }}
+                onClick={() =>
+                  void (async () => {
+                    if (!removing) return;
+                    const target = removing;
+                    await change(() => removeGroupMember(groupId, target.id));
+                    setRemoving(undefined);
+                  })()
+                }
               >
                 Remove
               </AlertDialogAction>

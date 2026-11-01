@@ -7,7 +7,7 @@ import type { IoServerOptions } from './socket-types.js';
  * MessagePack on the wire, and per-message deflate.
  */
 export class RealtimeIoAdapter extends IoAdapter {
-  override createIOServer(port: number, options?: IoServerOptions) {
+  public override createIOServer(port: number, options?: IoServerOptions) {
     const fixed = { transports: ['websocket'], parser, perMessageDeflate: true };
     return super.createIOServer(port, { ...options, ...fixed } as IoServerOptions);
   }

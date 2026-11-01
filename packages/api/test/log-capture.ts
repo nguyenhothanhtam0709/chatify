@@ -13,11 +13,11 @@ export const LEVEL = { debug: 20, info: 30, warn: 40, error: 50 } as const;
 export class LogCapture implements LogDestination {
   private readonly chunks: string[] = [];
 
-  write(line: string): void {
+  public write(line: string): void {
     this.chunks.push(line);
   }
 
-  get lines(): LogLine[] {
+  public get lines(): LogLine[] {
     return this.chunks
       .join('')
       .split('\n')
@@ -26,7 +26,7 @@ export class LogCapture implements LogDestination {
   }
 
   /** The raw captured text, for asserting that a secret appears nowhere. */
-  get raw(): string {
+  public get raw(): string {
     return this.chunks.join('');
   }
 }

@@ -6,14 +6,14 @@ import type { TokenDenyList } from './token-deny-list.js';
 export class PostgresTokenDenyList implements TokenDenyList {
   constructor(private readonly db: Database) {}
 
-  async add(jti: string, expiresAt: Date): Promise<void> {
+  public async add(jti: string, expiresAt: Date): Promise<void> {
     await this.db
       .insert(tokenDenyList)
       .values({ jti, expiresAt })
       .onConflictDoUpdate({ target: tokenDenyList.jti, set: { expiresAt } });
   }
 
-  async isDenied(jti: string): Promise<boolean> {
+  public async isDenied(jti: string): Promise<boolean> {
     const rows = await this.db
       .select({ jti: tokenDenyList.jti })
       .from(tokenDenyList)
@@ -22,7 +22,7 @@ export class PostgresTokenDenyList implements TokenDenyList {
     return rows.length > 0;
   }
 
-  async sweepExpired(): Promise<number> {
+  public async sweepExpired(): Promise<number> {
     const removed = await this.db
       .delete(tokenDenyList)
       .where(lte(tokenDenyList.expiresAt, sql`now()`))

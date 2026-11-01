@@ -7,27 +7,27 @@ type Method = 'info' | 'error' | 'warn' | 'debug' | 'trace' | 'fatal';
 export class PinoLoggerService implements LoggerService {
   constructor(private readonly logger: Logger) {}
 
-  log(message: unknown, ...optionalParams: unknown[]): void {
+  public log(message: unknown, ...optionalParams: unknown[]): void {
     this.write('info', message, optionalParams);
   }
 
-  error(message: unknown, ...optionalParams: unknown[]): void {
+  public error(message: unknown, ...optionalParams: unknown[]): void {
     this.write('error', message, optionalParams);
   }
 
-  warn(message: unknown, ...optionalParams: unknown[]): void {
+  public warn(message: unknown, ...optionalParams: unknown[]): void {
     this.write('warn', message, optionalParams);
   }
 
-  debug(message: unknown, ...optionalParams: unknown[]): void {
+  public debug(message: unknown, ...optionalParams: unknown[]): void {
     this.write('debug', message, optionalParams);
   }
 
-  verbose(message: unknown, ...optionalParams: unknown[]): void {
+  public verbose(message: unknown, ...optionalParams: unknown[]): void {
     this.write('trace', message, optionalParams);
   }
 
-  fatal(message: unknown, ...optionalParams: unknown[]): void {
+  public fatal(message: unknown, ...optionalParams: unknown[]): void {
     this.write('fatal', message, optionalParams);
   }
 

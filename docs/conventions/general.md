@@ -8,7 +8,7 @@ These apply to every package.
 
 ## Enforced by tools
 
-Lint and the compiler already enforce these, so they are not restated: Zod-only validation, no `dangerouslySetInnerHTML`, no `any` or `@ts-` comments, no floating or misused promises in `packages/*/src` and `packages/api/test` (typed lint), no `!` non-null assertion outside tests, named exports only in `packages/*/src`, the `node:` prefix on Node built-ins, Prettier style, strict mode, `noUncheckedIndexedAccess` and `.js` suffixes on relative imports (NodeNext). In `packages/api/src`: no `forwardRef`, no `console.*` outside the CLIs, and no `process.env` outside `main.ts` and the CLIs.
+Lint and the compiler already enforce these, so they are not restated: Zod-only validation, no `dangerouslySetInnerHTML`, no `any` or `@ts-` comments, no floating or misused promises in `packages/*/src` and `packages/api/test` (typed lint), no `!` non-null assertion outside tests, named exports only in `packages/*/src`, the `node:` prefix on Node built-ins, Prettier style, strict mode, an explicit `public`, `private` or `protected` on every class member except constructors (which take no `public`), `noUncheckedIndexedAccess` and `.js` suffixes on relative imports (NodeNext). In `packages/api/src`: no `forwardRef`, no `console.*` outside the CLIs, and no `process.env` outside `main.ts` and the CLIs.
 
 ## Naming
 

@@ -14,10 +14,10 @@ import { ValidationFailedException } from './zod-validation.pipe.js';
 /** Thrown by domain code to answer with a specific status and stable ErrorCode. */
 export class DomainException extends HttpException {
   constructor(
-    readonly code: ErrorCode,
+    public readonly code: ErrorCode,
     status: HttpStatus,
     message: string,
-    readonly details?: unknown,
+    public readonly details?: unknown,
   ) {
     super(message, status);
   }
@@ -47,7 +47,7 @@ function fastifyClientStatus(exception: unknown): number | undefined {
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('ExceptionFilter');
 
-  catch(exception: unknown, host: ArgumentsHost): void {
+  public catch(exception: unknown, host: ArgumentsHost): void {
     const reply = host.switchToHttp().getResponse<FastifyReply>();
     const { status, body } = this.toResponse(exception);
     void reply.status(status).send(body);

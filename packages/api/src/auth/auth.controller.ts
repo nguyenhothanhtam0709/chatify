@@ -40,7 +40,7 @@ export class AuthController {
   /** 5 registrations per hour per IP. */
   @Post('register')
   @Throttle({ default: { limit: 5, ttl: 60 * 60 * 1000 } })
-  register(
+  public register(
     @Body(new ZodValidationPipe(RegisterRequestSchema)) body: RegisterRequest,
   ): Promise<RegisterResponse> {
     return this.auth.register(body);
@@ -50,7 +50,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   @Throttle({ default: { limit: 10, ttl: FIFTEEN_MINUTES_MS } })
-  async login(
+  public async login(
     @Body(new ZodValidationPipe(LoginRequestSchema)) body: LoginRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<LoginResponse> {
@@ -61,7 +61,7 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(200)
-  async refresh(
+  public async refresh(
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<RefreshResponse> {
@@ -78,7 +78,7 @@ export class AuthController {
   @Post('logout')
   @HttpCode(204)
   @UseGuards(AuthGuard)
-  async logout(
+  public async logout(
     @Auth() auth: AuthContext,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {

@@ -14,7 +14,7 @@ export interface Slot {
 export class KeyedSerializer {
   private readonly tails = new Map<string, Promise<void>>();
 
-  enter(key: string): Slot {
+  public enter(key: string): Slot {
     const turn = this.tails.get(key) ?? Promise.resolve();
     let finish!: () => void;
     const tail = new Promise<void>((resolve) => (finish = resolve));

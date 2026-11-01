@@ -27,7 +27,7 @@ export class AccessTokenAuthenticator {
     private readonly auth: AuthService,
   ) {}
 
-  async check(token: string | undefined): Promise<AccessTokenCheck> {
+  public async check(token: string | undefined): Promise<AccessTokenCheck> {
     const claims = token ? await this.tokens.verifyAccessToken(token) : undefined;
     if (!claims) return { ok: false, code: ErrorCode.UNAUTHENTICATED };
     // Logout denies the token; a session ended any other way (refresh-token reuse) is gone.

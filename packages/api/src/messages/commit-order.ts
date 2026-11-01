@@ -19,7 +19,7 @@ export class CommitOrder {
    * own `afterCommit`. Room changes and pushes therefore happen in commit order: a Message is never
    * pushed between a membership commit and its room change.
    */
-  async run<R, T>(
+  public async run<R, T>(
     conversationId: string,
     transaction: (takeSlot: () => void) => Promise<R>,
     afterCommit: (result: R) => Promise<T>,

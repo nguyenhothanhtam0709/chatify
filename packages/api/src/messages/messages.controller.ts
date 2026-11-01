@@ -47,7 +47,7 @@ export class MessagesController {
   /** Send to a User by ID; the first Message creates the Direct Conversation. */
   @Post('direct-messages')
   @UseGuards(AuthGuard, SendThrottlerGuard)
-  async sendDirect(
+  public async sendDirect(
     @Auth() auth: AuthContext,
     @Body(new ZodValidationPipe(SendDirectMessageRequestSchema)) body: SendDirectMessageRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
@@ -59,7 +59,7 @@ export class MessagesController {
 
   @Post('conversations/:id/messages')
   @UseGuards(AuthGuard, SendThrottlerGuard)
-  async send(
+  public async send(
     @Auth() auth: AuthContext,
     @Param('id', ConversationIdPipe) conversationId: string,
     @Body(new ZodValidationPipe(SendMessageRequestSchema)) body: SendMessageRequest,
@@ -72,13 +72,13 @@ export class MessagesController {
 
   @Get('conversations')
   @UseGuards(AuthGuard)
-  list(@Auth() auth: AuthContext): Promise<ListConversationsResponse> {
+  public list(@Auth() auth: AuthContext): Promise<ListConversationsResponse> {
     return this.messages.list(auth.userId);
   }
 
   @Get('conversations/:id')
   @UseGuards(AuthGuard)
-  get(
+  public get(
     @Auth() auth: AuthContext,
     @Param('id', ConversationIdPipe) conversationId: string,
   ): Promise<GetConversationResponse> {
@@ -87,7 +87,7 @@ export class MessagesController {
 
   @Get('conversations/:id/messages')
   @UseGuards(AuthGuard)
-  history(
+  public history(
     @Auth() auth: AuthContext,
     @Param('id', ConversationIdPipe) conversationId: string,
     @Query(new ZodValidationPipe(GetMessagesQuerySchema)) query: GetMessagesQuery,
@@ -99,7 +99,7 @@ export class MessagesController {
   @Put('conversations/:id/read')
   @HttpCode(200)
   @UseGuards(AuthGuard)
-  markRead(
+  public markRead(
     @Auth() auth: AuthContext,
     @Param('id', ConversationIdPipe) conversationId: string,
     @Body(new ZodValidationPipe(MarkReadRequestSchema)) body: MarkReadRequest,
@@ -111,7 +111,7 @@ export class MessagesController {
   @Post('conversations/:id/typing')
   @HttpCode(204)
   @UseGuards(AuthGuard, TypingThrottlerGuard)
-  async typing(
+  public async typing(
     @Auth() auth: AuthContext,
     @Param('id', ConversationIdPipe) conversationId: string,
     @Body(new ZodValidationPipe(TypingRequestSchema)) body: TypingRequest,

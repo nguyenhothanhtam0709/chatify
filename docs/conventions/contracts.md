@@ -15,8 +15,26 @@ Rules for `packages/contracts`, on top of the [general conventions](general.md).
 
 - Every schema comes in a pair, `FooSchema` and `type Foo`. HTTP bodies are `XRequestSchema` and `XResponseSchema`. Responses are always wrapped in an object (`{ user }`, `{ message }`).
 - A type a client builds before sending uses `z.input`. A type read after parsing (responses, and queries or bodies as the API receives them) uses `z.infer`.
-- Use plain `z.object` by default. Use `z.strictObject` where an unknown key must be rejected: a profile update must not quietly ignore fields, and a search result must not leak extra User fields.
+- Strict or plain follows the rule in [Strict and plain objects](#strict-and-plain-objects). `contracts` has a test that enforces it.
 - Each exported schema has a doc comment naming its route or push audience.
+
+## Strict and plain objects
+
+- A request or query schema with an optional key, including a key with a default, uses `z.strictObject`. Otherwise a misspelled optional key is ignored with no error: `?befor=5` would return the newest page as a 200.
+- A request or query schema with only required keys uses plain `z.object`. A misspelled key already fails as a missing one.
+- Responses and realtime events use plain `z.object`. Strict output would make a new API field throw on web clients not yet updated.
+- The one exception is `UserSearchResultSchema` and its alias `ConversationMemberSchema`. They stay strict so that API tests fail if a response leaks an extra User field, and the client throws on one. The API never parses responses, so strict doesn't stop the server sending a field.
+
+```ts
+// Optional key: strict.
+const GetThingsQuerySchema = z.strictObject({ limit: z.coerce.number().default(10) });
+// Only required keys: plain.
+const MarkThingRequestSchema = z.object({ thingId: z.uuid() });
+// Response: plain.
+const GetThingsResponseSchema = z.object({ things: z.array(ThingSchema) });
+// Exception: strict output.
+const UserSearchResultSchema = z.strictObject({ id: z.uuid(), username: z.string() });
+```
 
 ## Enums and codes
 
@@ -37,7 +55,7 @@ These changes are breaking:
 - narrowing what input is accepted
 - widening output a client branches on, such as a new enum value in a response
 
-A breaking change updates api and web in the same PR. Adding optional input fields, adding output fields and adding a new `ErrorCode` are not breaking.
+A breaking change updates api and web in the same PR. Adding optional input fields, adding output fields and adding a new `ErrorCode` are not breaking, with one exception: adding a field to `UserSearchResultSchema` is breaking, because it is strict output. Adding a key to a strict request is fine as long as api and web change in the same PR.
 
 ## Tests
 

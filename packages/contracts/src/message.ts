@@ -110,10 +110,10 @@ const SequenceCursorSchema = z.coerce.number().int().positive().max(SEQUENCE_MAX
 
 /**
  * `GET /conversations/:id/messages`. `before=<sequence>` returns older Messages newest first;
- * `after=<sequence>` returns newer Messages oldest first (to fill a gap). Not both.
+ * `after=<sequence>` returns newer Messages oldest first (to fill a gap). Not both. Strict, so a misspelled `befor` is a 400, not the newest page.
  */
 export const GetMessagesQuerySchema = z
-  .object({
+  .strictObject({
     limit: z.coerce.number().int().min(1).max(100).default(10),
     before: SequenceCursorSchema.optional(),
     after: SequenceCursorSchema.optional(),

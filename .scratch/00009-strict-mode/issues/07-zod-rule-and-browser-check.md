@@ -36,15 +36,15 @@ An earlier read-only script did this through `schema._zod.def`: `def.catchall` o
 
 **Blocked by:** 01, 02, 04, 06
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The contracts conventions have the rule, its reasons, examples and the named exception
-- [ ] `GetMessagesQuerySchema` and `RegisterRequestSchema` are strict
-- [ ] A Messages request with `?befor=5` and a register request with an unknown key each get a 400, and requests without unknown keys behave as before
-- [ ] The new contracts test passes, and fails if a schema breaks the rule
-- [ ] The `UserSearchResultSchema` comment and the Breaking changes section are corrected
-- [ ] The `docs/laters.md` entries are added
-- [ ] The browser check is done and recorded in the PR
+- [x] The contracts conventions have the rule, its reasons, examples and the named exception
+- [x] `GetMessagesQuerySchema` and `RegisterRequestSchema` are strict
+- [x] A Messages request with `?befor=5` and a register request with an unknown key each get a 400, and requests without unknown keys behave as before
+- [x] The new contracts test passes, and fails if a schema breaks the rule
+- [x] The `UserSearchResultSchema` comment and the Breaking changes section are corrected
+- [x] The `docs/laters.md` entries are added
+- [x] The browser check is done and recorded in the PR
 
 **Verification:**
 
@@ -56,3 +56,9 @@ An earlier read-only script did this through `schema._zod.def`: `def.catchall` o
 **Out of scope:** Making all-required requests strict. Making other outputs strict. Parsing responses in the API. An ADR. Fixing the dev `<StrictMode>` refresh problem. Walking nested schemas in the test.
 
 ## Comments
+
+00009-07 done: `GetMessagesQuerySchema` and `RegisterRequestSchema` are `z.strictObject`; the contracts conventions have a "Strict and plain objects" section with the rule, reasons, examples and the named exception; the `UserSearchResultSchema` comment and Breaking changes are corrected; `docs/laters.md` has the 3 entries (appended with `cat >>`).
+- Tests first and shown failing: contracts (`message.test.ts`, `user.test.ts`) and the new table-driven `schema-strictness.test.ts` (it also caught that `.default()` keys have `optin` of `'defaulted'`, not `'optional'`, so the test counts any defined `optin`). API tests added for `?befor=5` and an unknown register key. Making `SearchUsersQuerySchema` strict failed the new test; reverted.
+- Checks: lint, typecheck, test (239/317/199), docs:check pass after merging the feature branch. `logging.test.ts` failed once in a full run and passed alone and on the rerun (flaky under load).
+- Browser check (dev stack, real API): signed up `frank` with Nickname `Franky` (201); logged in as alice; scrolled back through 31 Messages to the oldest; searched `fra` and found Franky; created a group, added carol, removed bob, left the group; direct API calls: `?befor=5` 400, `?before=5` 200, register with `nicknme` 400. Console: no errors, one Radix aria-hidden warning from stacked dialogs (not from this change). No unexpected logout.
+- Assumptions: none. No existing test sent an unknown key to either route.

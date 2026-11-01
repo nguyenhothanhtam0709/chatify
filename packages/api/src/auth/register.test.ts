@@ -125,6 +125,15 @@ describe('POST /auth/register', () => {
     });
   });
 
+  it('rejects an unknown key with VALIDATION_FAILED', async () => {
+    await withApp({}, async (app) => {
+      const res = await register(app, { ...valid, nicknme: 'Ali' });
+
+      expect(res.statusCode).toBe(400);
+      expect(errorOf(res).code).toBe(ErrorCode.VALIDATION_FAILED);
+    });
+  });
+
   it('does not echo the password in a validation error', async () => {
     await withApp({}, async (app) => {
       const res = await register(app, {

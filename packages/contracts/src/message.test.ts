@@ -70,6 +70,8 @@ describe('GetMessagesQuerySchema', () => {
     { after: '0' },
     { before: '2147483648' },
     { before: '1', after: '2' },
+    { befor: '5' },
+    { limit: '5', extra: '1' },
   ])('rejects %j', (query) => {
     expect(GetMessagesQuerySchema.safeParse(query).success).toBe(false);
   });

@@ -49,4 +49,4 @@ Assumptions:
 - `readProperty` (api `common/read-property.ts`) is the one shared guard for the api sites; web guards are plain TypeScript.
 - The sign up client reads a validation issue's `path` only when it is an array (the server always sends one); any other `path` counts as absent.
 - `socket.data` is `any`, so a type annotation replaced the cast.
-- The `routes.ts` generator has one file-level disable block, since every line there reads untyped Nest metadata.
+- The `routes.ts` generator reads Nest metadata through one typed wrapper, `read<T>`, with a single reasoned `eslint-disable-next-line`; one more next-line disable covers a dynamic module's `imports`.

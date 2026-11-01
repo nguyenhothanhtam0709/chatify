@@ -7,7 +7,10 @@ import './index.css';
 const createRealtime = (getAccessToken: () => string | undefined) =>
   createSocketRealtime({ url: window.location.origin, getAccessToken });
 
-createRoot(document.getElementById('root')!).render(
+const root = document.getElementById('root');
+if (!root) throw new Error('#root is missing from index.html');
+
+createRoot(root).render(
   <StrictMode>
     <App createRealtime={createRealtime} />
   </StrictMode>,

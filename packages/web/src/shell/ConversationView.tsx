@@ -616,10 +616,14 @@ export function ConversationView({
   /** Sends (or re-sends) with the Outgoing's own client message ID, so a retry never duplicates. */
   async function transmit(item: Outgoing) {
     const { clientMessageId, body } = item;
-    const result =
-      conversationId || target.kind === 'group'
-        ? await sendMessage(conversationId!, { clientMessageId, body })
-        : await sendDirectMessage({ recipientId: target.peer.id, clientMessageId, body });
+    let result;
+    if (conversationId) {
+      result = await sendMessage(conversationId, { clientMessageId, body });
+    } else if (target.kind === 'direct') {
+      result = await sendDirectMessage({ recipientId: target.peer.id, clientMessageId, body });
+    } else {
+      throw new Error('A group has no Conversation ID to send to');
+    }
     if (!result.ok) {
       setOutgoing((current) =>
         current.map((o) =>
@@ -773,62 +777,65 @@ export function ConversationView({
             <MessageScroller>
               <MessageScrollerViewport ref={viewportRef} onScroll={onScroll}>
                 <MessageScrollerContent className="p-4">
-                  {toEntries(rows).map(({ row: m, day, continuesRun }) => (
-                    <MessageScrollerItem
-                      key={m.key}
-                      messageId={m.key}
-                      scrollAnchor={m.own === true || atLatest}
-                      className={continuesRun ? '-mt-4' : undefined}
-                    >
-                      {day && (
-                        <Marker variant="separator" className="mb-6">
-                          <MarkerContent>{dayLabel(day)}</MarkerContent>
-                        </Marker>
-                      )}
-                      {m.systemMessage !== undefined ? (
-                        <Marker>
-                          <MarkerContent>{m.systemMessage}</MarkerContent>
-                        </Marker>
-                      ) : (
-                        <Message align={m.senderId === user.id ? 'end' : 'start'}>
-                          <MessageContent>
-                            <Bubble
-                              variant={
-                                m.outgoing?.status === 'failed'
-                                  ? 'destructive'
-                                  : m.outgoing || m.senderId !== user.id
-                                    ? 'muted'
-                                    : 'default'
-                              }
-                            >
-                              <BubbleContent
-                                className="whitespace-pre-wrap"
-                                title={timeLabel(m.createdAt)}
+                  {toEntries(rows).map(({ row: m, day, continuesRun }) => {
+                    const outgoing = m.outgoing;
+                    return (
+                      <MessageScrollerItem
+                        key={m.key}
+                        messageId={m.key}
+                        scrollAnchor={m.own === true || atLatest}
+                        className={continuesRun ? '-mt-4' : undefined}
+                      >
+                        {day && (
+                          <Marker variant="separator" className="mb-6">
+                            <MarkerContent>{dayLabel(day)}</MarkerContent>
+                          </Marker>
+                        )}
+                        {m.systemMessage !== undefined ? (
+                          <Marker>
+                            <MarkerContent>{m.systemMessage}</MarkerContent>
+                          </Marker>
+                        ) : (
+                          <Message align={m.senderId === user.id ? 'end' : 'start'}>
+                            <MessageContent>
+                              <Bubble
+                                variant={
+                                  m.outgoing?.status === 'failed'
+                                    ? 'destructive'
+                                    : m.outgoing || m.senderId !== user.id
+                                      ? 'muted'
+                                      : 'default'
+                                }
                               >
-                                {m.body}
-                              </BubbleContent>
-                            </Bubble>
-                          </MessageContent>
-                          {m.outgoing?.status === 'failed' && (
-                            <MessageFooter className="items-center gap-2">
-                              <span role="alert" className="text-sm text-destructive">
-                                {m.outgoing.error}
-                              </span>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => retry(m.outgoing!)}
-                              >
-                                Retry
-                              </Button>
-                            </MessageFooter>
-                          )}
-                          {m.seen && <MessageFooter>Seen</MessageFooter>}
-                        </Message>
-                      )}
-                    </MessageScrollerItem>
-                  ))}
+                                <BubbleContent
+                                  className="whitespace-pre-wrap"
+                                  title={timeLabel(m.createdAt)}
+                                >
+                                  {m.body}
+                                </BubbleContent>
+                              </Bubble>
+                            </MessageContent>
+                            {outgoing?.status === 'failed' && (
+                              <MessageFooter className="items-center gap-2">
+                                <span role="alert" className="text-sm text-destructive">
+                                  {outgoing.error}
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => retry(outgoing)}
+                                >
+                                  Retry
+                                </Button>
+                              </MessageFooter>
+                            )}
+                            {m.seen && <MessageFooter>Seen</MessageFooter>}
+                          </Message>
+                        )}
+                      </MessageScrollerItem>
+                    );
+                  })}
                 </MessageScrollerContent>
               </MessageScrollerViewport>
               <MessageScrollerButton>

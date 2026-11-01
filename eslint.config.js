@@ -35,7 +35,7 @@ export default tseslint.config(
     ],
   },
   js.configs.recommended,
-  ...tseslint.configs.recommended,
+  ...tseslint.configs.strict,
   {
     languageOptions: { globals: { ...globals.node } },
     rules: {
@@ -62,6 +62,16 @@ export default tseslint.config(
       ],
       'no-restricted-syntax': ['error', ...baseSyntax],
     },
+  },
+  // Nest modules are empty decorated classes.
+  {
+    rules: {
+      '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
+    },
+  },
+  {
+    files: ['**/*.test.{ts,tsx}', 'packages/web/src/test/**', 'packages/api/test/**'],
+    rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
   },
   {
     files: ['packages/web/**/*.{ts,tsx}'],

@@ -14,7 +14,7 @@ import {
   listenOnRandomPort,
   type TestSocket,
 } from '../../test/socket-client.js';
-import { bearer, signUp, type Person } from '../../test/people.js';
+import { bearer, createGroup, signUp, type Person } from '../../test/people.js';
 
 const sendDirect = async (app: NestFastifyApplication, as: Person, to: Person) =>
   SendDirectMessageResponseSchema.parse(
@@ -193,6 +193,117 @@ describe('POST /conversations/:id/typing in a Direct Conversation', () => {
         expect.objectContaining({ level: 20, targetUsers: 1, conversationId: direct.id }),
       ]);
       expect(lines[0]).not.toHaveProperty('user');
+    });
+  });
+});
+
+const sendGroup = (app: NestFastifyApplication, as: Person, groupId: string) =>
+  app.inject({
+    method: 'POST',
+    url: `/api/v1/conversations/${groupId}/messages`,
+    headers: bearer(as),
+    payload: { clientMessageId: randomUUID(), body: 'hi' },
+  });
+
+const leaveGroup = (app: NestFastifyApplication, as: Person, groupId: string) =>
+  app.inject({ method: 'POST', url: `/api/v1/groups/${groupId}/leave`, headers: bearer(as) });
+
+describe('POST /conversations/:id/typing in a Group', () => {
+  it('pushes typing.updated to every socket of the other Members and to none of the typist', async () => {
+    await withApp({}, async (app) => {
+      const alice = await signUp(app, 'Alice');
+      const bob = await signUp(app, 'Bob');
+      const carol = await signUp(app, 'Carol');
+      const dave = await signUp(app, 'Dave');
+      const group = await createGroup(app, alice, [bob.id, carol.id]);
+      const url = await listenOnRandomPort(app);
+      const aliceTab1 = await connectSocket(url, alice.token);
+      const aliceTab2 = await connectSocket(url, alice.token);
+      const bobTab1 = await connectSocket(url, bob.token);
+      const bobTab2 = await connectSocket(url, bob.token);
+      const carolTab = await connectSocket(url, carol.token);
+      const daveTab = await connectSocket(url, dave.token);
+      const arrivals = [bobTab1, bobTab2, carolTab].map((c) => c.next('typing.updated'));
+
+      const res = await typing(app, alice, group.id, 'typing');
+
+      expect(res.statusCode).toBe(204);
+      const expected = {
+        conversationId: group.id,
+        state: 'typing',
+        user: { id: alice.id, username: 'Alice', nickname: null },
+      };
+      for (const payload of await Promise.all(arrivals)) {
+        expect(TypingUpdatedEventSchema.parse(payload)).toEqual(expected);
+      }
+      await settle();
+      expect(typingEvents(aliceTab1)).toEqual([]);
+      expect(typingEvents(aliceTab2)).toEqual([]);
+      expect(typingEvents(daveTab)).toEqual([]);
+    });
+  });
+
+  it('stops reaching a removed Member and a Member who left', async () => {
+    await withApp({}, async (app) => {
+      const alice = await signUp(app, 'Alice');
+      const bob = await signUp(app, 'Bob');
+      const carol = await signUp(app, 'Carol');
+      const group = await createGroup(app, alice, [bob.id, carol.id]);
+      const url = await listenOnRandomPort(app);
+      const bobTab = await connectSocket(url, bob.token);
+      const carolTab = await connectSocket(url, carol.token);
+      const ended = Promise.all([
+        bobTab.next('group.membership_ended'),
+        carolTab.next('group.membership_ended'),
+      ]);
+
+      await app.inject({
+        method: 'DELETE',
+        url: `/api/v1/groups/${group.id}/members/${bob.id}`,
+        headers: bearer(alice),
+      });
+      await leaveGroup(app, carol, group.id);
+      await ended;
+      await typing(app, alice, group.id, 'typing');
+
+      await settle();
+      expect(typingEvents(bobTab)).toEqual([]);
+      expect(typingEvents(carolTab)).toEqual([]);
+    });
+  });
+
+  it('answers 403 NOT_A_MEMBER to a Former Member, and 404 to a never-Member', async () => {
+    await withApp({}, async (app) => {
+      const alice = await signUp(app, 'Alice');
+      const bob = await signUp(app, 'Bob');
+      const carol = await signUp(app, 'Carol');
+      const group = await createGroup(app, alice, [bob.id]);
+      await leaveGroup(app, bob, group.id);
+
+      const former = await typing(app, bob, group.id, 'typing');
+      const never = await typing(app, carol, group.id, 'typing');
+
+      expect(former.statusCode).toBe(403);
+      expect(errorCode(former)).toBe(ErrorCode.NOT_A_MEMBER);
+      expect(never.statusCode).toBe(404);
+      expect(errorCode(never)).toBe(ErrorCode.CONVERSATION_NOT_FOUND);
+    });
+  });
+
+  it('rejects a Former Member of a Closed Group the way a send does', async () => {
+    await withApp({}, async (app) => {
+      const alice = await signUp(app, 'Alice');
+      const bob = await signUp(app, 'Bob');
+      const group = await createGroup(app, alice, [bob.id]);
+      await leaveGroup(app, bob, group.id);
+      await leaveGroup(app, alice, group.id);
+
+      const send = await sendGroup(app, bob, group.id);
+      const res = await typing(app, bob, group.id, 'typing');
+
+      expect(send.statusCode).toBe(409);
+      expect(res.statusCode).toBe(send.statusCode);
+      expect(errorCode(res)).toBe(errorCode(send));
     });
   });
 });

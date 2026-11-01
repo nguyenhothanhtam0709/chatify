@@ -123,10 +123,20 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
     this.logger[level]({ event, targetUsers: userIds.length, conversationId }, 'socket push');
   }
 
-  /** Pushes to every socket in the Group's room, i.e. those of its current Members. */
-  pushToGroup(event: RealtimeEventName, conversationId: string, payload: unknown): void {
-    this.server.to(conversationRoom(conversationId)).emit(event, payload);
-    this.logger.info({ event, conversationId }, 'socket push');
+  /**
+   * Pushes to every socket in the Group's room, i.e. those of its current Members, except every
+   * socket of `exceptUserId` when given.
+   */
+  pushToGroup(
+    event: RealtimeEventName,
+    conversationId: string,
+    payload: unknown,
+    exceptUserId?: string,
+  ): void {
+    const room = this.server.to(conversationRoom(conversationId));
+    (exceptUserId ? room.except(userRoom(exceptUserId)) : room).emit(event, payload);
+    const level = event === RealtimeEvent.TYPING_UPDATED ? 'debug' : 'info';
+    this.logger[level]({ event, conversationId }, 'socket push');
   }
 
   /** Puts every socket of the User in the Group's room (they became a Member). */

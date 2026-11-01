@@ -1,6 +1,6 @@
 # Spec: Strict Mode
 
-Status: ready-for-agent
+Status: resolved
 
 ## Problem Statement
 

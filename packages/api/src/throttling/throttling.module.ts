@@ -71,7 +71,18 @@ const isAuthenticated = (req: object): boolean =>
               return !isAuthenticated(req) || !isTypingRoute(req);
             },
             getTracker: (req) =>
-              `user:${String(authenticatedUserId(req))}:${String((req['params'] as { id?: unknown } | undefined)?.id)}`,
+              `user:${String(authenticatedUserId(req))}:${String((req['params'] as { id?: unknown } | undefined)?.id).toLowerCase()}`,
+          },
+          // Typing route only, before authentication: per IP, so bad tokens and random IDs are
+          // limited too. Its own counter; the generic limit does not count typing.
+          {
+            name: 'typingIp',
+            limit: config.get('THROTTLE_LIMIT', { infer: true }),
+            ttl: config.get('THROTTLE_TTL_MS', { infer: true }),
+            skipIf: (context) => {
+              const req = context.switchToHttp().getRequest<FastifyRequest>();
+              return isAuthenticated(req) || !isTypingRoute(req);
+            },
           },
           // Login only: 5 attempts per 15 minutes per identifier (the per-IP limit is on
           // the route itself).

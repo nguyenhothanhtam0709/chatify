@@ -88,14 +88,26 @@ export async function fetchCurrentUser(
   }
 }
 
-/** Milliseconds until the access token expires, read from its `exp` claim (never verified here). */
+function hasNumericExp(value: unknown): value is { exp: number } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'exp' in value &&
+    typeof value.exp === 'number' &&
+    Number.isFinite(value.exp)
+  );
+}
+
+/**
+ * Milliseconds until the access token expires, read from its `exp` claim (never verified here).
+ * A token without a numeric `exp` counts as expired, like one that cannot be parsed.
+ */
 export function msUntilExpiry(accessToken: string): number {
   try {
     const payload = accessToken.split('.')[1] ?? '';
-    const { exp } = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as {
-      exp: number;
-    };
-    return exp * 1000 - Date.now();
+    const claims: unknown = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    if (!hasNumericExp(claims)) return 0;
+    return claims.exp * 1000 - Date.now();
   } catch {
     return 0;
   }

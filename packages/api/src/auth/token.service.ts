@@ -3,16 +3,19 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SignJWT, importPKCS8, importSPKI, jwtVerify, type CryptoKey } from 'jose';
 import { v7 as uuidv7 } from 'uuid';
+import { z } from 'zod';
 import { CLOCK, type Clock } from '../clock/clock.js';
 import type { Config } from '../config/config.js';
 
-export interface AccessClaims {
-  sub: string;
-  sid: string;
-  jti: string;
-  iat: number;
-  exp: number;
-}
+const AccessClaimsSchema = z.object({
+  sub: z.string(),
+  sid: z.string(),
+  jti: z.string(),
+  iat: z.number(),
+  exp: z.number(),
+});
+
+export type AccessClaims = z.infer<typeof AccessClaimsSchema>;
 
 const ALG = 'EdDSA';
 
@@ -60,7 +63,8 @@ export class TokenService {
         currentDate: this.clock.now(),
         requiredClaims: ['sub', 'sid', 'jti', 'iat', 'exp'],
       });
-      return payload as unknown as AccessClaims;
+      const claims = AccessClaimsSchema.safeParse(payload);
+      return claims.success ? claims.data : undefined;
     } catch {
       return undefined;
     }

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { conversations } from '../db/schema.js';
 import { KeyedSerializer, type Slot } from '../realtime/keyed-serializer.js';
+import type { Tx } from './message-rows.js';
 
 /**
  * The one place that orders what follows a commit on a Conversation. One instance serves every
@@ -38,10 +38,7 @@ export class CommitOrder {
 }
 
 /** Serialises membership changes and Message sends on one Conversation. */
-export async function lockConversation(
-  tx: Pick<NodePgDatabase, 'execute'>,
-  conversationId: string,
-): Promise<void> {
+export async function lockConversation(tx: Tx, conversationId: string): Promise<void> {
   await tx.execute(
     sql`select 1 from ${conversations} where ${conversations.id} = ${conversationId} for update`,
   );

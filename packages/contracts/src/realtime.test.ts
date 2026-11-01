@@ -6,6 +6,7 @@ import {
   GroupMemberAddedEventSchema,
   GroupMemberRemovedEventSchema,
   SessionRevokedEventSchema,
+  TypingUpdatedEventSchema,
   MessageCreatedEventSchema,
   RealtimeEvent,
   RealtimeEventSchemas,
@@ -36,6 +37,7 @@ describe('realtime event contracts', () => {
       GROUP_CLOSED: 'group.closed',
       GROUP_MEMBERSHIP_ENDED: 'group.membership_ended',
       SESSION_REVOKED: 'session.revoked',
+      TYPING_UPDATED: 'typing.updated',
     });
     expect(Object.keys(RealtimeEventSchemas).sort()).toEqual([
       'conversation.created',
@@ -49,6 +51,7 @@ describe('realtime event contracts', () => {
       'group.owner_changed',
       'message.created',
       'session.revoked',
+      'typing.updated',
     ]);
   });
 
@@ -106,6 +109,22 @@ describe('realtime event contracts', () => {
     expect(
       ConversationReceiptEventSchema.safeParse({ conversationId: id, upToSequence: -1 }).success,
     ).toBe(false);
+  });
+
+  it('typing.updated carries the Conversation, the state and the typist', () => {
+    const user = { id, username: 'Alice', nickname: null };
+    for (const state of ['typing', 'stopped']) {
+      expect(TypingUpdatedEventSchema.safeParse({ conversationId: id, state, user }).success).toBe(
+        true,
+      );
+    }
+    expect(
+      TypingUpdatedEventSchema.safeParse({ conversationId: id, state: 'idle', user }).success,
+    ).toBe(false);
+    expect(TypingUpdatedEventSchema.safeParse({ conversationId: id, state: 'typing' }).success).toBe(
+      false,
+    );
+    expect(TypingUpdatedEventSchema.safeParse({ state: 'typing', user }).success).toBe(false);
   });
 
   it('session.revoked carries nothing', () => {

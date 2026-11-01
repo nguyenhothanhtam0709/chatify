@@ -46,3 +46,9 @@ export class SendThrottlerGuard extends AppThrottlerGuard {
     return `${throttlerName}-${tracker}`;
   }
 }
+
+/**
+ * Same, for Typing Indicator signals (`typing` throttler). The counter is per User and
+ * Conversation, from the tracker; the generic limit does not count these requests.
+ */
+export class TypingThrottlerGuard extends AppThrottlerGuard {}

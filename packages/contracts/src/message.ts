@@ -147,6 +147,16 @@ export const MarkReadResponseSchema = z.object({ upToSequence: ReadMarkerSchema 
 
 export type MarkReadResponse = z.infer<typeof MarkReadResponseSchema>;
 
+/** The states of a Typing Indicator signal; the one definition the request and the push share. */
+export const TypingStateSchema = z.enum(['typing', 'stopped']);
+
+export type TypingState = z.infer<typeof TypingStateSchema>;
+
+/** `POST /conversations/:id/typing`. Relayed to the other Members, never stored. */
+export const TypingRequestSchema = z.object({ state: TypingStateSchema });
+
+export type TypingRequest = z.input<typeof TypingRequestSchema>;
+
 /** A Member as other Members see them: never an email. */
 export const ConversationMemberSchema = UserSearchResultSchema;
 

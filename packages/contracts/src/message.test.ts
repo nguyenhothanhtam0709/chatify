@@ -4,6 +4,7 @@ import {
   GetConversationResponseSchema,
   GetMessagesQuerySchema,
   MarkReadRequestSchema,
+  TypingRequestSchema,
   MarkReadResponseSchema,
   UNREAD_COUNT_MAX,
   MessageBodySchema,
@@ -167,5 +168,15 @@ describe('GetConversationResponseSchema', () => {
     expect(
       GetConversationResponseSchema.parse({ conversation: { ...group, readUpToSequence: 3 } }),
     ).not.toHaveProperty('conversation.readUpToSequence');
+  });
+});
+
+describe('TypingRequestSchema', () => {
+  it.each(['typing', 'stopped'])('accepts state %s', (state) => {
+    expect(TypingRequestSchema.parse({ state })).toEqual({ state });
+  });
+
+  it.each([{}, { state: 'idle' }, { state: '' }, { state: 1 }])('rejects %j', (body) => {
+    expect(TypingRequestSchema.safeParse(body).success).toBe(false);
   });
 });

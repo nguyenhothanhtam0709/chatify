@@ -143,3 +143,15 @@ CI, deployment and OpenAPI docs were out of scope for MVP1. The required CI chec
 ## Typing Indicator in a new Direct view
 
 A Direct view opened through the new-conversation dialog sends no Typing Indicator signal until its first Message, even when the Conversation already exists, because the route needs a Conversation ID. Fix by resolving the existing Direct Conversation for the picked User when the view opens.
+
+## Type-checking `scripts/`
+
+`scripts/` is outside every package's `tsc` run. An ad hoc run under the strict flags found 25 errors. 24 have one cause: a helper in the read guard's test. The docs generator's import of the API needs a design choice, because the API's `dist` has no declarations and `@ts-` comments are banned.
+
+## Server-side checks on API responses
+
+Strict output doesn't stop the server sending a field: the API never parses its responses. `UserSearchResultSchema` only makes API tests fail on a leak and makes the client throw. Decide whether to parse responses in the API, in tests or at runtime.
+
+## Other web clients with the malformed 2xx pattern
+
+Ticket 00009-04 made the mutation clients (`login`, `register`, `updateProfile`, `createGroup`, `changeMembers`, `leaveGroup`) `safeParse` a 2xx body. These still `parse` it and can reject with a `ZodError`: `getGroup` (`groups.ts`), `conversations.ts` (list, get, messages), `messages.ts` (send direct and group), `users.ts` (search) and `health.ts`. `refreshAccessToken` and `fetchCurrentUser` (`auth.ts`) have the pattern too, but a `try/catch` makes them return undefined.

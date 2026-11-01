@@ -79,7 +79,8 @@ const guardedFile = (path: string, context: ReadContext): boolean => {
 };
 
 // A shell glob is guarded if it can reach a guarded file. Inside a scope it is denied without
-// expanding it, because one match outside the scope is enough to waste the read.
+// expanding it, because one match outside the scope is enough to waste the read. A glob whose own
+// text matches the scope can only expand to files in the scope.
 const guardedGlob = (glob: string, context: ReadContext): boolean => {
   const pattern = globToRegExp(glob);
   if (ALWAYS_GUARDED.some((guarded) => pattern.test(guarded))) return true;
@@ -91,7 +92,11 @@ const guardedGlob = (glob: string, context: ReadContext): boolean => {
   ) {
     return true;
   }
-  return context.scope !== null && matchesAny(`${fixedPart}x`, SCOPED_DOCS);
+  return (
+    context.scope !== null &&
+    matchesAny(`${fixedPart}x`, SCOPED_DOCS) &&
+    !allowedInScope(glob, context)
+  );
 };
 
 const denial = (path: string, context: ReadContext): string =>
@@ -100,21 +105,45 @@ const denial = (path: string, context: ReadContext): string =>
   (path === 'docs/laters.md' ? `To add an entry, append with cat >>. ` : '') +
   `If you read a file outside your scope, say so in the PR body so the scope can be fixed.`;
 
+const unquote = (word: string): string => word.replace(/^['"]|['"]$/g, '');
+
+// A loop variable stands for each word of its list; anything else is left as written.
+const expandLoopVariable = (arg: string, loops: Map<string, string[]>): string[] => {
+  const name = /\$\{?(\w+)\}?/.exec(arg);
+  const values = name?.[1] === undefined ? undefined : loops.get(name[1]);
+  return name && values ? values.map((value) => arg.replace(name[0], value)) : [arg];
+};
+
 const decideBash = (command: string, context: ReadContext): string | null => {
+  let cwd = context.cwd;
+  const loops = new Map<string, string[]>();
   for (const segment of command.split(/&&|\|\||[;|\n]/)) {
     const words = segment
       .replace(/<<-?\s*\S+/g, ' ')
       .replace(/\d?>>?\s*\S+/g, ' ')
       .trim()
+      .replace(/^(?:do|then|else|elif|if|while|until)\s+/, '')
       .split(/\s+/);
-    if (!['cat', 'less', 'more'].includes(words[0] ?? '')) continue;
+    const [first = '', second = '', third] = words;
+    if (first === 'for' && third === 'in') {
+      loops.set(second, words.slice(3).map(unquote));
+      continue;
+    }
+    if (first === 'cd' && second && !/^-|\$/.test(second)) {
+      cwd = resolve(cwd, unquote(second));
+      continue;
+    }
+    if (!['cat', 'less', 'more'].includes(first)) continue;
     for (const word of words.slice(1)) {
       if (word.startsWith('-')) continue;
-      const arg = word.replace(/^['"]|['"]$/g, '');
-      const path = repoPath(arg, context);
-      if (path === null) continue;
-      const guarded = /[*?[]/.test(path) ? guardedGlob(path, context) : guardedFile(path, context);
-      if (guarded) return denial(path, context);
+      for (const arg of expandLoopVariable(unquote(word), loops)) {
+        const path = repoPath(arg, { ...context, cwd });
+        if (path === null) continue;
+        const guarded = /[*?[]/.test(path)
+          ? guardedGlob(path, context)
+          : guardedFile(path, context);
+        if (guarded) return denial(path, context);
+      }
     }
   }
   return null;

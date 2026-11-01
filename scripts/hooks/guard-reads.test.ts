@@ -92,6 +92,31 @@ test('a shell glob that can reach a guarded file is denied', () => {
   assert.equal(decide(bash('cat docs/workflow/*.md'), noScope), null);
 });
 
+test('a shell glob that stays inside the scope is allowed', () => {
+  assert.equal(decide(bash('cat docs/conventions/*.md'), scoped), null);
+  assert.equal(decide(bash('cat docs/conventions/w*.md'), scoped), null);
+  const adr = { ...scoped, scope: ['docs/adr/0009-*'] };
+  assert.equal(decide(bash('cat docs/adr/0009-*.md'), adr), null);
+  assert.ok(decide(bash('cat docs/adr/*.md'), adr));
+});
+
+test('a cat inside a for loop or an if is guarded like any other', () => {
+  assert.ok(decide(bash('for i in 1; do cat docs/factory/gates.md; done'), scoped));
+  assert.ok(decide(bash('if true; then cat docs/factory/gates.md; fi'), scoped));
+  assert.ok(decide(bash('for f in docs/factory/gates.md; do cat "$f"; done'), scoped));
+  assert.ok(decide(bash('for f in a.md docs/*; do echo "$f"; cat ${f}; done'), scoped));
+  assert.equal(decide(bash('for f in docs/conventions/*.md; do cat "$f"; done'), scoped), null);
+  assert.equal(decide(bash('for f in docs/factory/gates.md; do head -5 "$f"; done'), scoped), null);
+});
+
+test('a cd earlier in the command is followed', () => {
+  assert.ok(decide(bash('cd docs && cat laters.md'), noScope));
+  assert.ok(decide(bash('cd .scratch/00007-x; cat spec.md'), scoped));
+  assert.ok(decide(bash(`cd ${repo}/docs/factory && cat gates.md`), scoped));
+  assert.equal(decide(bash('cd docs/conventions && cat api.md'), scoped), null);
+  assert.equal(decide(bash('cd packages/api/src && cat app.ts'), scoped), null);
+});
+
 test('searching, partial reads and appends are allowed', () => {
   assert.equal(decide(bash("grep -n '^## ' docs/laters.md"), scoped), null);
   assert.equal(decide(bash('sed -n 1,20p docs/laters.md'), scoped), null);

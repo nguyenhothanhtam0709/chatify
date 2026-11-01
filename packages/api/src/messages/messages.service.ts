@@ -262,7 +262,8 @@ export class MessagesService {
   }
 
   /**
-   * Relays a Typing Indicator signal to the other User of a Direct Conversation. Nothing is
+   * Relays a Typing Indicator signal to the other Members of the Conversation: the other User of a
+   * Direct Conversation, or the Group room minus the typist's own sockets. Nothing is
    * stored, and there is no Conversation lock or commit-order serializer: a late signal just
    * expires on the receiver (ADR-0009). Access is the same as for sending a Message. Push is
    * best-effort, like every push.
@@ -287,11 +288,22 @@ export class MessagesService {
             ne(conversationMembers.userId, userId),
           ),
         );
-      if (!typist || others.length === 0) return;
+      if (!typist) return;
+      const payload = { conversationId, state, user: typist };
+      if (others.length === 0) {
+        const [group] = await this.db
+          .select({ id: groups.conversationId })
+          .from(groups)
+          .where(eq(groups.conversationId, conversationId));
+        if (group) {
+          this.realtime.pushToGroup(RealtimeEvent.TYPING_UPDATED, conversationId, payload, userId);
+        }
+        return;
+      }
       this.realtime.push(
         RealtimeEvent.TYPING_UPDATED,
         others.map((m) => m.userId),
-        { conversationId, state, user: typist },
+        payload,
         conversationId,
       );
     } catch (error) {

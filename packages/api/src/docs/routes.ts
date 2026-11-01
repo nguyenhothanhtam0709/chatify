@@ -8,9 +8,7 @@ const SOURCE = 'packages/api/src/**/*.controller.ts';
 type ModuleRef = Type<unknown> | DynamicModule;
 
 /** `Reflect.getMetadata` returns `any`; the caller names the shape Nest's decorators write. */
-const read = <T>(key: string, target: object): T | undefined =>
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Nest's decorators write this metadata with the shape the caller names; this generator is checked by `pnpm docs:check` against the controllers
-  Reflect.getMetadata(key, target) as T | undefined;
+const read = <T>(key: string, target: object): T | undefined => Reflect.getMetadata(key, target);
 
 /** Every controller declared by the given modules or the modules they import, transitively. */
 function collectControllers(modules: readonly ModuleRef[]): Type<unknown>[] {
@@ -21,7 +19,7 @@ function collectControllers(modules: readonly ModuleRef[]): Type<unknown>[] {
     const moduleClass = 'module' in ref ? ref.module : ref;
     if (seen.has(moduleClass)) return;
     seen.add(moduleClass);
-    const controllersOf = [
+    const ownControllers = [
       ...(read<Type<unknown>[]>('controllers', moduleClass) ?? []),
       ...('module' in ref ? (ref.controllers ?? []) : []),
     ];
@@ -32,7 +30,7 @@ function collectControllers(modules: readonly ModuleRef[]): Type<unknown>[] {
         ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only plain and dynamic modules are listed in imports here; see the comment above
           ((ref.imports ?? []) as ModuleRef[])
         : [];
-    for (const controller of controllersOf) controllers.add(controller);
+    for (const controller of ownControllers) controllers.add(controller);
     for (const imported of [
       ...(read<ModuleRef[]>('imports', moduleClass) ?? []),
       ...dynamicImports,

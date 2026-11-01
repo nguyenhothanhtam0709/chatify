@@ -52,6 +52,14 @@ describe('schema strictness', () => {
     expect(isStrict(schema)).toBe(STRICT_OUTPUT.includes(name));
   });
 
+  it('makes every *RequestSchema and *QuerySchema a plain ZodObject', () => {
+    const named = Object.entries(contracts).filter(([name]) => isInput(name));
+    expect(named.length).toBe(inputs.length);
+    for (const [name, value] of named) {
+      expect(isObjectSchema(value), `${name} is not a ZodObject`).toBe(true);
+    }
+  });
+
   it('counts a key with a default as optional', () => {
     expect(hasOptionalKey(z.object({ a: z.number().default(1) }))).toBe(true);
     expect(hasOptionalKey(z.object({ a: z.number() }))).toBe(false);

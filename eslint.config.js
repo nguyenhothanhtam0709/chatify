@@ -82,6 +82,18 @@ export default tseslint.config(
       '@typescript-eslint/consistent-type-assertions': 'off',
     },
   },
+  // Typed rules read contracts types from dist, so `pnpm lint` builds contracts first.
+  {
+    files: ['packages/*/src/**/*.{ts,tsx}', 'packages/api/test/**/*.ts'],
+    ignores: ['**/*.d.ts'],
+    languageOptions: {
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+    },
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+    },
+  },
   {
     files: ['packages/web/**/*.{ts,tsx}'],
     languageOptions: { globals: { ...globals.browser } },

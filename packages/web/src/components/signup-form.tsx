@@ -93,7 +93,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
         <CardDescription>Enter your information below to create your account</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSubmit} noValidate>
+        <form onSubmit={(e) => void onSubmit(e)} noValidate>
           <FieldGroup>
             <Field data-invalid={invalid('username')}>
               <FieldLabel htmlFor="username">Username</FieldLabel>

@@ -2,7 +2,8 @@ import { eq, inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 import { hashPassword } from '../auth/password-hash.js';
-import { exactlyOne, nextSequence, type Tx } from '../messages/message-rows.js';
+import { exactlyOne } from './exactly-one.js';
+import { nextSequence, type Tx } from '../messages/message-rows.js';
 import * as schema from './schema.js';
 import {
   conversationMembers,

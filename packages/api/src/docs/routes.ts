@@ -60,9 +60,13 @@ function routesOf(controller: Type<unknown>, globalPrefix: string): Route[] {
       ...classGuards,
       ...((read('__guards__', handler) as unknown[] | undefined) ?? []),
     ];
+    const methodName = RequestMethod[method];
+    if (methodName === undefined) {
+      throw new Error(`Unknown request method ${method} on ${controller.name}.${name}`);
+    }
     return [
       {
-        method: RequestMethod[method]!,
+        method: methodName,
         path: joinPath(globalPrefix, [basePath].flat()[0] ?? '', [path].flat()[0] ?? ''),
         auth: guards.includes(AuthGuard),
         handler: `${controller.name}.${name}`,

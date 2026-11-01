@@ -8,6 +8,7 @@ import { DomainException } from '../common/all-exceptions.filter.js';
 import type { Config } from '../config/config.js';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import type { Database } from '../db/database.module.js';
+import { exactlyOne } from '../db/exactly-one.js';
 import { sessions, users } from '../db/schema.js';
 import { TOKEN_DENY_LIST, type TokenDenyList } from './token-deny-list.js';
 import type { AuthContext } from './auth.guard.js';
@@ -95,19 +96,22 @@ export class AuthService {
       shareReadReceipts: row.shareReadReceipts,
     };
     const refreshToken = this.tokens.newRefreshToken();
-    const [created] = await this.db
-      .insert(sessions)
-      .values({
-        userId: user.id,
-        refreshTokenHash: this.tokens.hashRefreshToken(refreshToken),
-        rotatedAt: sql`now()`,
-        expiresAt: this.refreshExpiry(),
-      })
-      .returning({ id: sessions.id, expiresAt: sessions.expiresAt });
+    const created = exactlyOne(
+      await this.db
+        .insert(sessions)
+        .values({
+          userId: user.id,
+          refreshTokenHash: this.tokens.hashRefreshToken(refreshToken),
+          rotatedAt: sql`now()`,
+          expiresAt: this.refreshExpiry(),
+        })
+        .returning({ id: sessions.id, expiresAt: sessions.expiresAt }),
+      'the created session',
+    );
     return {
-      accessToken: await this.tokens.signAccessToken(user.id, created!.id),
+      accessToken: await this.tokens.signAccessToken(user.id, created.id),
       refreshToken,
-      refreshExpiresAt: created!.expiresAt,
+      refreshExpiresAt: created.expiresAt,
       user,
     };
   }
@@ -216,16 +220,19 @@ export class AuthService {
   async register(input: NewUser): Promise<RegisterResponse> {
     const passwordHash = await hashPassword(input.password);
     try {
-      const [row] = await this.db
-        .insert(users)
-        .values({
-          username: input.username,
-          email: input.email,
-          passwordHash,
-          nickname: input.nickname ?? null,
-        })
-        .returning(publicUser);
-      return { user: row! };
+      const row = exactlyOne(
+        await this.db
+          .insert(users)
+          .values({
+            username: input.username,
+            email: input.email,
+            passwordHash,
+            nickname: input.nickname ?? null,
+          })
+          .returning(publicUser),
+        'the registered user',
+      );
+      return { user: row };
     } catch (error) {
       throw translateUniqueViolation(error) ?? error;
     }

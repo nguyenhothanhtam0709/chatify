@@ -34,7 +34,8 @@ import {
 import { CommitOrder, lockConversation } from './commit-order.js';
 import { ConversationQueries } from './conversation-queries.js';
 import { conversationNotFound, requireMember, requireReader } from './conversation-rules.js';
-import { nextSequence, exactlyOne, toMessage, type Tx } from './message-rows.js';
+import { exactlyOne } from '../db/exactly-one.js';
+import { nextSequence, toMessage, type Tx } from './message-rows.js';
 
 export interface SentMessage {
   message: Message;

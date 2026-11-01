@@ -152,8 +152,7 @@ describe('RegisterRequestSchema', () => {
   });
 
   it.each(['username', 'email', 'password'] as const)('requires %s', (field) => {
-    const rest: Partial<typeof valid> = { ...valid };
-    delete rest[field];
+    const rest = Object.fromEntries(Object.entries(valid).filter(([key]) => key !== field));
     expect(RegisterRequestSchema.safeParse(rest).success).toBe(false);
   });
 

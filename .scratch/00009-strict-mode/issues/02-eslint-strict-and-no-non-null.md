@@ -28,17 +28,21 @@ At commit 71e66a6 this gives 8 errors in 5 files, all fixed below.
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `pnpm lint` passes on `strict`, with no `eslint-disable` added for these rules
-- [ ] A `!` in non-test code fails lint, and one in the test paths doesn't
-- [ ] Non-test code has no `!`
-- [ ] `exactlyOne` lives in the database area, and auth doesn't import from Messages
-- [ ] No Nest module changed to satisfy `no-extraneous-class`
-- [ ] The general conventions are updated
+- [x] `pnpm lint` passes on `strict`, with no `eslint-disable` added for these rules
+- [x] A `!` in non-test code fails lint, and one in the test paths doesn't
+- [x] Non-test code has no `!`
+- [x] `exactlyOne` lives in the database area, and auth doesn't import from Messages
+- [x] No Nest module changed to satisfy `no-extraneous-class`
+- [x] The general conventions are updated
 
 **Verification:** No new tests: every new throw is on a path that can't happen today, so this falls under the testing policy's refactor rule. Existing tests stay green, and the one test edit keeps its assertion.
 
 **Out of scope:** Access modifiers (Ticket 03). Typed promise rules (Ticket 05). Banning `as` (Ticket 06). `strictTypeChecked`. Removing `!` from tests. Linting generated shadcn components, which stay ignored.
 
 ## Comments
+
+Resolved. Config moved to `tseslint.configs.strict`; `no-extraneous-class` allows decorators; `!` is off for tests only. `exactlyOne` moved to `packages/api/src/db/exactly-one.ts`. The 7 `!` replaced as specified; the contracts test builds the object without the key and keeps its assertion. General conventions list the `!` rule.
+Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test` (187/312/188), `pnpm docs:check` all pass. No new tests (refactor rule).
+Assumptions: the Retry button narrows via `const outgoing = m.outgoing` inside a block-bodied `map` callback, so that JSX was re-indented. The contracts test uses `Object.fromEntries(...filter)` to drop the key.

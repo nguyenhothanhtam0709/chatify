@@ -39,7 +39,8 @@ import {
   requireReader,
 } from '../messages/conversation-rules.js';
 import { MessagesService } from '../messages/messages.service.js';
-import { exactlyOne, nextSequence, toMessage, type Tx } from '../messages/message-rows.js';
+import { exactlyOne } from '../db/exactly-one.js';
+import { nextSequence, toMessage, type Tx } from '../messages/message-rows.js';
 
 /** What leaving did, for the pushes that follow the commit. */
 type LeaveOutcome =

@@ -30,6 +30,7 @@ import {
   messagesPage,
   readReceipt,
   signalTyping,
+  type TypingResult,
   type MarkReadResult,
   type ReadReceiptResult,
   type MessagesCursor,
@@ -90,7 +91,7 @@ interface AuthContextValue {
   /** Marks the Conversation read up to `upToSequence` (forward only). */
   markRead(conversationId: string, upToSequence: number): Promise<MarkReadResult>;
   /** Tells the other Members the User started or stopped typing. Best-effort: never fails. */
-  signalTyping(conversationId: string, state: TypingState): Promise<void>;
+  signalTyping(conversationId: string, state: TypingState): Promise<TypingResult>;
   /** The current access token (renewed in the background), if signed in. */
   getAccessToken(): string | undefined;
   /** Signs out here only, because the server already ended the session. */
@@ -255,7 +256,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const typing = useCallback(async (conversationId: string, state: TypingState) => {
     const accessToken = accessTokenRef.current;
-    if (accessToken) await signalTyping(accessToken, conversationId, state);
+    if (!accessToken) return { ok: false } as const;
+    return signalTyping(accessToken, conversationId, state);
   }, []);
 
   const getAccessToken = useCallback(() => accessTokenRef.current, []);

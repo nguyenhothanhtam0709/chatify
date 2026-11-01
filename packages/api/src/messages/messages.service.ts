@@ -268,7 +268,9 @@ export class MessagesService {
    * expires on the receiver (ADR-0009). Access is the same as for sending a Message. Push is
    * best-effort, like every push.
    */
-  async signalTyping(userId: string, conversationId: string, state: TypingState): Promise<void> {
+  async signalTyping(userId: string, rawConversationId: string, state: TypingState): Promise<void> {
+    // The route accepts any casing of a UUID; the payload and the rooms use the canonical one.
+    const conversationId = rawConversationId.toLowerCase();
     await requireMember(this.db, conversationId, userId, true);
     try {
       const [typist] = await this.db

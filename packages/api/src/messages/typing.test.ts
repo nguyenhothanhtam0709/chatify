@@ -163,6 +163,59 @@ describe('POST /conversations/:id/typing in a Direct Conversation', () => {
     });
   });
 
+  it('throttles bad-token requests per IP before auth, without touching the generic budget', async () => {
+    await withApp({ config: { THROTTLE_LIMIT: '7', THROTTLE_TTL_MS: '60000' } }, async (app) => {
+      // Sign-ups and the first send use 5 of the 7 generic requests.
+      const alice = await signUp(app, 'Alice');
+      const bob = await signUp(app, 'Bob');
+      await sendDirect(app, alice, bob);
+      const statuses: number[] = [];
+      for (let i = 0; i < 9; i++) {
+        const res = await app.inject({
+          method: 'POST',
+          url: `/api/v1/conversations/${randomUUID()}/typing`,
+          headers: { authorization: 'Bearer not-a-real-token' },
+          payload: { state: 'typing' },
+        });
+        statuses.push(res.statusCode);
+      }
+
+      expect(statuses).toEqual([401, 401, 401, 401, 401, 401, 401, 429, 429]);
+      for (let i = 0; i < 2; i++) {
+        const list = await app.inject({
+          method: 'GET',
+          url: '/api/v1/conversations',
+          headers: bearer(alice),
+        });
+        expect(list.statusCode).toBe(200);
+      }
+    });
+  });
+
+  it('shares one rate limit and one canonical ID across the casings of a Conversation ID', async () => {
+    await withApp({}, async (app) => {
+      const alice = await signUp(app, 'Alice');
+      const bob = await signUp(app, 'Bob');
+      const direct = await sendDirect(app, alice, bob);
+      const url = await listenOnRandomPort(app);
+      const bobTab = await connectSocket(url, bob.token);
+      const first = bobTab.next('typing.updated');
+
+      const upper = direct.id.toUpperCase();
+      expect((await typing(app, alice, upper, 'typing')).statusCode).toBe(204);
+      expect(await first).toMatchObject({ conversationId: direct.id });
+      expect((await typing(app, alice, direct.id, 'typing')).statusCode).toBe(204);
+      const limited = await typing(
+        app,
+        alice,
+        upper.replace(/^./, (c) => c.toLowerCase()),
+        'stopped',
+      );
+
+      expect(limited.statusCode).toBe(429);
+    });
+  });
+
   it('logs the push at debug level only, with the usual fields and no payload', async () => {
     await withApp({}, async (app, logs) => {
       const alice = await signUp(app, 'Alice');
@@ -248,7 +301,8 @@ describe('POST /conversations/:id/typing in a Group', () => {
       const alice = await signUp(app, 'Alice');
       const bob = await signUp(app, 'Bob');
       const carol = await signUp(app, 'Carol');
-      const group = await createGroup(app, alice, [bob.id, carol.id]);
+      const dave = await signUp(app, 'Dave');
+      const group = await createGroup(app, alice, [bob.id, carol.id, dave.id]);
       const url = await listenOnRandomPort(app);
       const bobTab = await connectSocket(url, bob.token);
       const carolTab = await connectSocket(url, carol.token);
@@ -264,12 +318,43 @@ describe('POST /conversations/:id/typing in a Group', () => {
       });
       await leaveGroup(app, carol, group.id);
       await ended;
-      await typing(app, alice, group.id, 'typing');
+      const daveTab = await connectSocket(url, dave.token);
+      const arrival = daveTab.next('typing.updated');
 
+      const res = await typing(app, alice, group.id, 'typing');
+
+      expect(res.statusCode).toBe(204);
+      expect(await arrival).toMatchObject({ conversationId: group.id, state: 'typing' });
       await settle();
       expect(typingEvents(bobTab)).toEqual([]);
       expect(typingEvents(carolTab)).toEqual([]);
     });
+  });
+
+  it('logs a Group push at debug level only, with the usual fields and no payload', async () => {
+    let lines: Record<string, unknown>[] = [];
+    let groupId = '';
+    const run = (config: Record<string, string>) =>
+      withApp({ config }, async (app, logs) => {
+        const alice = await signUp(app, 'Alice');
+        const bob = await signUp(app, 'Bob');
+        const group = await createGroup(app, alice, [bob.id]);
+        const url = await listenOnRandomPort(app);
+        const bobTab = await connectSocket(url, bob.token);
+        const pushed = bobTab.next('typing.updated');
+
+        await typing(app, alice, group.id, 'typing');
+        await pushed;
+
+        lines = logs.lines.filter((l) => l.event === 'typing.updated');
+        groupId = group.id;
+      });
+
+    await run({});
+    expect(lines).toEqual([]);
+    await run({ LOG_LEVEL: 'debug' });
+    expect(lines).toEqual([expect.objectContaining({ level: 20, conversationId: groupId })]);
+    expect(lines[0]).not.toHaveProperty('user');
   });
 
   it('answers 403 NOT_A_MEMBER to a Former Member, and 404 to a never-Member', async () => {

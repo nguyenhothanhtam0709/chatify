@@ -3,16 +3,19 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SignJWT, importPKCS8, importSPKI, jwtVerify, type CryptoKey } from 'jose';
 import { v7 as uuidv7 } from 'uuid';
+import { z } from 'zod';
 import { CLOCK, type Clock } from '../clock/clock.js';
 import type { Config } from '../config/config.js';
 
-export interface AccessClaims {
-  sub: string;
-  sid: string;
-  jti: string;
-  iat: number;
-  exp: number;
-}
+const AccessClaimsSchema = z.object({
+  sub: z.string(),
+  sid: z.string(),
+  jti: z.string(),
+  iat: z.number(),
+  exp: z.number(),
+});
+
+export type AccessClaims = z.infer<typeof AccessClaimsSchema>;
 
 const ALG = 'EdDSA';
 
@@ -41,7 +44,7 @@ export class TokenService {
   }
 
   /** Signs with the injectable clock, so tests control `iat` and `exp`. */
-  async signAccessToken(userId: string, sessionId: string): Promise<string> {
+  public async signAccessToken(userId: string, sessionId: string): Promise<string> {
     const iat = Math.floor(this.clock.now().getTime() / 1000);
     return new SignJWT({ sid: sessionId })
       .setProtectedHeader({ alg: ALG, typ: 'JWT' })
@@ -53,26 +56,27 @@ export class TokenService {
   }
 
   /** Returns the claims of a valid, unexpired token, or undefined for anything else. */
-  async verifyAccessToken(token: string): Promise<AccessClaims | undefined> {
+  public async verifyAccessToken(token: string): Promise<AccessClaims | undefined> {
     try {
       const { payload } = await jwtVerify(token, await this.publicKey, {
         algorithms: [ALG],
         currentDate: this.clock.now(),
         requiredClaims: ['sub', 'sid', 'jti', 'iat', 'exp'],
       });
-      return payload as unknown as AccessClaims;
+      const claims = AccessClaimsSchema.safeParse(payload);
+      return claims.success ? claims.data : undefined;
     } catch {
       return undefined;
     }
   }
 
   /** An opaque 256-bit random value. */
-  newRefreshToken(): string {
+  public newRefreshToken(): string {
     return randomBytes(32).toString('base64url');
   }
 
   /** Refresh tokens are high-entropy, so a fast hash is enough to keep them unusable if leaked. */
-  hashRefreshToken(token: string): string {
+  public hashRefreshToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }
 }

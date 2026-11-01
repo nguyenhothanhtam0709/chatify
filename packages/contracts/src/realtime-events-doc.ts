@@ -43,6 +43,7 @@ function renderType(schema: JsonSchema, indent: string): string {
 /** Markdown listing every server-to-client realtime event and its payload. */
 export function renderRealtimeEvents(): string {
   const sections = Object.values(RealtimeEvent).map((name) => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- zod's JSON Schema type is looser than the subset JsonSchema reads, and every event schema fits it
     const schema = z.toJSONSchema(RealtimeEventSchemas[name], { io: 'output' }) as JsonSchema;
     return [`## \`${name}\``, '', '```ts', renderType(schema, ''), '```', ''].join('\n');
   });

@@ -25,7 +25,12 @@ export async function updateProfile(
   }
 
   const payload: unknown = await res.json().catch(() => undefined);
-  if (res.ok) return { ok: true, user: MeResponseSchema.parse(payload).user };
+  if (res.ok) {
+    const parsed = MeResponseSchema.safeParse(payload);
+    return parsed.success
+      ? { ok: true, user: parsed.data.user }
+      : { ok: false, error: 'Something went wrong. Try again.' };
+  }
   const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
   if (code === ErrorCode.VALIDATION_FAILED) {
     return { ok: false, error: 'Nickname must be 1-50 characters, without control characters.' };

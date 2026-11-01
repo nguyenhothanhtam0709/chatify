@@ -12,5 +12,11 @@ declare module 'pino-roll' {
     dateFormat?: string;
   }
 
-  export default function pinoRoll(options: PinoRollOptions): Promise<DestinationStream>;
+  /** The SonicBoom stream pino-roll resolves to. */
+  export interface PinoRollStream extends DestinationStream {
+    flushSync(): void;
+    end(): void;
+  }
+
+  export default function pinoRoll(options: PinoRollOptions): Promise<PinoRollStream>;
 }

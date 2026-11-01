@@ -35,7 +35,7 @@ interface FileStream extends DestinationStream {
 
 async function buildStreams(
   config: Config,
-): Promise<{ streams: StreamEntry<Level>[]; file?: FileStream }> {
+): Promise<{ streams: StreamEntry<Level>[]; file: FileStream | undefined }> {
   const streams: StreamEntry<Level>[] = [];
   let file: FileStream | undefined;
   if (config.LOG_CONSOLE_ENABLED) {
@@ -46,13 +46,13 @@ async function buildStreams(
     streams.push({ level: config.LOG_CONSOLE_LEVEL ?? config.LOG_LEVEL, stream });
   }
   if (config.LOG_FILE_ENABLED) {
-    file = (await pinoRoll({
+    file = await pinoRoll({
       file: config.LOG_FILE_PATH,
       size: config.LOG_FILE_MAX_SIZE,
       frequency: config.LOG_FILE_FREQUENCY,
       limit: { count: config.LOG_FILE_RETENTION },
       mkdir: true,
-    })) as FileStream;
+    });
     streams.push({ level: config.LOG_FILE_LEVEL ?? config.LOG_LEVEL, stream: file });
   }
   return { streams, file };
@@ -74,7 +74,7 @@ export async function createLogger(
 ): Promise<AppLogger> {
   const { streams, file } = destination
     ? {
-        streams: [{ level: config.LOG_LEVEL, stream: destination as DestinationStream }],
+        streams: [{ level: config.LOG_LEVEL, stream: destination }],
         file: undefined,
       }
     : await buildStreams(config);

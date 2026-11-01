@@ -9,6 +9,8 @@ import {
   type Group,
 } from '@chat/contracts';
 
+const GENERIC_ERROR = 'Something went wrong. Try again.';
+
 export type CreateGroupResult = { ok: true; group: Group } | { ok: false; error: string };
 
 /** `POST /api/v1/groups`: the caller becomes the Owner. */
@@ -27,7 +29,12 @@ export async function createGroup(
     return { ok: false, error: 'Could not reach the server. Try again.' };
   }
   const payload: unknown = await res.json().catch(() => undefined);
-  if (res.ok) return { ok: true, group: CreateGroupResponseSchema.parse(payload).conversation };
+  if (res.ok) {
+    const parsed = CreateGroupResponseSchema.safeParse(payload);
+    return parsed.success
+      ? { ok: true, group: parsed.data.conversation }
+      : { ok: false, error: GENERIC_ERROR };
+  }
   const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
   if (code === ErrorCode.GROUP_FULL) {
     return { ok: false, error: 'A Group can have at most 256 Members.' };
@@ -38,7 +45,7 @@ export async function createGroup(
   if (code === ErrorCode.VALIDATION_FAILED) {
     return { ok: false, error: 'That Group name is not allowed. Use 1-100 plain characters.' };
   }
-  return { ok: false, error: 'Something went wrong. Try again.' };
+  return { ok: false, error: GENERIC_ERROR };
 }
 
 export type GroupResult<G extends Group = Group> =
@@ -47,7 +54,6 @@ export type GroupResult<G extends Group = Group> =
 /** A Group as `GET /conversations/:id` tells it to the caller (adds `isMember`). */
 export type GroupDetail = Extract<GetConversationResponse['conversation'], { kind: 'group' }>;
 
-const GENERIC_ERROR = 'Something went wrong. Try again.';
 const UNREACHABLE = 'Could not reach the server. Try again.';
 
 /** `GET /api/v1/conversations/:id` for a Group: its Members and Owner. */
@@ -60,7 +66,7 @@ export async function getGroup(
   try {
     res = await fetch(new URL(`/api/v1/conversations/${groupId}`, window.location.origin), {
       headers: { authorization: `Bearer ${accessToken}` },
-      signal,
+      signal: signal ?? null,
     });
   } catch {
     return { ok: false, error: UNREACHABLE };
@@ -93,7 +99,12 @@ async function changeMembers(
     return { ok: false, error: UNREACHABLE };
   }
   const payload: unknown = await res.json().catch(() => undefined);
-  if (res.ok) return { ok: true, group: GroupMembershipResponseSchema.parse(payload).conversation };
+  if (res.ok) {
+    const parsed = GroupMembershipResponseSchema.safeParse(payload);
+    return parsed.success
+      ? { ok: true, group: parsed.data.conversation }
+      : { ok: false, error: GENERIC_ERROR };
+  }
   const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
   if (code === ErrorCode.ALREADY_A_MEMBER)
     return { ok: false, error: 'They are already a Member.' };
@@ -124,7 +135,12 @@ export async function leaveGroup(accessToken: string, groupId: string): Promise<
     return { ok: false, error: UNREACHABLE };
   }
   const payload: unknown = await res.json().catch(() => undefined);
-  if (res.ok) return { ok: true, group: GroupMembershipResponseSchema.parse(payload).conversation };
+  if (res.ok) {
+    const parsed = GroupMembershipResponseSchema.safeParse(payload);
+    return parsed.success
+      ? { ok: true, group: parsed.data.conversation }
+      : { ok: false, error: GENERIC_ERROR };
+  }
   const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
   if (code === ErrorCode.GROUP_CLOSED) return { ok: false, error: 'This Group is closed.' };
   if (code === ErrorCode.NOT_A_MEMBER) return { ok: false, error: 'You already left this Group.' };

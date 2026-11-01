@@ -75,7 +75,8 @@ export const UpdateProfileRequestSchema = z
 
 export type UpdateProfileRequest = z.input<typeof UpdateProfileRequestSchema>;
 
-export const RegisterRequestSchema = z.object({
+/** `POST /auth/register`. Strict: the Nickname is optional, so a misspelled `nicknme` is a 400. */
+export const RegisterRequestSchema = z.strictObject({
   username: UsernameSchema,
   email: EmailSchema,
   password: PasswordSchema,
@@ -141,7 +142,11 @@ export const SearchUsersQuerySchema = z.object({
 
 export type SearchUsersQuery = z.input<typeof SearchUsersQuerySchema>;
 
-/** A search hit: ID, Username and Nickname only. Strict, so an email can never slip in. */
+/**
+ * A search hit: ID, Username and Nickname only. Strict, so API tests fail if a response leaks an
+ * extra User field, and the client throws on one. The API never parses responses, so this does
+ * not stop the server sending a field.
+ */
 export const UserSearchResultSchema = z.strictObject({
   id: z.uuid(),
   username: z.string(),

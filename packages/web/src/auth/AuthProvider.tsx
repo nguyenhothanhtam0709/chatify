@@ -128,10 +128,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (accessToken: string) => {
       accessTokenRef.current = accessToken;
       clearTimeout(timer.current);
-      timer.current = setTimeout(async () => {
-        const next = await refreshAccessToken();
-        if (next === undefined) signOut();
-        else scheduleRefresh(next);
+      timer.current = setTimeout(() => {
+        void (async () => {
+          const next = await refreshAccessToken();
+          if (next === undefined) signOut();
+          else scheduleRefresh(next);
+        })();
       }, refreshDelay(accessToken));
     },
     [signOut],

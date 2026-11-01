@@ -39,7 +39,8 @@ import {
   requireReader,
 } from '../messages/conversation-rules.js';
 import { MessagesService } from '../messages/messages.service.js';
-import { exactlyOne, nextSequence, toMessage, type Tx } from '../messages/message-rows.js';
+import { exactlyOne } from '../db/exactly-one.js';
+import { nextSequence, toMessage, type Tx } from '../messages/message-rows.js';
 
 /** What leaving did, for the pushes that follow the commit. */
 type LeaveOutcome =
@@ -76,7 +77,7 @@ export class GroupsService {
    * Creates a Group owned by `ownerId`, with the Owner and the distinct initial Members as
    * Members, and pushes the new Conversation to each of them. Push is best-effort (ADR-0001).
    */
-  async create(ownerId: string, request: CreateGroupRequest): Promise<CreateGroupResponse> {
+  public async create(ownerId: string, request: CreateGroupRequest): Promise<CreateGroupResponse> {
     const name = request.name.trim();
     const memberIds = [...new Set([ownerId, ...request.memberIds])];
     if (memberIds.length > GROUP_MEMBERS_MAX) throw groupFull();
@@ -128,7 +129,11 @@ export class GroupsService {
    * The Owner adds a User, who is a Member at once. The Conversation row is locked so that the
    * 256-Member cap holds under concurrent adds. Pushes are best-effort (ADR-0001).
    */
-  addMember(callerId: string, groupId: string, userId: string): Promise<GroupMembershipResponse> {
+  public addMember(
+    callerId: string,
+    groupId: string,
+    userId: string,
+  ): Promise<GroupMembershipResponse> {
     return this.changeMembership(
       groupId,
       async (tx) => {
@@ -199,7 +204,7 @@ export class GroupsService {
   }
 
   /** The Owner removes a Member (never themselves). The removed User gets no more pushes. */
-  removeMember(
+  public removeMember(
     callerId: string,
     groupId: string,
     userId: string,
@@ -259,7 +264,7 @@ export class GroupsService {
    * ownership passes to the Member whose current period began first (ties: lowest User ID).
    * If they were the last Member, the Group is closed. Pushes are best-effort (ADR-0001).
    */
-  leave(callerId: string, groupId: string): Promise<GroupMembershipResponse> {
+  public leave(callerId: string, groupId: string): Promise<GroupMembershipResponse> {
     return this.changeMembership(
       groupId,
       async (tx) => {

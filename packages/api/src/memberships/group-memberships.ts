@@ -10,7 +10,7 @@ export class GroupMemberships {
   constructor(@InjectDrizzle() private readonly db: Database) {}
 
   /** The IDs of the Groups the User is a current Member of. */
-  async groupIdsOf(userId: string): Promise<string[]> {
+  public async groupIdsOf(userId: string): Promise<string[]> {
     const rows = await this.db
       .select({ id: conversationMembers.conversationId })
       .from(conversationMembers)

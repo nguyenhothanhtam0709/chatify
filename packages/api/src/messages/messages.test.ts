@@ -434,6 +434,7 @@ describe('GET /conversations/:id/messages', () => {
     { after: '1.5' },
     { after: '2147483648' },
     { before: '3', after: '1' },
+    { befor: '5' },
   ] as Record<string, string>[])('rejects %j with 400 VALIDATION_FAILED', async (query) => {
     await withApp({}, async (app) => {
       const alice = await signUp(app, 'Alice');

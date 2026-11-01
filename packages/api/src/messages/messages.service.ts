@@ -34,7 +34,8 @@ import {
 import { CommitOrder, lockConversation } from './commit-order.js';
 import { ConversationQueries } from './conversation-queries.js';
 import { conversationNotFound, requireMember, requireReader } from './conversation-rules.js';
-import { nextSequence, exactlyOne, toMessage, type Tx } from './message-rows.js';
+import { exactlyOne } from '../db/exactly-one.js';
+import { nextSequence, toMessage, type Tx } from './message-rows.js';
 
 export interface SentMessage {
   message: Message;
@@ -63,7 +64,7 @@ export class MessagesService {
   ) {}
 
   /** Sends to a User, creating the Direct Conversation with the first Message. */
-  async sendDirect(
+  public async sendDirect(
     senderId: string,
     request: SendDirectMessageRequest,
   ): Promise<SentMessage & { conversation: Conversation }> {
@@ -106,7 +107,7 @@ export class MessagesService {
   }
 
   /** Sends to a Conversation the caller is a Member of. */
-  async send(
+  public async send(
     senderId: string,
     conversationId: string,
     request: SendMessageRequest,
@@ -139,7 +140,7 @@ export class MessagesService {
    * Newest first by default, or only those `before` a sequence number; with `after`, the
    * Messages following it, oldest first.
    */
-  async history(
+  public async history(
     userId: string,
     conversationId: string,
     { limit, before, after }: GetMessagesQuery,
@@ -201,7 +202,7 @@ export class MessagesService {
    * caller's own sockets (and `conversation.receipt` to the other User of a Direct Conversation
    * when both share read receipts) only when the marker moved.
    */
-  async markRead(
+  public async markRead(
     userId: string,
     conversationId: string,
     upToSequence: number,
@@ -268,7 +269,11 @@ export class MessagesService {
    * expires on the receiver (ADR-0009). Access is the same as for sending a Message. Push is
    * best-effort, like every push.
    */
-  async signalTyping(userId: string, rawConversationId: string, state: TypingState): Promise<void> {
+  public async signalTyping(
+    userId: string,
+    rawConversationId: string,
+    state: TypingState,
+  ): Promise<void> {
     // The route accepts any casing of a UUID; the payload and the rooms use the canonical one.
     const conversationId = rawConversationId.toLowerCase();
     await requireMember(this.db, conversationId, userId, true);
@@ -314,7 +319,7 @@ export class MessagesService {
   }
 
   /** The caller's Conversations, newest last Message first. */
-  async list(userId: string): Promise<ListConversationsResponse> {
+  public async list(userId: string): Promise<ListConversationsResponse> {
     return { conversations: await this.queries.summaries(userId) };
   }
 
@@ -377,7 +382,7 @@ export class MessagesService {
     }
   }
 
-  async get(userId: string, conversationId: string): Promise<GetConversationResponse> {
+  public async get(userId: string, conversationId: string): Promise<GetConversationResponse> {
     await requireReader(this.db, conversationId, userId);
     const members = (await this.queries.membersOf([conversationId])).get(conversationId) ?? [];
     const [group] = await this.db
@@ -448,7 +453,7 @@ export class MessagesService {
   }
 
   /** The Group as `userId` sees it now; 404 when the Conversation is not a Group. */
-  async getGroup(userId: string, groupId: string): Promise<GroupMembershipResponse> {
+  public async getGroup(userId: string, groupId: string): Promise<GroupMembershipResponse> {
     const { conversation } = await this.get(userId, groupId);
     if (conversation.kind !== 'group') throw conversationNotFound();
     return { conversation };

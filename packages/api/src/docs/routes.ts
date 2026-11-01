@@ -7,7 +7,8 @@ const SOURCE = 'packages/api/src/**/*.controller.ts';
 
 type ModuleRef = Type<unknown> | DynamicModule;
 
-const read = (key: string, target: object): unknown => Reflect.getMetadata(key, target);
+/** `Reflect.getMetadata` returns `any`; the caller names the shape Nest's decorators write. */
+const read = <T>(key: string, target: object): T | undefined => Reflect.getMetadata(key, target);
 
 /** Every controller declared by the given modules or the modules they import, transitively. */
 function collectControllers(modules: readonly ModuleRef[]): Type<unknown>[] {
@@ -18,13 +19,23 @@ function collectControllers(modules: readonly ModuleRef[]): Type<unknown>[] {
     const moduleClass = 'module' in ref ? ref.module : ref;
     if (seen.has(moduleClass)) return;
     seen.add(moduleClass);
-    const fromMetadata = (key: string) => [
-      ...((read(key, moduleClass) as unknown[] | undefined) ?? []),
-      ...(('module' in ref ? (ref as unknown as Record<string, unknown[]>)[key] : undefined) ?? []),
+    const ownControllers = [
+      ...(read<Type<unknown>[]>('controllers', moduleClass) ?? []),
+      ...('module' in ref ? (ref.controllers ?? []) : []),
     ];
-    for (const controller of fromMetadata('controllers'))
-      controllers.add(controller as Type<unknown>);
-    for (const imported of fromMetadata('imports')) visit(imported as ModuleRef);
+    // A dynamic module's `imports` may also hold promises and forward references, which the
+    // generator's modules never use.
+    const dynamicImports =
+      'module' in ref
+        ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only plain and dynamic modules are listed in imports here; see the comment above
+          ((ref.imports ?? []) as ModuleRef[])
+        : [];
+    for (const controller of ownControllers) controllers.add(controller);
+    for (const imported of [
+      ...(read<ModuleRef[]>('imports', moduleClass) ?? []),
+      ...dynamicImports,
+    ])
+      visit(imported);
   };
 
   modules.forEach(visit);
@@ -46,23 +57,24 @@ interface Route {
 }
 
 function routesOf(controller: Type<unknown>, globalPrefix: string): Route[] {
-  const basePath = (read('path', controller) as string | string[] | undefined) ?? '';
+  const basePath = read<string | string[]>('path', controller) ?? '';
   // '__guards__' is a Nest internal (the metadata key `@UseGuards` writes), not a public API.
-  const classGuards = (read('__guards__', controller) as unknown[] | undefined) ?? [];
+  const classGuards = read<unknown[]>('__guards__', controller) ?? [];
 
   return Object.getOwnPropertyNames(controller.prototype).flatMap((name) => {
-    const handler = (controller.prototype as Record<string, unknown>)[name];
+    const handler = Reflect.get(controller.prototype, name);
     if (typeof handler !== 'function') return [];
-    const method = read('method', handler) as RequestMethod | undefined;
+    const method = read<RequestMethod>('method', handler);
     if (method === undefined) return [];
-    const path = (read('path', handler) as string | string[] | undefined) ?? '/';
-    const guards = [
-      ...classGuards,
-      ...((read('__guards__', handler) as unknown[] | undefined) ?? []),
-    ];
+    const path = read<string | string[]>('path', handler) ?? '/';
+    const guards = [...classGuards, ...(read<unknown[]>('__guards__', handler) ?? [])];
+    const methodName = RequestMethod[method];
+    if (methodName === undefined) {
+      throw new Error(`Unknown request method ${method} on ${controller.name}.${name}`);
+    }
     return [
       {
-        method: RequestMethod[method]!,
+        method: methodName,
         path: joinPath(globalPrefix, [basePath].flat()[0] ?? '', [path].flat()[0] ?? ''),
         auth: guards.includes(AuthGuard),
         handler: `${controller.name}.${name}`,

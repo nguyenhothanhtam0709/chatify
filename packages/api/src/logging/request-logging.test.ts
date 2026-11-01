@@ -21,9 +21,9 @@ describe('request logging', () => {
         status: 200,
         ip: '203.0.113.9',
       });
-      expect(typeof line.durationMs).toBe('number');
-      expect(line.requestId).toBe(res.headers['x-request-id']);
-      expect(typeof line.requestId).toBe('string');
+      expect(typeof line['durationMs']).toBe('number');
+      expect(line['requestId']).toBe(res.headers['x-request-id']);
+      expect(typeof line['requestId']).toBe('string');
     });
   });
 
@@ -32,7 +32,9 @@ describe('request logging', () => {
       await app.inject({ method: 'GET', url: '/api/v1/health' });
       await app.inject({ method: 'GET', url: '/api/v1/health' });
 
-      const ids = logs.lines.filter((l) => l.msg === 'request completed').map((l) => l.requestId);
+      const ids = logs.lines
+        .filter((l) => l.msg === 'request completed')
+        .map((l) => l['requestId']);
       expect(ids).toHaveLength(2);
       expect(new Set(ids).size).toBe(2);
     });
@@ -65,7 +67,7 @@ describe('request logging', () => {
 
   it('routes Nest boot logs through the shared logger', async () => {
     await withApp({}, async (_app, logs) => {
-      const bootLine = logs.lines.find((l) => l.context === 'NestFactory');
+      const bootLine = logs.lines.find((l) => l['context'] === 'NestFactory');
       expect(bootLine).toBeDefined();
       expect(bootLine!.msg).toMatch(/Starting Nest application/);
     });

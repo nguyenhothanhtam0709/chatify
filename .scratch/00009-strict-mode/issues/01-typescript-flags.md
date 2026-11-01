@@ -13,16 +13,18 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] All 10 flags are set in the shared config, and no package config overrides them
-- [ ] `erasableSyntaxOnly` is not set, and the `strict` family is not restated
-- [ ] `pnpm typecheck` and the API build pass
-- [ ] No generated shadcn component changed
-- [ ] Edits to existing tests change access syntax only, and no assertion is weakened
+- [x] All 10 flags are set in the shared config, and no package config overrides them
+- [x] `erasableSyntaxOnly` is not set, and the `strict` family is not restated
+- [x] `pnpm typecheck` and the API build pass
+- [x] No generated shadcn component changed
+- [x] Edits to existing tests change access syntax only, and no assertion is weakened
 
 **Verification:** No new tests: this is a refactor, so existing tests stay green. No browser check here: Ticket 07 covers `signal` in the real app.
 
 **Out of scope:** ESLint changes. Type-checking `scripts/`. Changing how requests are aborted. Changing `verbatimModuleSyntax` in the API config.
 
 ## Comments
+
+Resolved. Verified with `pnpm lint`, `pnpm typecheck`, the API build, `pnpm test` (contracts 187, api 312, web 188 tests, plus the scripts tests) and `pnpm docs:check`, all passing. No browser check, per the Ticket. Assumptions: none. Prettier reformatted three touched files (`request-logging.test.ts`, `health.ts`, `users.ts`). No follow-ups.

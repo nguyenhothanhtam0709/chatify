@@ -28,8 +28,9 @@ export async function login(input: LoginRequest): Promise<LoginResult> {
 
   const payload: unknown = await res.json().catch(() => undefined);
   if (res.ok) {
-    const { accessToken, user } = LoginResponseSchema.parse(payload);
-    return { ok: true, accessToken, user };
+    const parsed = LoginResponseSchema.safeParse(payload);
+    if (!parsed.success) return { ok: false, error: 'Something went wrong. Try again.' };
+    return { ok: true, accessToken: parsed.data.accessToken, user: parsed.data.user };
   }
   const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
   switch (code) {
@@ -48,7 +49,7 @@ export async function refreshAccessToken(signal?: AbortSignal): Promise<string |
     const res = await fetch(url('/auth/refresh'), {
       method: 'POST',
       credentials: 'same-origin',
-      signal,
+      signal: signal ?? null,
     });
     if (!res.ok) return undefined;
     return RefreshResponseSchema.parse(await res.json()).accessToken;
@@ -78,7 +79,7 @@ export async function fetchCurrentUser(
   try {
     const res = await fetch(url('/users/me'), {
       headers: { authorization: `Bearer ${accessToken}` },
-      signal,
+      signal: signal ?? null,
     });
     if (!res.ok) return undefined;
     return MeResponseSchema.parse(await res.json()).user;
@@ -87,14 +88,26 @@ export async function fetchCurrentUser(
   }
 }
 
-/** Milliseconds until the access token expires, read from its `exp` claim (never verified here). */
+function hasNumericExp(value: unknown): value is { exp: number } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'exp' in value &&
+    typeof value.exp === 'number' &&
+    Number.isFinite(value.exp)
+  );
+}
+
+/**
+ * Milliseconds until the access token expires, read from its `exp` claim (never verified here).
+ * A token without a numeric `exp` counts as expired, like one that cannot be parsed.
+ */
 export function msUntilExpiry(accessToken: string): number {
   try {
     const payload = accessToken.split('.')[1] ?? '';
-    const { exp } = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as {
-      exp: number;
-    };
-    return exp * 1000 - Date.now();
+    const claims: unknown = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    if (!hasNumericExp(claims)) return 0;
+    return claims.exp * 1000 - Date.now();
   } catch {
     return 0;
   }

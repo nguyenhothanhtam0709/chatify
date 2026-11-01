@@ -5,9 +5,11 @@ import { ErrorCode, type RegisterResponse, type SearchUsersResponse } from '@cha
 import * as argon2 from 'argon2';
 import { and, eq, gt, ne, or, sql } from 'drizzle-orm';
 import { DomainException } from '../common/all-exceptions.filter.js';
+import { readProperty } from '../common/read-property.js';
 import type { Config } from '../config/config.js';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import type { Database } from '../db/database.module.js';
+import { exactlyOne } from '../db/exactly-one.js';
 import { sessions, users } from '../db/schema.js';
 import { TOKEN_DENY_LIST, type TokenDenyList } from './token-deny-list.js';
 import type { AuthContext } from './auth.guard.js';
@@ -67,7 +69,7 @@ export class AuthService {
   }
 
   /** Any failure is the same generic INVALID_CREDENTIALS. */
-  async login(
+  public async login(
     identifier: string,
     password: string,
   ): Promise<IssuedSession & { user: RegisterResponse['user'] }> {
@@ -95,25 +97,28 @@ export class AuthService {
       shareReadReceipts: row.shareReadReceipts,
     };
     const refreshToken = this.tokens.newRefreshToken();
-    const [created] = await this.db
-      .insert(sessions)
-      .values({
-        userId: user.id,
-        refreshTokenHash: this.tokens.hashRefreshToken(refreshToken),
-        rotatedAt: sql`now()`,
-        expiresAt: this.refreshExpiry(),
-      })
-      .returning({ id: sessions.id, expiresAt: sessions.expiresAt });
+    const created = exactlyOne(
+      await this.db
+        .insert(sessions)
+        .values({
+          userId: user.id,
+          refreshTokenHash: this.tokens.hashRefreshToken(refreshToken),
+          rotatedAt: sql`now()`,
+          expiresAt: this.refreshExpiry(),
+        })
+        .returning({ id: sessions.id, expiresAt: sessions.expiresAt }),
+      'the created session',
+    );
     return {
-      accessToken: await this.tokens.signAccessToken(user.id, created!.id),
+      accessToken: await this.tokens.signAccessToken(user.id, created.id),
       refreshToken,
-      refreshExpiresAt: created!.expiresAt,
+      refreshExpiresAt: created.expiresAt,
       user,
     };
   }
 
   /** Swaps a live refresh token for a new one and a fresh access token. */
-  async refresh(refreshToken: string | undefined): Promise<IssuedSession> {
+  public async refresh(refreshToken: string | undefined): Promise<IssuedSession> {
     const unauthenticated = () =>
       new DomainException(ErrorCode.UNAUTHENTICATED, HttpStatus.UNAUTHORIZED, 'Not signed in');
     if (!refreshToken) throw unauthenticated();
@@ -152,13 +157,13 @@ export class AuthService {
   }
 
   /** Ends the session now: its access token is denied until it would expire anyway. */
-  async logout(auth: AuthContext): Promise<void> {
+  public async logout(auth: AuthContext): Promise<void> {
     await this.denyList.add(auth.jti, new Date(auth.expiresAt * 1000));
     await this.db.delete(sessions).where(eq(sessions.id, auth.sessionId));
     await this.denyList.sweepExpired();
   }
 
-  async isSessionActive(sessionId: string): Promise<boolean> {
+  public async isSessionActive(sessionId: string): Promise<boolean> {
     const rows = await this.db
       .select({ id: sessions.id })
       .from(sessions)
@@ -167,7 +172,7 @@ export class AuthService {
     return rows.length > 0;
   }
 
-  async getUser(userId: string): Promise<RegisterResponse['user']> {
+  public async getUser(userId: string): Promise<RegisterResponse['user']> {
     const [user] = await this.db.select(publicUser).from(users).where(eq(users.id, userId));
     if (!user) {
       throw new DomainException(
@@ -183,7 +188,7 @@ export class AuthService {
    * Users whose Username starts with `q` (case-insensitive; `%`, `_` and `\` are literal),
    * the exact match first, at most 20, never the searcher. Public fields only.
    */
-  async searchUsers(searcherId: string, q: string): Promise<SearchUsersResponse['users']> {
+  public async searchUsers(searcherId: string, q: string): Promise<SearchUsersResponse['users']> {
     const needle = q.toLowerCase();
     const prefix = `${needle.replace(/[\\%_]/g, '\\$&')}%`;
     return this.db
@@ -197,7 +202,10 @@ export class AuthService {
   }
 
   /** Changes the Nickname and/or the share read receipts setting; pushes nothing. */
-  async updateProfile(userId: string, changes: ProfileChanges): Promise<RegisterResponse['user']> {
+  public async updateProfile(
+    userId: string,
+    changes: ProfileChanges,
+  ): Promise<RegisterResponse['user']> {
     const [user] = await this.db
       .update(users)
       .set({ nickname: changes.nickname, shareReadReceipts: changes.shareReadReceipts })
@@ -213,19 +221,22 @@ export class AuthService {
     return user;
   }
 
-  async register(input: NewUser): Promise<RegisterResponse> {
+  public async register(input: NewUser): Promise<RegisterResponse> {
     const passwordHash = await hashPassword(input.password);
     try {
-      const [row] = await this.db
-        .insert(users)
-        .values({
-          username: input.username,
-          email: input.email,
-          passwordHash,
-          nickname: input.nickname ?? null,
-        })
-        .returning(publicUser);
-      return { user: row! };
+      const row = exactlyOne(
+        await this.db
+          .insert(users)
+          .values({
+            username: input.username,
+            email: input.email,
+            passwordHash,
+            nickname: input.nickname ?? null,
+          })
+          .returning(publicUser),
+        'the registered user',
+      );
+      return { user: row };
     } catch (error) {
       throw translateUniqueViolation(error) ?? error;
     }
@@ -238,8 +249,9 @@ export class AuthService {
  * (which contains the offending value).
  */
 function translateUniqueViolation(error: unknown): DomainException | undefined {
-  const { code, constraint } = (error as { code?: string; constraint?: string } | null) ?? {};
-  const cause = (error as { cause?: unknown } | null)?.cause;
+  const code = readProperty(error, 'code');
+  const constraint = readProperty(error, 'constraint');
+  const cause = readProperty(error, 'cause');
   if (code !== UNIQUE_VIOLATION && cause) return translateUniqueViolation(cause);
   if (code !== UNIQUE_VIOLATION) return undefined;
   if (constraint === 'users_username_lower_unique') {

@@ -28,17 +28,25 @@
 
 **Blocked by:** 01, 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `pnpm lint` passes with the rule on, and `as const` still works
-- [ ] Non-test code in the 3 packages has no `as` other than `as const` and commented disables
-- [ ] Every `eslint-disable` for the rule states a reason
-- [ ] `msUntilExpiry` returns `0` for a token with a non-numeric or missing `exp`
-- [ ] `verifyAccessToken` returns `undefined` for claims of the wrong type, and accepts every token the API issues
-- [ ] The general conventions have the ban and the reason convention
+- [x] `pnpm lint` passes with the rule on, and `as const` still works
+- [x] Non-test code in the 3 packages has no `as` other than `as const` and commented disables
+- [x] Every `eslint-disable` for the rule states a reason
+- [x] `msUntilExpiry` returns `0` for a token with a non-numeric or missing `exp`
+- [x] `verifyAccessToken` returns `undefined` for claims of the wrong type, and accepts every token the API issues
+- [x] The general conventions have the ban and the reason convention
 
 **Verification:** A unit test, written first, for `msUntilExpiry` with a non-numeric `exp`, because the real API can't issue that token: show it failing before the fix. Add a new unit test of `TokenService` for `verifyAccessToken` with wrong-typed claims, signed with a key pair the test generates or supplies, because the real API can't issue that token. Other replacements are refactors, so existing tests stay green.
 
 **Out of scope:** `as` in tests or `scripts/`. A lint rule requiring reasons on `eslint-disable`. Changing throttling keys, socket authentication or error mapping. `no-unsafe-type-assertion`.
 
 ## Comments
+
+Resolved. `consistent-type-assertions` (`assertionStyle: 'never'`) is on for `packages/**` and off for tests; `as const` still works. Non-test code has no `as` left except reasoned `eslint-disable`s (routes doc generator, logger streams, Socket.IO adapter options, seed ID map, realtime event union, realtime events doc). Verified: `pnpm lint`, `pnpm typecheck`, `pnpm test` (187/315/199) and `pnpm docs:check` pass. `msUntilExpiry` test was shown failing (NaN) before the fix; the `verifyAccessToken` wrong-type test failed before the Zod schema.
+
+Assumptions:
+- `readProperty` (api `common/read-property.ts`) is the one shared guard for the api sites; web guards are plain TypeScript.
+- The sign up client reads a validation issue's `path` only when it is an array (the server always sends one); any other `path` counts as absent.
+- `socket.data` is `any`, so a type annotation replaced the cast.
+- The `routes.ts` generator reads Nest metadata through one typed wrapper, `read<T>`, with a single reasoned `eslint-disable-next-line`; one more next-line disable covers a dynamic module's `imports`.

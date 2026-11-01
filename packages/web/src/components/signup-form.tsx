@@ -19,7 +19,10 @@ function validate(values: Values) {
     password: values.password,
     ...(values.nickname === '' ? {} : { nickname: values.nickname }),
   });
-  if (result.success) return { data: result.data, errors: {} as Errors };
+  if (result.success) {
+    const noErrors: Errors = {};
+    return { data: result.data, errors: noErrors };
+  }
   const errors: Errors = {};
   for (const issue of result.error.issues) {
     const name = FIELDS.find((f) => f === issue.path[0]);
@@ -90,7 +93,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
         <CardDescription>Enter your information below to create your account</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSubmit} noValidate>
+        <form onSubmit={(e) => void onSubmit(e)} noValidate>
           <FieldGroup>
             <Field data-invalid={invalid('username')}>
               <FieldLabel htmlFor="username">Username</FieldLabel>

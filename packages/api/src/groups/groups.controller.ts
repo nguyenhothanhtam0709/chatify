@@ -22,7 +22,7 @@ export class GroupsController {
   @Post()
   @HttpCode(201)
   @UseGuards(AuthGuard)
-  create(
+  public create(
     @Auth() auth: AuthContext,
     @Body(new ZodValidationPipe(CreateGroupRequestSchema)) body: CreateGroupRequest,
   ): Promise<CreateGroupResponse> {
@@ -33,7 +33,7 @@ export class GroupsController {
   @Post(':id/members')
   @HttpCode(201)
   @UseGuards(AuthGuard)
-  addMember(
+  public addMember(
     @Auth() auth: AuthContext,
     @Param('id', IdPipe) groupId: string,
     @Body(new ZodValidationPipe(AddGroupMemberRequestSchema)) body: AddGroupMemberRequest,
@@ -44,7 +44,7 @@ export class GroupsController {
   /** Owner only; the Owner cannot remove themselves. */
   @Delete(':id/members/:userId')
   @UseGuards(AuthGuard)
-  removeMember(
+  public removeMember(
     @Auth() auth: AuthContext,
     @Param('id', IdPipe) groupId: string,
     @Param('userId', IdPipe) userId: string,
@@ -56,7 +56,7 @@ export class GroupsController {
   @Post(':id/leave')
   @HttpCode(200)
   @UseGuards(AuthGuard)
-  leave(
+  public leave(
     @Auth() auth: AuthContext,
     @Param('id', IdPipe) groupId: string,
   ): Promise<GroupMembershipResponse> {

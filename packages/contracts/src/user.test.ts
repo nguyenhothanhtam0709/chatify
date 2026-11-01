@@ -151,9 +151,12 @@ describe('RegisterRequestSchema', () => {
     });
   });
 
+  it.each([{ nicknme: 'Ali' }, { admin: true }])('rejects the unknown key in %j', (extra) => {
+    expect(RegisterRequestSchema.safeParse({ ...valid, ...extra }).success).toBe(false);
+  });
+
   it.each(['username', 'email', 'password'] as const)('requires %s', (field) => {
-    const rest: Partial<typeof valid> = { ...valid };
-    delete rest[field];
+    const rest = Object.fromEntries(Object.entries(valid).filter(([key]) => key !== field));
     expect(RegisterRequestSchema.safeParse(rest).success).toBe(false);
   });
 

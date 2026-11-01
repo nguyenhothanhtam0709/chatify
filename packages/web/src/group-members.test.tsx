@@ -66,10 +66,10 @@ function signedIn(initial: ReturnType<typeof groupOwnedBy>) {
       return HttpResponse.json({ conversation: current }, { status: 201 });
     }),
     http.delete(`*/api/v1/groups/${groupId}/members/:userId`, ({ params }) => {
-      removed.push(String(params.userId));
+      removed.push(String(params['userId']));
       current = {
         ...current,
-        members: current.members.filter((m) => (m as { id: string }).id !== params.userId),
+        members: current.members.filter((m) => (m as { id: string }).id !== params['userId']),
       };
       return HttpResponse.json({ conversation: current });
     }),

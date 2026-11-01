@@ -35,7 +35,7 @@ export default tseslint.config(
     ],
   },
   js.configs.recommended,
-  ...tseslint.configs.recommended,
+  ...tseslint.configs.strict,
   {
     languageOptions: { globals: { ...globals.node } },
     rules: {
@@ -61,6 +61,45 @@ export default tseslint.config(
         },
       ],
       'no-restricted-syntax': ['error', ...baseSyntax],
+    },
+  },
+  // Nest modules are empty decorated classes.
+  {
+    rules: {
+      '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
+    },
+  },
+  {
+    rules: {
+      '@typescript-eslint/explicit-member-accessibility': [
+        'error',
+        { accessibility: 'explicit', overrides: { constructors: 'no-public' } },
+      ],
+    },
+  },
+  {
+    files: ['packages/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],
+    },
+  },
+  {
+    files: ['**/*.test.{ts,tsx}', 'packages/web/src/test/**', 'packages/api/test/**'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/consistent-type-assertions': 'off',
+    },
+  },
+  // Typed rules read contracts types from dist, so `pnpm lint` builds contracts first.
+  {
+    files: ['packages/*/src/**/*.{ts,tsx}', 'packages/api/test/**/*.ts'],
+    ignores: ['**/*.d.ts'],
+    languageOptions: {
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+    },
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
     },
   },
   {

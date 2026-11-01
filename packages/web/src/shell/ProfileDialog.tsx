@@ -46,7 +46,7 @@ function ProfileForm({ user, onSaved }: { user: User; onSaved: () => void }) {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="grid gap-4">
+    <form onSubmit={(e) => void onSubmit(e)} noValidate className="grid gap-4">
       <dl className="grid gap-1 text-sm">
         <dt className="text-muted-foreground">Username</dt>
         <dd className="font-medium">{user.username}</dd>

@@ -7,7 +7,7 @@ export const PINO = Symbol('PINO');
 @Global()
 @Module({})
 export class LoggingModule {
-  static register(logger: Logger): DynamicModule {
+  public static register(logger: Logger): DynamicModule {
     return {
       module: LoggingModule,
       providers: [{ provide: PINO, useValue: logger }],

@@ -9,6 +9,7 @@ Rules for `packages/api`, on top of the [general conventions](general.md).
 ## Modules
 
 - One feature is one folder holding its controller, service, module and tests. `AppModule` only imports modules (ADR 0007).
+- Every class member states `public`, `private` or `protected`, except constructors.
 - No import cycles. Give a shared leaf its own module. Use `@Global()` only for Clock, Database and Logging.
 
 ## Controllers

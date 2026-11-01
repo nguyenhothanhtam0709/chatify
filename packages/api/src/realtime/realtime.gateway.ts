@@ -8,6 +8,7 @@ import {
 import { RealtimeEvent, type RealtimeEventName } from '@chat/contracts';
 import type { Logger } from 'pino';
 import type { IoServer as Server, IoSocket as Socket } from './socket-types.js';
+import { readProperty } from '../common/read-property.js';
 import { AccessTokenAuthenticator } from '../auth/access-token-authenticator.js';
 import { GroupMemberships } from '../memberships/group-memberships.js';
 import { PINO } from '../logging/logging.module.js';
@@ -23,7 +24,7 @@ export const sessionRoom = (sessionId: string) => `session:${sessionId}`;
  */
 @WebSocketGateway()
 export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
-  @WebSocketServer() server!: Server;
+  @WebSocketServer() public server!: Server;
 
   constructor(
     private readonly authenticator: AccessTokenAuthenticator,
@@ -31,7 +32,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
     @Inject(PINO) private readonly logger: Logger,
   ) {}
 
-  afterInit(server: Server): void {
+  public afterInit(server: Server): void {
     server.use((socket, next) => {
       void this.authenticate(socket).then((error) => {
         next(error);
@@ -46,7 +47,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
   }
 
   private async authenticate(socket: Socket): Promise<Error | undefined> {
-    const token: unknown = (socket.handshake.auth as { token?: unknown } | undefined)?.token;
+    const token: unknown = readProperty(socket.handshake.auth, 'token');
     const result = await this.authenticator.check(typeof token === 'string' ? token : undefined);
     if (!result.ok) {
       this.logger.warn({ socketId: socket.id, code: result.code }, 'socket auth failed');
@@ -94,12 +95,13 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
     }
   }
 
-  handleConnection(socket: Socket): void {
-    const { userId, sessionId, groupRooms } = socket.data as {
-      userId: string;
-      sessionId: string;
-      groupRooms: string[];
-    };
+  public handleConnection(socket: Socket): void {
+    // `socket.data` is `any` and `authenticate` set it before the connection was accepted.
+    const {
+      userId,
+      sessionId,
+      groupRooms,
+    }: { userId: string; sessionId: string; groupRooms: string[] } = socket.data;
     // The User room first, so an add or removal from here on reaches this socket. The Group
     // rooms read in the handshake may be stale by now, so they are checked again below.
     void socket.join([userRoom(userId), sessionRoom(sessionId), ...groupRooms]);
@@ -111,7 +113,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
   }
 
   /** Pushes to every socket of the given Users; logs the event, User count and Conversation. */
-  push(
+  public push(
     event: RealtimeEventName,
     userIds: string[],
     payload: unknown,
@@ -127,7 +129,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
    * Pushes to every socket in the Group's room, i.e. those of its current Members, except every
    * socket of `exceptUserId` when given.
    */
-  pushToGroup(
+  public pushToGroup(
     event: RealtimeEventName,
     conversationId: string,
     payload: unknown,
@@ -140,17 +142,17 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
   }
 
   /** Puts every socket of the User in the Group's room (they became a Member). */
-  joinGroupRoom(userId: string, conversationId: string): void {
+  public joinGroupRoom(userId: string, conversationId: string): void {
     this.server.in(userRoom(userId)).socketsJoin(conversationRoom(conversationId));
   }
 
   /** Takes every socket of the User out of the Group's room (they stopped being a Member). */
-  leaveGroupRoom(userId: string, conversationId: string): void {
+  public leaveGroupRoom(userId: string, conversationId: string): void {
     this.server.in(userRoom(userId)).socketsLeave(conversationRoom(conversationId));
   }
 
   /** Tells every socket of the session it is over, then disconnects them. Other sessions stay. */
-  revokeSession(sessionId: string): void {
+  public revokeSession(sessionId: string): void {
     const room = sessionRoom(sessionId);
     this.server.to(room).emit(RealtimeEvent.SESSION_REVOKED, {});
     this.server.in(room).disconnectSockets(true);

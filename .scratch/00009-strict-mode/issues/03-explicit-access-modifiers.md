@@ -11,16 +11,18 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `pnpm lint` passes with the rule on, with no `eslint-disable` added for it
-- [ ] A class member with no modifier fails lint, and a constructor written with `public` fails too
-- [ ] `pnpm typecheck` passes
-- [ ] The diff only adds modifiers, apart from the config and docs
-- [ ] The API and general conventions are updated
+- [x] `pnpm lint` passes with the rule on, with no `eslint-disable` added for it
+- [x] A class member with no modifier fails lint, and a constructor written with `public` fails too
+- [x] `pnpm typecheck` passes
+- [x] The diff only adds modifiers, apart from the config and docs
+- [x] The API and general conventions are updated
 
 **Verification:** No new tests: this is a refactor, so existing tests stay green. `pnpm docs:check` confirms the generated route docs didn't change.
 
 **Out of scope:** Narrowing a public member to `private`: note any that stand out in `docs/laters.md`. Moving to `#private` fields. Member ordering rules.
 
 ## Comments
+
+Resolved. Rule on with `constructors: 'no-public'`; 86 missing modifiers got `public` (applied from ESLint's own suggestions, then Prettier re-wrapped a few lines). `pnpm lint`, `pnpm typecheck`, `pnpm test` (187/312/195) and `pnpm docs:check` pass. Conventions updated in `api.md` and `general.md`. No `private` candidates noted in `docs/laters.md`; none stood out. Assumptions: none.

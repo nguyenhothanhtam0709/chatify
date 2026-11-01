@@ -22,7 +22,10 @@ import {
 export class ConversationQueries {
   constructor(@InjectDrizzle() private readonly db: Database) {}
 
-  async summaries(userId: string, onlyConversationId?: string): Promise<ConversationSummary[]> {
+  public async summaries(
+    userId: string,
+    onlyConversationId?: string,
+  ): Promise<ConversationSummary[]> {
     // The newest Message inside one of the caller's membership periods (Former Members must
     // not see a preview of anything said after they left).
     const lastVisibleSequence = sql`(
@@ -127,7 +130,7 @@ export class ConversationQueries {
     });
   }
 
-  async membersOf(conversationIds: string[]): Promise<Map<string, ConversationMember[]>> {
+  public async membersOf(conversationIds: string[]): Promise<Map<string, ConversationMember[]>> {
     const byConversation = new Map<string, ConversationMember[]>();
     if (conversationIds.length === 0) return byConversation;
     const rows = await this.db

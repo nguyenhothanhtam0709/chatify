@@ -16,22 +16,22 @@ const QuerySchema = z.object({ limit: z.coerce.number().int().min(1).max(100) })
 @Controller('probe')
 class ProbeController {
   @Post()
-  create(@Body(new ZodValidationPipe(BodySchema)) body: z.infer<typeof BodySchema>) {
+  public create(@Body(new ZodValidationPipe(BodySchema)) body: z.infer<typeof BodySchema>) {
     return body;
   }
 
   @Get('boom')
-  boom(): never {
+  public boom(): never {
     throw new Error('database password is hunter2');
   }
 
   @Get('list')
-  list(@Query(new ZodValidationPipe(QuerySchema)) query: z.infer<typeof QuerySchema>) {
+  public list(@Query(new ZodValidationPipe(QuerySchema)) query: z.infer<typeof QuerySchema>) {
     return query;
   }
 
   @Get(':id')
-  get(@Param(new ZodValidationPipe(ParamSchema)) params: z.infer<typeof ParamSchema>) {
+  public get(@Param(new ZodValidationPipe(ParamSchema)) params: z.infer<typeof ParamSchema>) {
     return params;
   }
 }

@@ -20,7 +20,7 @@ type AuthedRequest = FastifyRequest & { auth?: AuthContext };
 export class AuthGuard implements CanActivate {
   constructor(private readonly authenticator: AccessTokenAuthenticator) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  public async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthedRequest>();
     const header = request.headers.authorization;
     const token = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined;

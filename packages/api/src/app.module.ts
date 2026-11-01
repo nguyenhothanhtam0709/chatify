@@ -12,7 +12,11 @@ import { LoggingModule } from './logging/logging.module.js';
 
 @Module({})
 export class AppModule {
-  static register(rawConfig: Record<string, unknown>, clock: Clock, logger: Logger): DynamicModule {
+  public static register(
+    rawConfig: Record<string, unknown>,
+    clock: Clock,
+    logger: Logger,
+  ): DynamicModule {
     return {
       module: AppModule,
       imports: [

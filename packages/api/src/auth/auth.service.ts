@@ -69,7 +69,7 @@ export class AuthService {
   }
 
   /** Any failure is the same generic INVALID_CREDENTIALS. */
-  async login(
+  public async login(
     identifier: string,
     password: string,
   ): Promise<IssuedSession & { user: RegisterResponse['user'] }> {
@@ -118,7 +118,7 @@ export class AuthService {
   }
 
   /** Swaps a live refresh token for a new one and a fresh access token. */
-  async refresh(refreshToken: string | undefined): Promise<IssuedSession> {
+  public async refresh(refreshToken: string | undefined): Promise<IssuedSession> {
     const unauthenticated = () =>
       new DomainException(ErrorCode.UNAUTHENTICATED, HttpStatus.UNAUTHORIZED, 'Not signed in');
     if (!refreshToken) throw unauthenticated();
@@ -157,13 +157,13 @@ export class AuthService {
   }
 
   /** Ends the session now: its access token is denied until it would expire anyway. */
-  async logout(auth: AuthContext): Promise<void> {
+  public async logout(auth: AuthContext): Promise<void> {
     await this.denyList.add(auth.jti, new Date(auth.expiresAt * 1000));
     await this.db.delete(sessions).where(eq(sessions.id, auth.sessionId));
     await this.denyList.sweepExpired();
   }
 
-  async isSessionActive(sessionId: string): Promise<boolean> {
+  public async isSessionActive(sessionId: string): Promise<boolean> {
     const rows = await this.db
       .select({ id: sessions.id })
       .from(sessions)
@@ -172,7 +172,7 @@ export class AuthService {
     return rows.length > 0;
   }
 
-  async getUser(userId: string): Promise<RegisterResponse['user']> {
+  public async getUser(userId: string): Promise<RegisterResponse['user']> {
     const [user] = await this.db.select(publicUser).from(users).where(eq(users.id, userId));
     if (!user) {
       throw new DomainException(
@@ -188,7 +188,7 @@ export class AuthService {
    * Users whose Username starts with `q` (case-insensitive; `%`, `_` and `\` are literal),
    * the exact match first, at most 20, never the searcher. Public fields only.
    */
-  async searchUsers(searcherId: string, q: string): Promise<SearchUsersResponse['users']> {
+  public async searchUsers(searcherId: string, q: string): Promise<SearchUsersResponse['users']> {
     const needle = q.toLowerCase();
     const prefix = `${needle.replace(/[\\%_]/g, '\\$&')}%`;
     return this.db
@@ -202,7 +202,10 @@ export class AuthService {
   }
 
   /** Changes the Nickname and/or the share read receipts setting; pushes nothing. */
-  async updateProfile(userId: string, changes: ProfileChanges): Promise<RegisterResponse['user']> {
+  public async updateProfile(
+    userId: string,
+    changes: ProfileChanges,
+  ): Promise<RegisterResponse['user']> {
     const [user] = await this.db
       .update(users)
       .set({ nickname: changes.nickname, shareReadReceipts: changes.shareReadReceipts })
@@ -218,7 +221,7 @@ export class AuthService {
     return user;
   }
 
-  async register(input: NewUser): Promise<RegisterResponse> {
+  public async register(input: NewUser): Promise<RegisterResponse> {
     const passwordHash = await hashPassword(input.password);
     try {
       const row = exactlyOne(

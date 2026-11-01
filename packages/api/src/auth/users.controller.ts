@@ -18,14 +18,14 @@ export class UsersController {
 
   @Get('me')
   @UseGuards(AuthGuard)
-  async me(@Auth() auth: AuthContext): Promise<MeResponse> {
+  public async me(@Auth() auth: AuthContext): Promise<MeResponse> {
     return { user: await this.auth.getUser(auth.userId) };
   }
 
   /** Username-prefix search; rate limited to 30 per minute per User (see `ThrottlingModule`). */
   @Get('search')
   @UseGuards(AuthGuard, SearchThrottlerGuard)
-  async search(
+  public async search(
     @Auth() auth: AuthContext,
     @Query(new ZodValidationPipe(SearchUsersQuerySchema)) query: SearchUsersQuery,
   ): Promise<SearchUsersResponse> {
@@ -35,7 +35,7 @@ export class UsersController {
   /** Sets or clears the Nickname and/or turns sharing read receipts on or off. */
   @Patch('me')
   @UseGuards(AuthGuard)
-  async updateMe(
+  public async updateMe(
     @Auth() auth: AuthContext,
     @Body(new ZodValidationPipe(UpdateProfileRequestSchema)) body: UpdateProfileRequest,
   ): Promise<MeResponse> {

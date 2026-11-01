@@ -10,7 +10,7 @@ export class HealthController {
 
   @Get()
   @HttpCode(200)
-  async check(@Res({ passthrough: true }) reply: FastifyReply): Promise<HealthResponse> {
+  public async check(@Res({ passthrough: true }) reply: FastifyReply): Promise<HealthResponse> {
     try {
       await this.pool.query('select 1');
       return { status: 'ok', database: 'up' };

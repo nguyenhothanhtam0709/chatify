@@ -70,6 +70,14 @@ export default tseslint.config(
     },
   },
   {
+    rules: {
+      '@typescript-eslint/explicit-member-accessibility': [
+        'error',
+        { accessibility: 'explicit', overrides: { constructors: 'no-public' } },
+      ],
+    },
+  },
+  {
     files: ['packages/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],

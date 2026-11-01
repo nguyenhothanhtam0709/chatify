@@ -32,3 +32,9 @@ The API clients call `parse` on a 2xx response outside their error handling, so 
 **Out of scope:** Other API clients with the same pattern: note any you see in this Ticket's `## Comments`, for Ticket 07 to log. Adding `try/finally` to handlers. Changing the API.
 
 ## Comments
+
+00009-04 done: `createGroup`, `changeMembers` (add/remove), `leaveGroup`, `login`, `register` and `updateProfile` now `safeParse` a 2xx body and return their existing `ok: false` shape with `Something went wrong. Try again.` (sign up uses `formError`). Handlers untouched.
+- Tests: `packages/web/src/malformed-2xx.test.tsx`, 7 flows, written first and shown failing (message missing, unhandled ZodError rejections), now passing.
+- Checks: lint, typecheck, test (187/312/195), docs:check pass. No browser check, as the Ticket says.
+- Assumptions: none.
+- Other clients with the same pattern, for Ticket 07 to log: `getGroup` (groups.ts), `refreshAccessToken` and `fetchCurrentUser` (auth.ts, caught by try/catch so they return undefined), `conversations.ts` (list, get, messages), `messages.ts` (send direct/group), `users.ts` (search), `health.ts`.

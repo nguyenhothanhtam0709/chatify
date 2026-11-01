@@ -159,6 +159,7 @@ function Composer({
   // Whether the other side may be showing us as typing, and when `typing` was last sent.
   const signalled = useRef(false);
   const lastSignal = useRef(0);
+  const sendButton = useRef<HTMLButtonElement>(null);
 
   function signal(state: TypingState) {
     if (state === 'stopped') {
@@ -211,7 +212,11 @@ function Composer({
           className="max-h-40 min-h-10"
           value={text}
           onChange={(e) => onChange(e.target.value)}
-          onBlur={() => signal('stopped')}
+          onBlur={(e) => {
+            // Going to the Send button is a send, whose Message clears the indicator itself.
+            if (e.relatedTarget === sendButton.current) return;
+            signal('stopped');
+          }}
           onKeyDown={onKeyDown}
         />
         <InputGroupAddon align="block-end" className="p-2">
@@ -225,6 +230,9 @@ function Composer({
             variant="default"
             size="icon-sm"
             aria-label="Send"
+            ref={sendButton}
+            // Keeps focus in the textarea, so a click or tap does not blur it before the send.
+            onMouseDown={(e) => e.preventDefault()}
             disabled={!sendable}
             className="ml-auto"
           >
@@ -832,7 +840,7 @@ export function ConversationView({
         </MessageScrollerProvider>
       </div>
       {canPost && (
-        <p role="status" className="h-5 px-4 text-sm text-muted-foreground">
+        <p role="status" className="h-5 truncate px-4 text-sm text-muted-foreground">
           {typingText(Object.values(typists))}
         </p>
       )}

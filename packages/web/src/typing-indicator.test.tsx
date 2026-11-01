@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
@@ -95,6 +96,21 @@ function signedIn(
     http.get(`*/api/v1/conversations/${withBob}/messages`, () =>
       HttpResponse.json({ messages: [], hasMore: false }),
     ),
+    http.post(`*/api/v1/conversations/${withBob}/messages`, async ({ request }) => {
+      const body = (await request.json()) as { clientMessageId: string; body: string };
+      return HttpResponse.json(
+        {
+          message: {
+            ...bobMessage,
+            senderId: alice.id,
+            sequence: 3,
+            clientMessageId: body.clientMessageId,
+            body: body.body,
+          },
+        },
+        { status: 201 },
+      );
+    }),
     http.post(`*/api/v1/conversations/${withBob}/typing`, async ({ request }) => {
       sent.push(((await request.json()) as { state: string }).state);
       return answer();
@@ -289,6 +305,58 @@ describe('Typing Indicator, sending', () => {
     expect(sent).toEqual(['typing', 'stopped']);
   });
 
+  it('sends no stopped when a send follows, however the focus leaves the composer', async () => {
+    const sent = signedIn(bobWithNickname);
+    await openBob();
+    vi.useFakeTimers();
+    const box = screen.getByRole('textbox', { name: 'Message' });
+    const send = screen.getByRole('button', { name: 'Send' });
+
+    // Enter: the text is sent, then the composer loses focus.
+    fireEvent.change(box, { target: { value: 'h' } });
+    await flush();
+    fireEvent.keyDown(box, { key: 'Enter' });
+    await flush();
+    fireEvent.blur(box);
+    await flush();
+    expect(sent).toEqual(['typing']);
+
+    // Mouse or touch: the press must not blur the composer, and a blur towards Send is a send.
+    fireEvent.change(box, { target: { value: 'again' } });
+    await flush();
+    expect(fireEvent.mouseDown(send)).toBe(false);
+    fireEvent.blur(box, { relatedTarget: send });
+    fireEvent.click(send);
+    await flush();
+    fireEvent.blur(box);
+    await flush();
+
+    expect(sent).toEqual(['typing', 'typing']);
+  });
+
+  it('shows no error when the request is answered with a network failure', async () => {
+    const sent = signedIn(bobWithNickname, () => HttpResponse.error());
+    await openBob();
+    vi.useFakeTimers();
+
+    fireEvent.change(screen.getByRole('textbox', { name: 'Message' }), { target: { value: 'h' } });
+    await flush();
+
+    expect(sent).toEqual(['typing']);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('keeps a long typist line to one truncated line', async () => {
+    const long = { ...bobWithNickname, nickname: 'B'.repeat(50) };
+    signedIn(long);
+    const fake = await openBob(long);
+    vi.useFakeTimers();
+
+    act(() => fake.emit(typingEvent('typing', long)));
+
+    expect(screen.getByRole('status')).toHaveClass('truncate');
+  });
+
   it('shows no error when the request fails or is rate limited', async () => {
     const sent = signedIn(bobWithNickname, () =>
       HttpResponse.json({ error: { code: 'RATE_LIMITED', message: 'slow down' } }, { status: 429 }),
@@ -397,5 +465,37 @@ describe('Typing Indicator in a Group', () => {
     );
 
     expect(screen.getByText('carol is typing…')).toBeInTheDocument();
+  });
+});
+
+describe('Typing Indicator in a Direct view without a Conversation ID', () => {
+  it('sends no signal until the first Message exists (known limit)', async () => {
+    const typed: string[] = [];
+    server.use(
+      http.post('*/api/v1/auth/refresh', () =>
+        HttpResponse.json({ accessToken: fakeAccessToken() }),
+      ),
+      http.get('*/api/v1/users/me', () => HttpResponse.json({ user: alice })),
+      http.get('*/api/v1/conversations', () => HttpResponse.json({ conversations: [] })),
+      http.get('*/api/v1/users/search', () => HttpResponse.json({ users: [bobWithNickname] })),
+      http.post('*/api/v1/conversations/:id/typing', async ({ request }) => {
+        typed.push(((await request.json()) as { state: string }).state);
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    render(<App />);
+    await screen.findByText(/no conversations yet/i);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /new conversation/i }));
+    const dialog = await screen.findByRole('dialog', { name: /new conversation/i });
+    await user.type(within(dialog).getByRole('combobox'), 'bo');
+    await user.click(await within(dialog).findByRole('option', { name: /bob/i }));
+    const box = await screen.findByRole('textbox', { name: 'Message' });
+
+    await user.type(box, 'hello');
+    await user.clear(box);
+    await user.tab();
+
+    expect(typed).toEqual([]);
   });
 });

@@ -17,16 +17,18 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `Tx` has no `any` and no `eslint-disable`, and is derived from `Database`
-- [ ] Passing the plain database to `nextSequence` or `lockConversation` fails typecheck
-- [ ] `Reader` is picked from `Database`, and rule checks can still be given the plain database
-- [ ] The seed CLI builds its database with the schema, and has no runtime import of the database module
-- [ ] Existing tests pass with no edits, including the `seedDatabase` test against Postgres
+- [x] `Tx` has no `any` and no `eslint-disable`, and is derived from `Database`
+- [x] Passing the plain database to `nextSequence` or `lockConversation` fails typecheck
+- [x] `Reader` is picked from `Database`, and rule checks can still be given the plain database
+- [x] The seed CLI builds its database with the schema, and has no runtime import of the database module
+- [x] Existing tests pass with no edits, including the `seedDatabase` test against Postgres
 
 **Verification:** No new tests. To check the second criterion, temporarily pass `this.db` to `nextSequence` and to `lockConversation`, confirm typecheck fails on both, then revert. Only the `lockConversation` failure is new: `nextSequence` already fails today. A manual `pnpm db:seed` isn't required: the seed CLI's wrapper doesn't change and the `seedDatabase` test covers the rest.
 
 **Out of scope:** Moving the CLIs or tests onto Nest or `@nestjs/drizzle`. Using `tx.query`. Giving the migration CLI or migration test helper a schema. Sharing one database factory between the Nest module and the CLIs. Adding a type-level test. Amending Spec 00002 or ADR 0007.
 
 ## Comments
+
+Resolved. Verified with `pnpm lint`, `pnpm typecheck`, `pnpm test` (api suite 312/312, no test edits, including the `seedDatabase` test against Postgres) and `pnpm docs:check`. Temporarily passing `this.db` to `lockConversation` and `nextSequence` failed typecheck on both (TS2345); reverted. No follow-ups. Assumptions: none.

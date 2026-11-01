@@ -28,8 +28,9 @@ export async function login(input: LoginRequest): Promise<LoginResult> {
 
   const payload: unknown = await res.json().catch(() => undefined);
   if (res.ok) {
-    const { accessToken, user } = LoginResponseSchema.parse(payload);
-    return { ok: true, accessToken, user };
+    const parsed = LoginResponseSchema.safeParse(payload);
+    if (!parsed.success) return { ok: false, error: 'Something went wrong. Try again.' };
+    return { ok: true, accessToken: parsed.data.accessToken, user: parsed.data.user };
   }
   const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
   switch (code) {

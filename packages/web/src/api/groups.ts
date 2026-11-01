@@ -27,7 +27,12 @@ export async function createGroup(
     return { ok: false, error: 'Could not reach the server. Try again.' };
   }
   const payload: unknown = await res.json().catch(() => undefined);
-  if (res.ok) return { ok: true, group: CreateGroupResponseSchema.parse(payload).conversation };
+  if (res.ok) {
+    const parsed = CreateGroupResponseSchema.safeParse(payload);
+    return parsed.success
+      ? { ok: true, group: parsed.data.conversation }
+      : { ok: false, error: 'Something went wrong. Try again.' };
+  }
   const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
   if (code === ErrorCode.GROUP_FULL) {
     return { ok: false, error: 'A Group can have at most 256 Members.' };
@@ -93,7 +98,12 @@ async function changeMembers(
     return { ok: false, error: UNREACHABLE };
   }
   const payload: unknown = await res.json().catch(() => undefined);
-  if (res.ok) return { ok: true, group: GroupMembershipResponseSchema.parse(payload).conversation };
+  if (res.ok) {
+    const parsed = GroupMembershipResponseSchema.safeParse(payload);
+    return parsed.success
+      ? { ok: true, group: parsed.data.conversation }
+      : { ok: false, error: GENERIC_ERROR };
+  }
   const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
   if (code === ErrorCode.ALREADY_A_MEMBER)
     return { ok: false, error: 'They are already a Member.' };
@@ -124,7 +134,12 @@ export async function leaveGroup(accessToken: string, groupId: string): Promise<
     return { ok: false, error: UNREACHABLE };
   }
   const payload: unknown = await res.json().catch(() => undefined);
-  if (res.ok) return { ok: true, group: GroupMembershipResponseSchema.parse(payload).conversation };
+  if (res.ok) {
+    const parsed = GroupMembershipResponseSchema.safeParse(payload);
+    return parsed.success
+      ? { ok: true, group: parsed.data.conversation }
+      : { ok: false, error: GENERIC_ERROR };
+  }
   const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
   if (code === ErrorCode.GROUP_CLOSED) return { ok: false, error: 'This Group is closed.' };
   if (code === ErrorCode.NOT_A_MEMBER) return { ok: false, error: 'You already left this Group.' };

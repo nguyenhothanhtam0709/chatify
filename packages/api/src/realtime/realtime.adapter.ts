@@ -9,6 +9,7 @@ import type { IoServerOptions } from './socket-types.js';
 export class RealtimeIoAdapter extends IoAdapter {
   override createIOServer(port: number, options?: IoServerOptions) {
     const fixed = { transports: ['websocket'], parser, perMessageDeflate: true };
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the adapter's option type does not list parser or perMessageDeflate, which Socket.IO accepts
     return super.createIOServer(port, { ...options, ...fixed } as IoServerOptions);
   }
 }

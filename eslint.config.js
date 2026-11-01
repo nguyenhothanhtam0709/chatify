@@ -70,8 +70,17 @@ export default tseslint.config(
     },
   },
   {
+    files: ['packages/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],
+    },
+  },
+  {
     files: ['**/*.test.{ts,tsx}', 'packages/web/src/test/**', 'packages/api/test/**'],
-    rules: { '@typescript-eslint/no-non-null-assertion': 'off' },
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/consistent-type-assertions': 'off',
+    },
   },
   // Typed rules read contracts types from dist, so `pnpm lint` builds contracts first.
   {

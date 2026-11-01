@@ -18,6 +18,16 @@ function isField(value: unknown): value is RegisterField {
   return typeof value === 'string' && FIELDS.includes(value);
 }
 
+/** The first path segment and the message of one validation issue the server sent. */
+function readIssue(issue: unknown): { field: unknown; message: unknown } {
+  if (typeof issue !== 'object' || issue === null) return { field: undefined, message: undefined };
+  const path = 'path' in issue ? issue.path : undefined;
+  return {
+    field: Array.isArray(path) ? path[0] : undefined,
+    message: 'message' in issue ? issue.message : undefined,
+  };
+}
+
 /** Calls `POST /api/v1/auth/register` and turns API errors into per-field messages. */
 export async function register(
   input: RegisterRequest,
@@ -61,9 +71,8 @@ export async function register(
       };
     case ErrorCode.VALIDATION_FAILED: {
       const fieldErrors: Partial<Record<RegisterField, string>> = {};
-      for (const issue of Array.isArray(details) ? (details as unknown[]) : []) {
-        const { path, message } = (issue ?? {}) as { path?: unknown[]; message?: unknown };
-        const field = path?.[0];
+      for (const issue of Array.isArray(details) ? details : []) {
+        const { field, message } = readIssue(issue);
         if (isField(field) && typeof message === 'string' && !(field in fieldErrors)) {
           fieldErrors[field] = message;
         }

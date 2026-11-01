@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import type { FastifyRequest } from 'fastify';
+import { readProperty } from '../common/read-property.js';
 import type { Config } from '../config/config.js';
 import { AppThrottlerGuard } from './app-throttler.guard.js';
 
@@ -15,10 +16,9 @@ const isSendRoute = (req: FastifyRequest): boolean =>
   req.method === 'POST' && SEND_URLS.includes(req.routeOptions?.url ?? '');
 
 /** `AuthGuard` sets `request.auth`; the global throttler guard runs before it. */
-const authenticatedUserId = (req: Record<string, unknown>): unknown =>
-  (req['auth'] as { userId?: unknown } | undefined)?.userId;
-const isAuthenticated = (req: object): boolean =>
-  authenticatedUserId(req as Record<string, unknown>) !== undefined;
+const authenticatedUserId = (req: unknown): unknown =>
+  readProperty(readProperty(req, 'auth'), 'userId');
+const isAuthenticated = (req: unknown): boolean => authenticatedUserId(req) !== undefined;
 
 @Module({
   imports: [
@@ -71,7 +71,7 @@ const isAuthenticated = (req: object): boolean =>
               return !isAuthenticated(req) || !isTypingRoute(req);
             },
             getTracker: (req) =>
-              `user:${String(authenticatedUserId(req))}:${String((req['params'] as { id?: unknown } | undefined)?.id).toLowerCase()}`,
+              `user:${String(authenticatedUserId(req))}:${String(readProperty(readProperty(req, 'params'), 'id')).toLowerCase()}`,
           },
           // Typing route only, before authentication: per IP, so bad tokens and random IDs are
           // limited too. Its own counter; the generic limit does not count typing.
@@ -94,7 +94,7 @@ const isAuthenticated = (req: object): boolean =>
               context.switchToHttp().getRequest<FastifyRequest>().routeOptions?.url !==
               '/api/v1/auth/login',
             getTracker: (req) => {
-              const identifier = (req['body'] as { identifier?: unknown } | undefined)?.identifier;
+              const identifier = readProperty(readProperty(req, 'body'), 'identifier');
               return typeof identifier === 'string'
                 ? `identifier:${identifier.normalize('NFC').toLowerCase()}`
                 : `ip:${String(req['ip'])}`;

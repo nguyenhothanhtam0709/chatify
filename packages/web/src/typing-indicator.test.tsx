@@ -303,3 +303,99 @@ describe('Typing Indicator, sending', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
+
+describe('Typing Indicator in a Group', () => {
+  const groupId = '0198a2b4-7c3e-7a52-9f31-5d2f4c1e8b80';
+  const dana = { id: '0198a2b4-7c3e-7a52-9f31-5d2f4c1e8b63', username: 'dana', nickname: 'Dana' };
+  const members = [aliceMember, bobWithNickname, carol, dana];
+
+  async function openGroup() {
+    const group = {
+      id: groupId,
+      kind: 'group' as const,
+      name: 'Book Club',
+      ownerId: alice.id,
+      members,
+      closed: false,
+    };
+    server.use(
+      http.post('*/api/v1/auth/refresh', () =>
+        HttpResponse.json({ accessToken: fakeAccessToken() }),
+      ),
+      http.get('*/api/v1/users/me', () => HttpResponse.json({ user: alice })),
+      http.get('*/api/v1/conversations', () =>
+        HttpResponse.json({
+          conversations: [{ ...group, isMember: true, unreadCount: 0, lastMessage: null }],
+        }),
+      ),
+      http.get(`*/api/v1/conversations/${groupId}`, () =>
+        HttpResponse.json({ conversation: { ...group, isMember: true } }),
+      ),
+      http.get(`*/api/v1/conversations/${groupId}/messages`, () =>
+        HttpResponse.json({ messages: [], hasMore: false }),
+      ),
+    );
+    const fake = fakeRealtime();
+    render(<App createRealtime={() => fake.realtime} />);
+    fireEvent.click(await screen.findByRole('button', { name: /Book Club/ }));
+    await screen.findByRole('textbox', { name: 'Message' });
+    return fake;
+  }
+
+  const groupTyping = (state: 'typing' | 'stopped', user: Member) =>
+    ({ type: 'typing.updated', conversationId: groupId, state, user }) as const;
+
+  it('shows one, two and three-or-more typists, and shrinks as they stop', async () => {
+    const fake = await openGroup();
+    vi.useFakeTimers();
+
+    act(() => fake.emit(groupTyping('typing', bobWithNickname)));
+    expect(screen.getByText('Bob is typing…')).toBeInTheDocument();
+
+    act(() => fake.emit(groupTyping('typing', carol)));
+    expect(screen.getByText('Bob and carol are typing…')).toBeInTheDocument();
+
+    act(() => fake.emit(groupTyping('typing', dana)));
+    expect(screen.getByText('Several people are typing…')).toBeInTheDocument();
+
+    act(() => fake.emit(groupTyping('stopped', bobWithNickname)));
+    expect(screen.getByText('carol and Dana are typing…')).toBeInTheDocument();
+  });
+
+  it('expires and clears each typist on their own', async () => {
+    const fake = await openGroup();
+    vi.useFakeTimers();
+
+    act(() => fake.emit(groupTyping('typing', bobWithNickname)));
+    await advance(4000);
+    act(() => fake.emit(groupTyping('typing', carol)));
+    expect(screen.getByText('Bob and carol are typing…')).toBeInTheDocument();
+
+    await advance(2100);
+    expect(screen.getByText('carol is typing…')).toBeInTheDocument();
+
+    act(() =>
+      fake.emit({
+        type: 'message.created',
+        message: { ...bobMessage, conversationId: groupId, senderId: carol.id },
+      }),
+    );
+    expect(screen.queryByText(/typing/)).not.toBeInTheDocument();
+  });
+
+  it("one typist's Message clears only that typist", async () => {
+    const fake = await openGroup();
+    vi.useFakeTimers();
+
+    act(() => fake.emit(groupTyping('typing', bobWithNickname)));
+    act(() => fake.emit(groupTyping('typing', carol)));
+    act(() =>
+      fake.emit({
+        type: 'message.created',
+        message: { ...bobMessage, conversationId: groupId },
+      }),
+    );
+
+    expect(screen.getByText('carol is typing…')).toBeInTheDocument();
+  });
+});

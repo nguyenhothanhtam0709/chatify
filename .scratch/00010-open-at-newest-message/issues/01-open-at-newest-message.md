@@ -15,14 +15,14 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Clicking a long Conversation in the Conversation list opens it at its newest Message, with the "Jump to latest" button hidden
-- [ ] Opening a long Conversation from its URL opens it at its newest Message
-- [ ] Switching from one Conversation to another lands at the newest Message of the one switched to
-- [ ] "No messages yet" doesn't show while the first page is loading
-- [ ] "No messages yet" shows for a Conversation whose first page answers with no Messages, and straight away for a new Direct Conversation
-- [ ] The existing history pagination, mark-as-read, pane height and live-Message tests pass unchanged
+- [x] Clicking a long Conversation in the Conversation list opens it at its newest Message, with the "Jump to latest" button hidden
+- [x] Opening a long Conversation from its URL opens it at its newest Message (n/a in the app today: the open Conversation is shell state, not a URL, so a reload shows the empty pane; the click path covers the same mount)
+- [x] Switching from one Conversation to another lands at the newest Message of the one switched to
+- [x] "No messages yet" doesn't show while the first page is loading
+- [x] "No messages yet" shows for a Conversation whose first page answers with no Messages, and straight away for a new Direct Conversation
+- [x] The existing history pagination, mark-as-read, pane height and live-Message tests pass unchanged
 
 **Verification:**
 
@@ -33,3 +33,5 @@
 **Out of scope:** Keeping the view at the newest Message while a short first page loads older pages to fill itself (Ticket 02). Opening at the first Unread Message. A loading skeleton or spinner. Keeping a Conversation's scroll position between visits. Upgrading the scroller package.
 
 ## Comments
+
+Resolved. The Conversation view now mounts the scroller from its first render; "No messages yet" waits for the first page (or a new Direct Conversation). Verified with `src/open-at-newest-message.test.tsx` (click and switch tests failed before the fix, scrollTop 0) and the full checks. Assumption: a failed first-page request now shows nothing instead of "No messages yet". No browser check (Ticket 02).

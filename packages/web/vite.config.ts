@@ -6,6 +6,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
+  // One chunk: ~785 kB today; warn only if it grows past 1 MB.
+  build: { chunkSizeWarningLimit: 1000 },
   server: {
     port: 5173,
     proxy: {

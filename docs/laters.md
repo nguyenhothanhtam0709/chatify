@@ -6,6 +6,8 @@ Notes for a later MVP, not commitments. Any agent may append an entry with `cat 
 
 A URL per Conversation, so reload, Back and deep links work. Today the open Conversation lives in app shell state. Awkward for a new Direct Conversation, which has no id until the first Message is sent.
 
+Spec 00010 asked for a Conversation opened from its URL or after a reload to land at its newest Message (user stories 2 and 3). Those stories were marked n/a because no such route exists. When this entry becomes a spec, carry them over and test them like the click case in `packages/web/src/open-at-newest-message.test.tsx`.
+
 ## Contract-first development
 
 Today `packages/contracts` (Zod) is shared by the API and SPA, but endpoints are built code-first and there are no generated API docs (OpenAPI is out of scope for MVP1). In a later MVP, move to contract-first: define the HTTP contract (request, response and error shapes) before the implementation, and drive the API and SPA from it. Decide the contract format (extending the Zod contracts vs. OpenAPI) in an ADR when this is picked up.

@@ -55,6 +55,22 @@ export function stubLayout() {
         : 0;
     },
   });
+  // Like a browser, the viewport cannot scroll past its content: scrollTop stays within
+  // 0..scrollHeight - clientHeight.
+  const scrollTop = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTop')!;
+  Object.defineProperty(HTMLElement.prototype, 'scrollTop', {
+    configurable: true,
+    get() {
+      return scrollTop.get!.call(this);
+    },
+    set(value: number) {
+      const el = this as HTMLElement;
+      const top = isViewport(el)
+        ? Math.min(Math.max(0, value), Math.max(0, el.scrollHeight - el.clientHeight))
+        : value;
+      scrollTop.set!.call(el, top);
+    },
+  });
 }
 
 /** Undoes `stubLayout`. */
@@ -63,4 +79,5 @@ export function unstubLayout() {
   Reflect.deleteProperty(HTMLElement.prototype, 'clientHeight');
   Reflect.deleteProperty(HTMLElement.prototype, 'scrollTo');
   Reflect.deleteProperty(HTMLElement.prototype, 'scrollHeight');
+  Reflect.deleteProperty(HTMLElement.prototype, 'scrollTop');
 }

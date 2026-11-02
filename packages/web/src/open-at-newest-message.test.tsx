@@ -35,6 +35,8 @@ interface Chat {
   peer: Peer;
   label: string;
   total: number;
+  /** Messages per page; the default of 10 fills the view. */
+  pageSize?: number;
 }
 
 const row = (chat: Chat, sequence: number) => ({
@@ -84,7 +86,7 @@ function fakeConversations(chats: Chat[], gate?: string) {
       http.get(`*/api/v1/conversations/${chat.id}/messages`, async ({ request }) => {
         const params = new URL(request.url).searchParams;
         if (chat.id === gate && !params.has('before')) await held;
-        const limit = Number(params.get('limit') ?? 10);
+        const limit = Number(params.get('limit') ?? chat.pageSize ?? 10);
         const before = Number(params.get('before') ?? chat.total + 1);
         const older = Array.from({ length: before - 1 }, (_, i) => before - 1 - i);
         return HttpResponse.json({
@@ -144,6 +146,28 @@ describe('Opening a Conversation', () => {
 
     const viewport = await screen.findByRole('region', { name: /messages/i });
     await waitFor(() => expect(viewport.scrollTop).toBe(FIRST_PAGE_END));
+  });
+
+  it('stays at the newest Message while older pages load to fill a short first page', async () => {
+    // One Message per page and 3 in view: three older pages load by themselves.
+    fakeConversations([{ ...bobChat, pageSize: 1 }]);
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: /Bob.*message 25/i }));
+    const viewport = await screen.findByRole('region', { name: /messages/i });
+    await screen.findByText('message 22');
+
+    // 4 Messages loaded, 3 in view: the newest is at the bottom.
+    await waitFor(() => expect(viewport.scrollTop).toBe(4 * ITEM_HEIGHT - VIEWPORT_HEIGHT));
+    expect(screen.queryByText('message 21')).not.toBeInTheDocument();
+    fireEvent.scroll(viewport);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /jump to latest/i })).toHaveAttribute(
+        'data-active',
+        'false',
+      ),
+    );
   });
 });
 

@@ -12,12 +12,12 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A Conversation whose first page doesn't fill the view ends at its newest Message after the automatic older-page loads, with the "Jump to latest" button hidden
-- [ ] After the User scrolls up, loading older Messages keeps the Message they were reading in place
-- [ ] The existing history pagination, mark-as-read and live-Message tests pass unchanged
-- [ ] The browser check is done and recorded in the PR
+- [x] A Conversation whose first page doesn't fill the view ends at its newest Message after the automatic older-page loads, with the "Jump to latest" button hidden
+- [x] After the User scrolls up, loading older Messages keeps the Message they were reading in place
+- [x] The existing history pagination, mark-as-read and live-Message tests pass unchanged
+- [x] The browser check is done and recorded in the PR
 
 **Verification:**
 
@@ -27,3 +27,7 @@
 **Out of scope:** Opening at the first Unread Message. Changing how live Messages, sent Messages or the "Jump to latest" button behave. Keeping a Conversation's scroll position between visits. Upgrading the scroller package.
 
 ## Comments
+
+Resolved with no production change. The new jsdom test failed only because the fake layout let the viewport's `scrollTop` run past its content. In a real browser, each preserved prepend asks for a `scrollTop` past the end and the browser clamps it, so the view already ends at the newest Message. The browser check confirmed this at viewport heights of 733, 1100 and 1500 px, with one and with two automatic loads. The fake now clamps `scrollTop` like a browser (`packages/web/src/test/layout.ts`); the existing test files are unchanged and pass. Verified with `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm docs:check` and the browser check.
+
+Assumptions: since the browser already keeps the newest Message in view, no defensive scroll-to-end was added during the fill (the Spec's "smallest change"). Opening by URL is n/a: there is no Conversation route. The test data went into the seeded Conversations (sending a Direct Message reuses the existing one), so the cleanup removed this worktree's whole database volume instead of deleting Conversations.

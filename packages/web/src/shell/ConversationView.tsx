@@ -306,6 +306,7 @@ export function ConversationView({
   const [conversationId, setConversationId] = useState(openedWith);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [hasMore, setHasMore] = useState(false);
+  const [firstPageAnswered, setFirstPageAnswered] = useState(false);
   const loadingOlder = useRef(false);
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
@@ -330,6 +331,7 @@ export function ConversationView({
       if (controller.signal.aborted || !result.ok) return;
       setHasMore(result.hasMore);
       setMessages((current) => mergeMessages(current, result.messages));
+      setFirstPageAnswered(true);
     })();
     return () => controller.abort();
   }, [openedWith, messagesPage]);
@@ -766,84 +768,84 @@ export function ConversationView({
       <div className="relative min-h-0 flex-1">
         <MessageScrollerProvider>
           <LiveEdge onChange={onLiveEdge} />
-          {rows.length === 0 ? (
-            <p className="p-6 text-center text-sm text-muted-foreground">
+          {rows.length === 0 && (openedWith === undefined || firstPageAnswered) && (
+            <p className="absolute inset-x-0 top-0 p-6 text-center text-sm text-muted-foreground">
               No messages yet.{' '}
               {target.kind === 'group'
                 ? 'Say hello to the Group.'
                 : `Say hello to ${displayName(target.peer)}.`}
             </p>
-          ) : (
-            <MessageScroller>
-              <MessageScrollerViewport ref={viewportRef} onScroll={onScroll}>
-                <MessageScrollerContent className="p-4">
-                  {toEntries(rows).map(({ row: m, day, continuesRun }) => {
-                    const outgoing = m.outgoing;
-                    return (
-                      <MessageScrollerItem
-                        key={m.key}
-                        messageId={m.key}
-                        scrollAnchor={m.own === true || atLatest}
-                        className={continuesRun ? '-mt-4' : undefined}
-                      >
-                        {day && (
-                          <Marker variant="separator" className="mb-6">
-                            <MarkerContent>{dayLabel(day)}</MarkerContent>
-                          </Marker>
-                        )}
-                        {m.systemMessage !== undefined ? (
-                          <Marker>
-                            <MarkerContent>{m.systemMessage}</MarkerContent>
-                          </Marker>
-                        ) : (
-                          <Message align={m.senderId === user.id ? 'end' : 'start'}>
-                            <MessageContent>
-                              <Bubble
-                                variant={
-                                  m.outgoing?.status === 'failed'
-                                    ? 'destructive'
-                                    : m.outgoing || m.senderId !== user.id
-                                      ? 'muted'
-                                      : 'default'
-                                }
-                              >
-                                <BubbleContent
-                                  className="whitespace-pre-wrap"
-                                  title={timeLabel(m.createdAt)}
-                                >
-                                  {m.body}
-                                </BubbleContent>
-                              </Bubble>
-                            </MessageContent>
-                            {outgoing?.status === 'failed' && (
-                              <MessageFooter className="items-center gap-2">
-                                <span role="alert" className="text-sm text-destructive">
-                                  {outgoing.error}
-                                </span>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => retry(outgoing)}
-                                >
-                                  Retry
-                                </Button>
-                              </MessageFooter>
-                            )}
-                            {m.seen && <MessageFooter>Seen</MessageFooter>}
-                          </Message>
-                        )}
-                      </MessageScrollerItem>
-                    );
-                  })}
-                </MessageScrollerContent>
-              </MessageScrollerViewport>
-              <MessageScrollerButton>
-                <ArrowDown />
-                <span className="sr-only">Jump to latest</span>
-              </MessageScrollerButton>
-            </MessageScroller>
           )}
+          {/* Mounted from the first render, so Messages arrive into a viewport that exists. */}
+          <MessageScroller>
+            <MessageScrollerViewport ref={viewportRef} onScroll={onScroll}>
+              <MessageScrollerContent className="p-4">
+                {toEntries(rows).map(({ row: m, day, continuesRun }) => {
+                  const outgoing = m.outgoing;
+                  return (
+                    <MessageScrollerItem
+                      key={m.key}
+                      messageId={m.key}
+                      scrollAnchor={m.own === true || atLatest}
+                      className={continuesRun ? '-mt-4' : undefined}
+                    >
+                      {day && (
+                        <Marker variant="separator" className="mb-6">
+                          <MarkerContent>{dayLabel(day)}</MarkerContent>
+                        </Marker>
+                      )}
+                      {m.systemMessage !== undefined ? (
+                        <Marker>
+                          <MarkerContent>{m.systemMessage}</MarkerContent>
+                        </Marker>
+                      ) : (
+                        <Message align={m.senderId === user.id ? 'end' : 'start'}>
+                          <MessageContent>
+                            <Bubble
+                              variant={
+                                m.outgoing?.status === 'failed'
+                                  ? 'destructive'
+                                  : m.outgoing || m.senderId !== user.id
+                                    ? 'muted'
+                                    : 'default'
+                              }
+                            >
+                              <BubbleContent
+                                className="whitespace-pre-wrap"
+                                title={timeLabel(m.createdAt)}
+                              >
+                                {m.body}
+                              </BubbleContent>
+                            </Bubble>
+                          </MessageContent>
+                          {outgoing?.status === 'failed' && (
+                            <MessageFooter className="items-center gap-2">
+                              <span role="alert" className="text-sm text-destructive">
+                                {outgoing.error}
+                              </span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => retry(outgoing)}
+                              >
+                                Retry
+                              </Button>
+                            </MessageFooter>
+                          )}
+                          {m.seen && <MessageFooter>Seen</MessageFooter>}
+                        </Message>
+                      )}
+                    </MessageScrollerItem>
+                  );
+                })}
+              </MessageScrollerContent>
+            </MessageScrollerViewport>
+            <MessageScrollerButton>
+              <ArrowDown />
+              <span className="sr-only">Jump to latest</span>
+            </MessageScrollerButton>
+          </MessageScroller>
         </MessageScrollerProvider>
       </div>
       {canPost && (

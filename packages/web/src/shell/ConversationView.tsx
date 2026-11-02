@@ -711,6 +711,7 @@ export function ConversationView({
       own: true as const,
     })),
   ];
+  const showEmptyState = rows.length === 0 && (openedWith === undefined || firstPageAnswered);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -769,7 +770,7 @@ export function ConversationView({
       <div className="relative min-h-0 flex-1">
         <MessageScrollerProvider>
           <LiveEdge onChange={onLiveEdge} />
-          {rows.length === 0 && (openedWith === undefined || firstPageAnswered) && (
+          {showEmptyState && (
             <p className="absolute inset-x-0 top-0 p-6 text-center text-sm text-muted-foreground">
               No messages yet.{' '}
               {target.kind === 'group'

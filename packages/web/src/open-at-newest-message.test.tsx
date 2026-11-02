@@ -30,7 +30,7 @@ function fakeAccessToken() {
 }
 
 type Peer = typeof bob;
-interface Chat {
+interface FakeConversation {
   id: string;
   peer: Peer;
   label: string;
@@ -39,31 +39,31 @@ interface Chat {
   pageSize?: number;
 }
 
-const row = (chat: Chat, sequence: number) => ({
+const row = (conversation: FakeConversation, sequence: number) => ({
   id: `0198a2b4-7c3e-7a52-9f31-5d2f4c1e${String(sequence).padStart(4, '0')}`,
-  conversationId: chat.id,
-  senderId: chat.peer.id,
+  conversationId: conversation.id,
+  senderId: conversation.peer.id,
   sequence,
   clientMessageId: `0198a2b4-7c3e-7a52-9f31-5d2f4d1e${String(sequence).padStart(4, '0')}`,
-  body: `${chat.label} ${sequence}`,
+  body: `${conversation.label} ${sequence}`,
   createdAt: '2020-03-04T10:00:00.000Z',
 });
 
-const summary = (chat: Chat) => ({
-  id: chat.id,
+const summary = (conversation: FakeConversation) => ({
+  id: conversation.id,
   kind: 'direct',
-  name: chat.peer.nickname,
-  members: [aliceMember, chat.peer],
+  name: conversation.peer.nickname,
+  members: [aliceMember, conversation.peer],
   isMember: true,
   closed: false,
   unreadCount: 0,
   lastMessage:
-    chat.total === 0
+    conversation.total === 0
       ? null
       : {
-          sequence: chat.total,
-          senderId: chat.peer.id,
-          preview: `${chat.label} ${chat.total}`,
+          sequence: conversation.total,
+          senderId: conversation.peer.id,
+          preview: `${conversation.label} ${conversation.total}`,
           createdAt: '2020-03-04T10:00:00Z',
         },
 });
@@ -72,7 +72,7 @@ const summary = (chat: Chat) => ({
  * Serves each Conversation's Messages newest first like the real endpoint. The first page of
  * the Conversation with id `gate` is held back until the returned `release` is called.
  */
-function fakeConversations(chats: Chat[], gate?: string) {
+function fakeConversations(conversations: FakeConversation[], gate?: string) {
   let release: () => void = () => {};
   const held = new Promise<void>((resolve) => (release = resolve));
   server.use(
@@ -80,17 +80,17 @@ function fakeConversations(chats: Chat[], gate?: string) {
     http.get('*/api/v1/users/me', () => HttpResponse.json({ user: alice })),
     http.get('*/api/v1/users/search', () => HttpResponse.json({ users: [carol] })),
     http.get('*/api/v1/conversations', () =>
-      HttpResponse.json({ conversations: chats.map(summary) }),
+      HttpResponse.json({ conversations: conversations.map(summary) }),
     ),
-    ...chats.map((chat) =>
-      http.get(`*/api/v1/conversations/${chat.id}/messages`, async ({ request }) => {
+    ...conversations.map((conversation) =>
+      http.get(`*/api/v1/conversations/${conversation.id}/messages`, async ({ request }) => {
         const params = new URL(request.url).searchParams;
-        if (chat.id === gate && !params.has('before')) await held;
-        const limit = Number(params.get('limit') ?? chat.pageSize ?? 10);
-        const before = Number(params.get('before') ?? chat.total + 1);
+        if (conversation.id === gate && !params.has('before')) await held;
+        const limit = Number(params.get('limit') ?? conversation.pageSize ?? 10);
+        const before = Number(params.get('before') ?? conversation.total + 1);
         const older = Array.from({ length: before - 1 }, (_, i) => before - 1 - i);
         return HttpResponse.json({
-          messages: older.slice(0, limit).map((n) => row(chat, n)),
+          messages: older.slice(0, limit).map((n) => row(conversation, n)),
           hasMore: older.length > limit,
         });
       }),
@@ -99,7 +99,23 @@ function fakeConversations(chats: Chat[], gate?: string) {
   return release;
 }
 
-const bobChat: Chat = { id: withBob, peer: bob, label: 'message', total: TOTAL };
+/** jsdom does not fire the scroll event a browser fires after the scroll, so fire it. */
+async function expectAtLiveEdge(viewport: HTMLElement) {
+  fireEvent.scroll(viewport);
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /jump to latest/i })).toHaveAttribute(
+      'data-active',
+      'false',
+    ),
+  );
+}
+
+const bobConversation: FakeConversation = {
+  id: withBob,
+  peer: bob,
+  label: 'message',
+  total: TOTAL,
+};
 
 beforeEach(() => {
   window.history.pushState({}, '', '/');
@@ -112,7 +128,7 @@ afterEach(() => {
 
 describe('Opening a Conversation', () => {
   it('lands at the newest Message when opened from the Conversation list', async () => {
-    fakeConversations([bobChat]);
+    fakeConversations([bobConversation]);
     const user = userEvent.setup();
     render(<App />);
 
@@ -121,19 +137,12 @@ describe('Opening a Conversation', () => {
     await screen.findAllByText('message 25');
 
     await waitFor(() => expect(viewport.scrollTop).toBe(FIRST_PAGE_END));
-    // jsdom does not fire the scroll event a browser fires after the scroll.
-    fireEvent.scroll(viewport);
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: /jump to latest/i })).toHaveAttribute(
-        'data-active',
-        'false',
-      ),
-    );
+    await expectAtLiveEdge(viewport);
   });
 
   it('lands at the newest Message of the Conversation switched to', async () => {
     fakeConversations([
-      { ...bobChat, label: 'bob says' },
+      { ...bobConversation, label: 'bob says' },
       { id: withCarol, peer: carol, label: 'carol says', total: TOTAL },
     ]);
     const user = userEvent.setup();
@@ -150,7 +159,7 @@ describe('Opening a Conversation', () => {
 
   it('stays at the newest Message while older pages load to fill a short first page', async () => {
     // One Message per page and 3 in view: three older pages load by themselves.
-    fakeConversations([{ ...bobChat, pageSize: 1 }]);
+    fakeConversations([{ ...bobConversation, pageSize: 1 }]);
     const user = userEvent.setup();
     render(<App />);
 
@@ -161,19 +170,13 @@ describe('Opening a Conversation', () => {
     // 4 Messages loaded, 3 in view: the newest is at the bottom.
     await waitFor(() => expect(viewport.scrollTop).toBe(4 * ITEM_HEIGHT - VIEWPORT_HEIGHT));
     expect(screen.queryByText('message 21')).not.toBeInTheDocument();
-    fireEvent.scroll(viewport);
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: /jump to latest/i })).toHaveAttribute(
-        'data-active',
-        'false',
-      ),
-    );
+    await expectAtLiveEdge(viewport);
   });
 });
 
 describe('The empty state', () => {
   it('does not show "No messages yet" while the first page is loading', async () => {
-    const release = fakeConversations([bobChat], withBob);
+    const release = fakeConversations([bobConversation], withBob);
     const user = userEvent.setup();
     render(<App />);
 
@@ -187,7 +190,7 @@ describe('The empty state', () => {
   });
 
   it('shows "No messages yet" once the first page answers with no Messages', async () => {
-    const release = fakeConversations([{ ...bobChat, total: 0 }], withBob);
+    const release = fakeConversations([{ ...bobConversation, total: 0 }], withBob);
     const user = userEvent.setup();
     render(<App />);
 
@@ -200,7 +203,7 @@ describe('The empty state', () => {
   });
 
   it('shows "No messages yet" when the first page fails to load', async () => {
-    fakeConversations([bobChat]);
+    fakeConversations([bobConversation]);
     server.use(
       http.get(`*/api/v1/conversations/${withBob}/messages`, () =>
         HttpResponse.json({ error: { code: 'internal' } }, { status: 500 }),
@@ -215,7 +218,7 @@ describe('The empty state', () => {
   });
 
   it('shows "No messages yet" straight away for a new Direct Conversation', async () => {
-    fakeConversations([bobChat]);
+    fakeConversations([bobConversation]);
     const user = userEvent.setup();
     render(<App />);
 

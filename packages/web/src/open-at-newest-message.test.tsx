@@ -175,6 +175,21 @@ describe('The empty state', () => {
     expect(await screen.findByText(/Say hello to Bob/)).toBeInTheDocument();
   });
 
+  it('shows "No messages yet" when the first page fails to load', async () => {
+    fakeConversations([bobChat]);
+    server.use(
+      http.get(`*/api/v1/conversations/${withBob}/messages`, () =>
+        HttpResponse.json({ error: { code: 'internal' } }, { status: 500 }),
+      ),
+    );
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: /Bob.*message 25/i }));
+
+    expect(await screen.findByText(/Say hello to Bob/)).toBeInTheDocument();
+  });
+
   it('shows "No messages yet" straight away for a new Direct Conversation', async () => {
     fakeConversations([bobChat]);
     const user = userEvent.setup();

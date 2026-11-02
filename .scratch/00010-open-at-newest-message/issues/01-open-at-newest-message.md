@@ -34,4 +34,6 @@
 
 ## Comments
 
-Resolved. The Conversation view now mounts the scroller from its first render; "No messages yet" waits for the first page (or a new Direct Conversation). Verified with `src/open-at-newest-message.test.tsx` (click and switch tests failed before the fix, scrollTop 0) and the full checks. Assumption: a failed first-page request now shows nothing instead of "No messages yet". No browser check (Ticket 02).
+Resolved. The Conversation view now mounts the scroller from its first render; "No messages yet" waits for the first page (or a new Direct Conversation). Verified with `src/open-at-newest-message.test.tsx` (click and switch tests failed before the fix, scrollTop 0) and the full checks. No browser check (Ticket 02).
+
+Opening a Conversation by URL or reload needs a new Ticket or Spec: no Conversation route exists (the open Conversation is shell state), so that criterion is n/a here.

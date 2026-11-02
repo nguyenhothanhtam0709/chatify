@@ -328,10 +328,11 @@ export function ConversationView({
     const controller = new AbortController();
     void (async () => {
       const result = await messagesPage(openedWith, {}, controller.signal);
-      if (controller.signal.aborted || !result.ok) return;
+      if (controller.signal.aborted) return;
+      setFirstPageAnswered(true);
+      if (!result.ok) return;
       setHasMore(result.hasMore);
       setMessages((current) => mergeMessages(current, result.messages));
-      setFirstPageAnswered(true);
     })();
     return () => controller.abort();
   }, [openedWith, messagesPage]);

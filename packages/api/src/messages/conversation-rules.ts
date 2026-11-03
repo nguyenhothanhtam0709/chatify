@@ -17,6 +17,18 @@ export const conversationNotFound = () =>
     'Conversation not found',
   );
 
+/** `userIds`: the unknown Users, when more than one may be named. */
+export const userNotFound = (userIds?: string[]) =>
+  new DomainException(
+    ErrorCode.USER_NOT_FOUND,
+    HttpStatus.NOT_FOUND,
+    'User not found',
+    userIds && { userIds },
+  );
+
+/** The two Users of a Direct Conversation as its unique pair `[low, high]`. */
+export const directPair = (a: string, b: string): [string, string] => (a < b ? [a, b] : [b, a]);
+
 /** Anyone with a membership period, current or past, may read; else 404 (never a Member). */
 export async function requireReader(
   q: Reader,

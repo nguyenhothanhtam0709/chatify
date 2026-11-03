@@ -342,6 +342,36 @@ describe('Conversation URLs', () => {
     },
   );
 
+  it.each([['fetched'], ['listed']])(
+    'says so for a Direct Conversation with no other User, %s',
+    async (kind) => {
+      fakeApp({
+        list:
+          kind === 'listed'
+            ? [{ ...directSummary(withCarol, carol, 3), members: [aliceMember] }]
+            : [],
+      });
+      if (kind === 'fetched') {
+        server.use(
+          http.get(`*/api/v1/conversations/${withCarol}`, () =>
+            HttpResponse.json({
+              conversation: { ...direct(withCarol, carol), members: [aliceMember] },
+            }),
+          ),
+        );
+      }
+      window.history.pushState({}, '', `/conversations/${withCarol}`);
+      render(<App />);
+
+      expect(
+        await screen.findByText("This conversation doesn't exist or you don't have access to it."),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('status', { name: /loading conversation/i }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
   it('still shows the empty state at /', async () => {
     fakeApp();
     render(<App />);

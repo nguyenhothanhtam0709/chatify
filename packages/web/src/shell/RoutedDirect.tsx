@@ -1,8 +1,8 @@
 import type { User, UserSearchResult } from '@chat/contracts';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/auth/AuthProvider';
-import { Skeleton } from '@/components/ui/skeleton';
 import { ConversationView } from './ConversationView';
+import { LoadingConversation, Unreachable } from './RoutedStatus';
 
 type Looked =
   | { status: 'loading' }
@@ -19,6 +19,7 @@ export function RoutedDirect({
   userId,
   onExisting,
   onStarted,
+  onSent,
   onAtLatestChange,
   reading,
 }: {
@@ -28,11 +29,20 @@ export function RoutedDirect({
   onExisting: (conversationId: string) => void;
   /** A first Message, sent here or received, started the Conversation. */
   onStarted: (conversationId: string) => void;
+  /** Called after every send, so the Conversation list can follow. */
+  onSent: (conversationId: string) => void;
   onAtLatestChange: (atLatest: boolean) => void;
   reading: boolean;
 }) {
   const { getDirectConversation } = useAuth();
   const [looked, setLooked] = useState<Looked>({ status: 'loading' });
+  // The lookup runs once per User, whatever closure `onExisting` is on that render.
+  const onExistingRef = useRef(onExisting);
+  useEffect(() => {
+    onExistingRef.current = onExisting;
+  });
+  // Only the first Message starts the Conversation; later sends have nothing more to do here.
+  const started = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -42,22 +52,30 @@ export function RoutedDirect({
       if (!result.ok) {
         setLooked({ status: 'unreachable', notFound: result.notFound === true });
       } else if (result.conversationId !== undefined) {
-        onExisting(result.conversationId);
+        onExistingRef.current(result.conversationId);
       } else {
         setLooked({ status: 'new', peer: result.peer });
       }
     })();
     return () => controller.abort();
-    // `onExisting` is a fresh closure on every render; the lookup runs once per User.
   }, [userId, getDirectConversation]);
+
+  const startOnce = (conversationId: string) => {
+    if (started.current) return;
+    started.current = true;
+    onStarted(conversationId);
+  };
 
   if (looked.status === 'new') {
     return (
       <ConversationView
         user={user}
         target={{ kind: 'direct', peer: looked.peer }}
-        onSent={onStarted}
-        onStarted={onStarted}
+        onSent={(id) => {
+          startOnce(id);
+          onSent(id);
+        }}
+        onStarted={startOnce}
         onAtLatestChange={onAtLatestChange}
         reading={reading}
       />
@@ -65,18 +83,10 @@ export function RoutedDirect({
   }
   if (looked.status === 'unreachable') {
     return (
-      <main className="flex flex-1 items-center justify-center p-6 text-center text-muted-foreground">
+      <Unreachable>
         {looked.notFound ? "This user can't be found." : 'Could not load this user. Try again.'}
-      </main>
+      </Unreachable>
     );
   }
-  return (
-    <div
-      role="status"
-      aria-label="Loading conversation"
-      className="flex h-12 items-center border-b px-4"
-    >
-      <Skeleton className="h-5 w-40" />
-    </div>
-  );
+  return <LoadingConversation />;
 }

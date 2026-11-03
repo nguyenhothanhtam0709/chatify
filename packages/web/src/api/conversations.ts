@@ -63,6 +63,43 @@ export async function listConversations(
 }
 
 /**
+ * GET for a resource the caller opened by its URL. A 404 with `notFoundCode` and a 400
+ * `VALIDATION_FAILED` both come back as `notFound`.
+ */
+async function getByUrl<T>(
+  accessToken: string,
+  path: string,
+  notFoundCode: ErrorCode,
+  goneError: string,
+  parse: (payload: unknown) => T | undefined,
+  signal?: AbortSignal,
+): Promise<{ ok: true; data: T } | { ok: false; error: string; notFound?: true }> {
+  let res: Response;
+  try {
+    res = await fetch(new URL(path, window.location.origin), {
+      headers: { authorization: `Bearer ${accessToken}` },
+      signal: signal ?? null,
+    });
+  } catch {
+    return { ok: false, error: 'Could not reach the server. Try again.' };
+  }
+  const payload: unknown = await res.json().catch(() => undefined);
+  if (!res.ok) {
+    const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
+    const gone =
+      (res.status === 404 && code === notFoundCode) ||
+      (res.status === 400 && code === ErrorCode.VALIDATION_FAILED);
+    return gone
+      ? { ok: false, error: goneError, notFound: true }
+      : { ok: false, error: 'Something went wrong. Try again.' };
+  }
+  const data = parse(payload);
+  return data !== undefined
+    ? { ok: true, data }
+    : { ok: false, error: 'Something went wrong. Try again.' };
+}
+
+/**
  * `GET /api/v1/conversations/:id`: a Conversation the caller opened by its URL. A 404
  * `CONVERSATION_NOT_FOUND` and a 400 `VALIDATION_FAILED` both come back as `notFound`.
  */
@@ -71,32 +108,15 @@ export async function getConversation(
   conversationId: string,
   signal?: AbortSignal,
 ): Promise<ConversationResult> {
-  let res: Response;
-  try {
-    res = await fetch(
-      new URL(
-        `/api/v1/conversations/${encodeURIComponent(conversationId)}`,
-        window.location.origin,
-      ),
-      { headers: { authorization: `Bearer ${accessToken}` }, signal: signal ?? null },
-    );
-  } catch {
-    return { ok: false, error: 'Could not reach the server. Try again.' };
-  }
-  const payload: unknown = await res.json().catch(() => undefined);
-  if (!res.ok) {
-    const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
-    const gone =
-      (res.status === 404 && code === ErrorCode.CONVERSATION_NOT_FOUND) ||
-      (res.status === 400 && code === ErrorCode.VALIDATION_FAILED);
-    return gone
-      ? { ok: false, error: 'This conversation does not exist.', notFound: true }
-      : { ok: false, error: 'Something went wrong. Try again.' };
-  }
-  const parsed = GetConversationResponseSchema.safeParse(payload);
-  return parsed.success
-    ? { ok: true, conversation: parsed.data.conversation }
-    : { ok: false, error: 'Something went wrong. Try again.' };
+  const res = await getByUrl(
+    accessToken,
+    `/api/v1/conversations/${encodeURIComponent(conversationId)}`,
+    ErrorCode.CONVERSATION_NOT_FOUND,
+    'This conversation does not exist.',
+    (payload) => GetConversationResponseSchema.safeParse(payload).data?.conversation,
+    signal,
+  );
+  return res.ok ? { ok: true, conversation: res.data } : res;
 }
 
 /**
@@ -109,29 +129,15 @@ export async function getDirectConversation(
   userId: string,
   signal?: AbortSignal,
 ): Promise<DirectConversationResult> {
-  let res: Response;
-  try {
-    res = await fetch(
-      new URL(`/api/v1/direct-conversations/${encodeURIComponent(userId)}`, window.location.origin),
-      { headers: { authorization: `Bearer ${accessToken}` }, signal: signal ?? null },
-    );
-  } catch {
-    return { ok: false, error: 'Could not reach the server. Try again.' };
-  }
-  const payload: unknown = await res.json().catch(() => undefined);
-  if (!res.ok) {
-    const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
-    const gone =
-      (res.status === 404 && code === ErrorCode.USER_NOT_FOUND) ||
-      (res.status === 400 && code === ErrorCode.VALIDATION_FAILED);
-    return gone
-      ? { ok: false, error: "This user can't be found.", notFound: true }
-      : { ok: false, error: 'Something went wrong. Try again.' };
-  }
-  const parsed = GetDirectConversationResponseSchema.safeParse(payload);
-  return parsed.success
-    ? { ok: true, ...parsed.data }
-    : { ok: false, error: 'Something went wrong. Try again.' };
+  const res = await getByUrl(
+    accessToken,
+    `/api/v1/direct-conversations/${encodeURIComponent(userId)}`,
+    ErrorCode.USER_NOT_FOUND,
+    "This user can't be found.",
+    (payload) => GetDirectConversationResponseSchema.safeParse(payload).data,
+    signal,
+  );
+  return res.ok ? { ok: true, ...res.data } : res;
 }
 
 /**

@@ -89,6 +89,20 @@ describe('Mobile sidebar sheet', () => {
     await screen.findByRole('heading', { name: 'Bob' });
   });
 
+  it('closes when the already-open Conversation is picked in it, adding no history entry', async () => {
+    fakeApp();
+    const user = userEvent.setup();
+    window.history.pushState({}, '', `/conversations/${withBob}`);
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Bob' });
+    const entries = window.history.length;
+
+    await pickInSheet(user, /Bob/);
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(window.history.length).toBe(entries);
+  });
+
   it('opens a Conversation URL with the sheet closed', async () => {
     fakeApp();
     window.history.pushState({}, '', `/conversations/${withBob}`);

@@ -1,9 +1,11 @@
 import type { ConversationSummary, User } from '@chat/contracts';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/auth/AuthProvider';
-import { Skeleton } from '@/components/ui/skeleton';
 import { ConversationView } from './ConversationView';
-import { targetOfDetail, targetOfSummary, type ConversationTarget } from './conversation-target';
+import { targetOf, type ConversationTarget } from './conversation-target';
+import { LoadingConversation, Unreachable } from './RoutedStatus';
+
+const NOT_FOUND = "This conversation doesn't exist or you don't have access to it.";
 
 type Fetched =
   | { status: 'loading' }
@@ -44,7 +46,7 @@ export function RoutedConversation({
       if (controller.signal.aborted) return;
       setFetched(
         result.ok
-          ? { status: 'ready', target: targetOfDetail(result.conversation, user) }
+          ? { status: 'ready', target: targetOf(result.conversation, user) }
           : { status: 'unreachable', notFound: result.notFound === true },
       );
     })();
@@ -52,12 +54,7 @@ export function RoutedConversation({
   }, [listed, id, getConversation, user]);
 
   const target = useMemo(
-    () =>
-      entry
-        ? targetOfSummary(entry, user)
-        : fetched.status === 'ready'
-          ? fetched.target
-          : undefined,
+    () => (entry ? targetOf(entry, user) : fetched.status === 'ready' ? fetched.target : undefined),
     [entry, fetched, user],
   );
 
@@ -74,22 +71,16 @@ export function RoutedConversation({
       />
     );
   }
+  // A listed or fetched Conversation that has no target is a Direct one with no other User.
+  if (entry !== undefined || fetched.status === 'ready') {
+    return <Unreachable>{NOT_FOUND}</Unreachable>;
+  }
   if (fetched.status === 'unreachable') {
     return (
-      <main className="flex flex-1 items-center justify-center p-6 text-center text-muted-foreground">
-        {fetched.notFound
-          ? "This conversation doesn't exist or you don't have access to it."
-          : 'Could not load this conversation. Try again.'}
-      </main>
+      <Unreachable>
+        {fetched.notFound ? NOT_FOUND : 'Could not load this conversation. Try again.'}
+      </Unreachable>
     );
   }
-  return (
-    <div
-      role="status"
-      aria-label="Loading conversation"
-      className="flex h-12 items-center border-b px-4"
-    >
-      <Skeleton className="h-5 w-40" />
-    </div>
-  );
+  return <LoadingConversation />;
 }

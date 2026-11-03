@@ -37,6 +37,7 @@ import {
   requireMember,
   requireOwner,
   requireReader,
+  userNotFound,
 } from '../messages/conversation-rules.js';
 import { MessagesService } from '../messages/messages.service.js';
 import { exactlyOne } from '../db/exactly-one.js';
@@ -88,9 +89,7 @@ export class GroupsService {
     const known = new Set(found.map((u) => u.id));
     const unknown = memberIds.filter((id) => !known.has(id));
     if (unknown.length > 0) {
-      throw new DomainException(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND, 'User not found', {
-        userIds: unknown,
-      });
+      throw userNotFound(unknown);
     }
 
     const id = await this.db.transaction(async (tx) => {
@@ -140,11 +139,7 @@ export class GroupsService {
         await requireOwner(tx, callerId, groupId);
         const member = await findMember(tx, userId);
         if (!member) {
-          throw new DomainException(
-            ErrorCode.USER_NOT_FOUND,
-            HttpStatus.NOT_FOUND,
-            'User not found',
-          );
+          throw userNotFound();
         }
         const current = await tx
           .select({ userId: conversationMembers.userId })

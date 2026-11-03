@@ -12,7 +12,7 @@
 
 **Blocked by:** 01
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 - [ ] A signed-out visit to `/conversations/<id>` goes to `/login`, and logging in ends at `/conversations/<id>` with that Conversation open
 - [ ] The same visit, going from login to signup and signing up, ends at `/conversations/<id>`
@@ -41,4 +41,6 @@ Escalation 00011-03 (two questions; work is paused)
 2. Flaky test from Ticket 01: `conversation-urls.test.tsx` "opens the new Group at its URL after creating it" times out at 4s in about half of the runs of that file alone, also on the Feature Branch tip a0a47c2 without this change. The testing policy says to escalate, not rerun. It will block `pnpm test` on the final commit.
 
 Done so far (committed on the Task Branch, all green): RequireSignedIn keeps the path and query in location state (`packages/web/src/auth/return-to.ts`), SignedOutOnly follows it after login when it is a same-origin path other than `/login` or `/signup`, else `/`. Tests in `packages/web/src/return-after-login.test.tsx`: login lands on the Conversation, the URL never carries it, Back skips `/login`, seven invalid locations end at `/`.
+
+Answer (human, via the Orchestrator): option A. The "Account created" card gets a "Log in" link that carries the remembered location back to login; signup itself stays as it is. The flaky Group test is fixed in a separate PR on the Feature Branch; rerun it if it fails and say so in the PR body.
 

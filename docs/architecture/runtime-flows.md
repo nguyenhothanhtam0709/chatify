@@ -9,6 +9,7 @@ What holds on the main paths today and can't be seen by reading one file. Hand-w
 ## Sign-up, login and session refresh
 
 - Sign-up only creates the User and does not sign them in. This is intended MVP1 behaviour.
+- A signed-out visitor sent to `/login` keeps the path and query they asked for in router location state, never in the URL. The Sign up link and the "Account created" card's Log in link carry it along. After login it is followed only when it is a same-origin path other than `/login` or `/signup`; otherwise login goes to `/`.
 - The web app keeps the access token only in memory, so every page load first trades the refresh cookie for one.
 - The refresh cookie is `httpOnly`, `secure`, `sameSite=strict`, scoped to path `/api/v1/auth`.
 - Refresh tokens are opaque and stored only as a hash. One conditional UPDATE rotates them. A token that is unknown, expired or already rotated away gets `401`, and the replay deletes the session that rotated it away.

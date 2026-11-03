@@ -11,7 +11,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] On a mobile viewport, picking a Conversation in the sheet closes the sheet and shows the Conversation
 - [ ] On a mobile viewport, a Conversation URL opens with the sheet closed

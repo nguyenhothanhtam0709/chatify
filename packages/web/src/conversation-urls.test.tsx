@@ -265,7 +265,7 @@ describe('Conversation URLs', () => {
     );
     const user = userEvent.setup();
     render(<App />);
-    await screen.findByText(/no conversations yet/i, undefined, { timeout: 4000 });
+    await screen.findByText(/no conversations yet/i);
 
     await user.click(screen.getByRole('button', { name: /new group/i }));
     const dialog = await screen.findByRole('dialog', { name: /new group/i });

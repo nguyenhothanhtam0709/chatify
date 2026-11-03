@@ -169,6 +169,24 @@ describe('Direct URLs', () => {
     expect(window.location.pathname).toBe('/');
   });
 
+  it('picking the same User again after the first send stays at the Conversation', async () => {
+    fakeApp({ existing: false });
+    const user = userEvent.setup();
+    render(<App />);
+    await pickBob(user);
+    await user.type(await screen.findByRole('textbox', { name: 'Message' }), 'hi bob{Enter}');
+    await waitFor(() => expect(window.location.pathname).toBe(`/conversations/${withBob}`));
+    await screen.findByText('hi bob');
+
+    await pickBob(user);
+
+    await waitFor(() => expect(window.location.pathname).toBe(`/conversations/${withBob}`));
+    expect(screen.getAllByText('hi bob').length).toBeGreaterThan(0);
+    window.history.back();
+    expect(await screen.findByText('Select a conversation to start chatting.')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/');
+  });
+
   it("replaces /direct/ with the Conversation when the other User's first Message arrives", async () => {
     fakeApp({ existing: false });
     const fake = fakeRealtime();

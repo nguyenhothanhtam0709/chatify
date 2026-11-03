@@ -137,7 +137,9 @@ export function AppShell({ user }: { user: User }) {
         open={newConversationOpen}
         onOpenChange={setNewConversationOpen}
         onPick={(picked) => {
-          void navigate(`/direct/${picked.id}`);
+          // Already in the Conversation this User's Direct view started: it is the one showing.
+          const showing = started?.userId === picked.id && started.conversationId === routeId;
+          if (!showing) void navigate(`/direct/${picked.id}`);
           setNewConversationOpen(false);
         }}
       />

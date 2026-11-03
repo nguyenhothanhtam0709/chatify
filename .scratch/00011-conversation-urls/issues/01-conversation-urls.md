@@ -29,7 +29,7 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Clicking a Conversation in the list changes the location to `/conversations/<id>`
 - [ ] Clicking the already-open Conversation adds no history entry

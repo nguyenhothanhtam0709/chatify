@@ -1,6 +1,12 @@
-import type { ConversationSummary, User } from '@chat/contracts';
+import {
+  UserSearchResultSchema,
+  type ConversationSummary,
+  type User,
+  type UserSearchResult,
+} from '@chat/contracts';
 import { ChevronsUpDown, LogOut, Moon, SquarePen, Sun, UserRound, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useLocation, useMatch, useNavigate } from 'react-router';
 import { WifiOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -30,7 +36,7 @@ import { useConnectionStatus } from '@/realtime/RealtimeProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { ConversationList } from './ConversationList';
 import { ConversationView } from './ConversationView';
-import { groupTarget, type ConversationTarget } from './conversation-target';
+import { RoutedConversation } from './RoutedConversation';
 import { NewConversationDialog } from './NewConversationDialog';
 import { NewGroupDialog } from './NewGroupDialog';
 import { ProfileDialog } from './ProfileDialog';
@@ -97,24 +103,50 @@ function UserMenu({ user }: { user: User }) {
   );
 }
 
-function targetOf(conversation: ConversationSummary, user: User): ConversationTarget | undefined {
-  if (conversation.kind === 'group') {
-    return groupTarget(conversation, conversation.isMember);
-  }
-  const peer = conversation.members.find((m) => m.id !== user.id);
-  return peer && { kind: 'direct', peer };
+/**
+ * A Direct view picked in the dialog, which has no Conversation id (and so no URL) until its
+ * first Message. It lives in the history entry's state, so Back and Forward restore it.
+ */
+interface Draft {
+  peer: UserSearchResult;
+  conversationId?: string;
+}
+
+function draftOf(state: unknown): Draft | undefined {
+  const field = (value: unknown, key: string): unknown =>
+    typeof value === 'object' && value !== null && key in value
+      ? Object.entries(value).find(([k]) => k === key)?.[1]
+      : undefined;
+  const raw = field(state, 'draft');
+  const peer = UserSearchResultSchema.safeParse(field(raw, 'peer'));
+  if (!peer.success) return undefined;
+  const conversationId = field(raw, 'conversationId');
+  return typeof conversationId === 'string'
+    ? { peer: peer.data, conversationId }
+    : { peer: peer.data };
 }
 
 /** The signed-in frame: the Conversation list in a sidebar (a sheet on mobile) beside the content. */
 export function AppShell({ user }: { user: User }) {
   const [newConversationOpen, setNewConversationOpen] = useState(false);
   const [newGroupOpen, setNewGroupOpen] = useState(false);
-  const [open, setOpen] = useState<{ target: ConversationTarget; conversationId?: string }>();
   const [refreshKey, setRefreshKey] = useState(0);
   const [atLatest, setAtLatest] = useState(true);
+  const [conversations, setConversations] = useState<ConversationSummary[]>();
   const tabVisible = useTabVisible();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const routeId = useMatch('/conversations/:id')?.params.id;
+  const draft = routeId === undefined ? draftOf(location.state) : undefined;
+  const openId = routeId ?? draft?.conversationId;
   // Open, visible and at the latest Message: what arrives there is read as it arrives.
-  const readingId = tabVisible && atLatest ? open?.conversationId : undefined;
+  const readingId = tabVisible && atLatest ? openId : undefined;
+  const entry = conversations?.find((c) => c.id === routeId);
+  const header = (
+    <div className="flex h-12 items-center border-b px-3 md:hidden">
+      <SidebarTrigger />
+    </div>
+  );
   return (
     // h-svh: the message scroller sizes its spacer from its viewport, so the frame needs a
     // definite height; with only min-h-svh the pane grows with the spacer without bound.
@@ -123,7 +155,7 @@ export function AppShell({ user }: { user: User }) {
         open={newConversationOpen}
         onOpenChange={setNewConversationOpen}
         onPick={(picked) => {
-          setOpen({ target: { kind: 'direct', peer: picked } });
+          void navigate('/', { state: { draft: { peer: picked } } });
           setNewConversationOpen(false);
         }}
       />
@@ -131,10 +163,7 @@ export function AppShell({ user }: { user: User }) {
         open={newGroupOpen}
         onOpenChange={setNewGroupOpen}
         onCreated={(group) => {
-          setOpen({
-            target: groupTarget(group, true),
-            conversationId: group.id,
-          });
+          void navigate(`/conversations/${group.id}`);
           setRefreshKey((k) => k + 1);
           setNewGroupOpen(false);
         }}
@@ -166,21 +195,12 @@ export function AppShell({ user }: { user: User }) {
             <SidebarGroupLabel>Conversations</SidebarGroupLabel>
             <ConversationList
               userId={user.id}
-              selectedId={open?.conversationId}
+              selectedId={openId}
               readingId={readingId}
               refreshKey={refreshKey}
-              onLoaded={(list) =>
-                // A reload hands the open Group's view the server's latest count and flags.
-                setOpen((current) => {
-                  if (current?.target.kind !== 'group') return current;
-                  const fresh = list.find((c) => c.id === current.conversationId);
-                  const target = fresh && targetOf(fresh, user);
-                  return target ? { ...current, target } : current;
-                })
-              }
+              onLoaded={setConversations}
               onSelect={(conversation) => {
-                const target = targetOf(conversation, user);
-                if (target) setOpen({ target, conversationId: conversation.id });
+                if (conversation.id !== openId) void navigate(`/conversations/${conversation.id}`);
               }}
             />
           </SidebarGroup>
@@ -191,21 +211,36 @@ export function AppShell({ user }: { user: User }) {
       </Sidebar>
       <SidebarInset>
         <ConnectionAlert />
-        {open ? (
+        {routeId !== undefined ? (
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex h-12 items-center border-b px-3 md:hidden">
-              <SidebarTrigger />
-            </div>
-            <ConversationView
-              key={open.target.kind === 'direct' ? open.target.peer.id : open.conversationId}
+            {header}
+            <RoutedConversation
+              key={routeId}
               user={user}
-              target={open.target}
-              conversationId={open.conversationId}
+              id={routeId}
+              entry={entry}
+              onLeft={() => setRefreshKey((k) => k + 1)}
+              onAtLatestChange={setAtLatest}
+              reading={tabVisible && atLatest}
+              onSent={() => setRefreshKey((k) => k + 1)}
+            />
+          </div>
+        ) : draft ? (
+          <div className="flex min-h-0 flex-1 flex-col">
+            {header}
+            <ConversationView
+              key={draft.peer.id}
+              user={user}
+              target={{ kind: 'direct', peer: draft.peer }}
+              conversationId={draft.conversationId}
               onLeft={() => setRefreshKey((k) => k + 1)}
               onAtLatestChange={setAtLatest}
               reading={tabVisible && atLatest}
               onSent={(conversationId) => {
-                setOpen((current) => current && { ...current, conversationId });
+                void navigate('/', {
+                  replace: true,
+                  state: { draft: { peer: draft.peer, conversationId } },
+                });
                 setRefreshKey((k) => k + 1);
               }}
             />

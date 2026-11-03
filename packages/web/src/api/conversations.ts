@@ -1,9 +1,12 @@
 import {
+  ErrorCode,
+  ErrorResponseSchema,
   GetConversationResponseSchema,
   GetMessagesResponseSchema,
   ListConversationsResponseSchema,
   MarkReadResponseSchema,
   type ConversationSummary,
+  type GetConversationResponse,
   type Message,
   type TypingState,
 } from '@chat/contracts';
@@ -17,6 +20,11 @@ export type ReadReceiptResult =
 /** `retryable`: the failure may pass by itself (a 5xx, a 429 or no network), so trying again can work. */
 export type MarkReadResult =
   { ok: true; upToSequence: number } | { ok: false; error: string; retryable?: true };
+
+/** `notFound`: no such Conversation, a never-Member, or a malformed id; the API answers these alike. */
+export type ConversationResult =
+  | { ok: true; conversation: GetConversationResponse['conversation'] }
+  | { ok: false; error: string; notFound?: true };
 
 export type MessagesCursor = { before?: number; after?: number };
 
@@ -46,6 +54,43 @@ export async function listConversations(
   const res = await get(accessToken, '/api/v1/conversations', signal);
   if (!res.ok) return res;
   return { ok: true, ...ListConversationsResponseSchema.parse(res.payload) };
+}
+
+/**
+ * `GET /api/v1/conversations/:id`: a Conversation the caller opened by its URL. A 404
+ * `CONVERSATION_NOT_FOUND` and a 400 `VALIDATION_FAILED` both come back as `notFound`.
+ */
+export async function getConversation(
+  accessToken: string,
+  conversationId: string,
+  signal?: AbortSignal,
+): Promise<ConversationResult> {
+  let res: Response;
+  try {
+    res = await fetch(
+      new URL(
+        `/api/v1/conversations/${encodeURIComponent(conversationId)}`,
+        window.location.origin,
+      ),
+      { headers: { authorization: `Bearer ${accessToken}` }, signal: signal ?? null },
+    );
+  } catch {
+    return { ok: false, error: 'Could not reach the server. Try again.' };
+  }
+  const payload: unknown = await res.json().catch(() => undefined);
+  if (!res.ok) {
+    const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
+    const gone =
+      (res.status === 404 && code === ErrorCode.CONVERSATION_NOT_FOUND) ||
+      (res.status === 400 && code === ErrorCode.VALIDATION_FAILED);
+    return gone
+      ? { ok: false, error: 'This conversation does not exist.', notFound: true }
+      : { ok: false, error: 'Something went wrong. Try again.' };
+  }
+  const parsed = GetConversationResponseSchema.safeParse(payload);
+  return parsed.success
+    ? { ok: true, conversation: parsed.data.conversation }
+    : { ok: false, error: 'Something went wrong. Try again.' };
 }
 
 /**

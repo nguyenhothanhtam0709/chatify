@@ -56,14 +56,16 @@ const summary = {
  */
 function fakeApp({ existing }: { existing: boolean }) {
   const requests: string[] = [];
+  const listed = { count: 0 };
   const stored = existing ? [message('hello alice', bob.id, 1)] : [];
   server.use(
     http.post('*/api/v1/auth/refresh', () => HttpResponse.json({ accessToken: fakeAccessToken() })),
     http.get('*/api/v1/users/me', () => HttpResponse.json({ user: alice })),
     http.get('*/api/v1/users/search', () => HttpResponse.json({ users: [bob] })),
-    http.get('*/api/v1/conversations', () =>
-      HttpResponse.json({ conversations: existing ? [summary] : [] }),
-    ),
+    http.get('*/api/v1/conversations', () => {
+      listed.count += 1;
+      return HttpResponse.json({ conversations: existing ? [summary] : [] });
+    }),
     http.get(`*/api/v1/direct-conversations/${bob.id}`, ({ request }) => {
       requests.push(new URL(request.url).pathname);
       return HttpResponse.json({ peer: bob, ...(existing ? { conversationId: withBob } : {}) });
@@ -75,6 +77,16 @@ function fakeApp({ existing }: { existing: boolean }) {
     ),
     http.get(`*/api/v1/conversations/${withBob}/messages`, () =>
       HttpResponse.json({ messages: [...stored].reverse(), hasMore: false }),
+    ),
+    http.post(`*/api/v1/conversations/${withBob}/messages`, async ({ request }) => {
+      const body = (await request.json()) as { clientMessageId: string; body: string };
+      const sent = { ...message(body.body, alice.id, 3), clientMessageId: body.clientMessageId };
+      stored.push(sent);
+      return HttpResponse.json({ message: sent }, { status: 201 });
+    }),
+    http.post(
+      `*/api/v1/conversations/${withBob}/typing`,
+      () => new HttpResponse(null, { status: 204 }),
     ),
     http.post('*/api/v1/direct-messages', async ({ request }) => {
       const body = (await request.json()) as { clientMessageId: string; body: string };
@@ -89,7 +101,7 @@ function fakeApp({ existing }: { existing: boolean }) {
       );
     }),
   );
-  return { requests };
+  return { requests, listed };
 }
 
 async function pickBob(user: ReturnType<typeof userEvent.setup>) {
@@ -167,6 +179,23 @@ describe('Direct URLs', () => {
     window.history.back();
     expect(await screen.findByText('Select a conversation to start chatting.')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/');
+  });
+
+  it('refreshes the Conversation list on every send, not only the first', async () => {
+    const { listed } = fakeApp({ existing: false });
+    const user = userEvent.setup();
+    render(<App />);
+    await pickBob(user);
+    await user.type(await screen.findByRole('textbox', { name: 'Message' }), 'hi bob{Enter}');
+    await waitFor(() => expect(window.location.pathname).toBe(`/conversations/${withBob}`));
+    await screen.findByText('hi bob');
+    await waitFor(() => expect(listed.count).toBeGreaterThan(1));
+    const before = listed.count;
+
+    await user.type(screen.getByRole('textbox', { name: 'Message' }), 'again{Enter}');
+    await screen.findByText('again');
+
+    await waitFor(() => expect(listed.count).toBeGreaterThan(before));
   });
 
   it('picking the same User again after the first send stays at the Conversation', async () => {

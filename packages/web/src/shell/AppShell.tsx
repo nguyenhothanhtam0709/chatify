@@ -235,6 +235,7 @@ export function AppShell({ user }: { user: User }) {
                 void navigate(`/conversations/${id}`, { replace: true });
                 setRefreshKey((k) => k + 1);
               }}
+              onSent={() => setRefreshKey((k) => k + 1)}
               onAtLatestChange={setAtLatest}
               reading={tabVisible && atLatest}
             />

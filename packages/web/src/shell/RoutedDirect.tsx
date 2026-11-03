@@ -19,6 +19,7 @@ export function RoutedDirect({
   userId,
   onExisting,
   onStarted,
+  onSent,
   onAtLatestChange,
   reading,
 }: {
@@ -28,6 +29,8 @@ export function RoutedDirect({
   onExisting: (conversationId: string) => void;
   /** A first Message, sent here or received, started the Conversation. */
   onStarted: (conversationId: string) => void;
+  /** Called after every send, so the Conversation list can follow. */
+  onSent: (conversationId: string) => void;
   onAtLatestChange: (atLatest: boolean) => void;
   reading: boolean;
 }) {
@@ -68,7 +71,10 @@ export function RoutedDirect({
       <ConversationView
         user={user}
         target={{ kind: 'direct', peer: looked.peer }}
-        onSent={startOnce}
+        onSent={(id) => {
+          startOnce(id);
+          onSent(id);
+        }}
         onStarted={startOnce}
         onAtLatestChange={onAtLatestChange}
         reading={reading}

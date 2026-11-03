@@ -151,6 +151,15 @@ A link opened while signed out goes through login or signup and then on to the C
   - The Typing Indicator test, for signal assertions.
   - The messages API tests, for the endpoint.
 - Existing tests stay green. The only existing test whose expectation changes is the typing "known limit" test above.
+- **Browser check required.** jsdom can't show real reload, Back and Forward behaviour, or the mobile sheet. A browser check covers these steps:
+  - Reload an open Conversation.
+  - Step Back and Forward between Conversations.
+  - Open a pasted Conversation URL in a new tab, signed in and signed out.
+  - Pick an existing and a new Direct Conversation in the dialog, and confirm that the Typing Indicator reaches the other User for the existing one.
+  - Open an unreachable `/conversations/` URL and an unreachable `/direct/` URL.
+  - On a phone-sized viewport, confirm that picking a Conversation closes the sheet.
+
+  Create the test data through the API and remove it afterwards.
 
 ## Out of Scope
 
@@ -167,13 +176,5 @@ A link opened while signed out goes through login or signup and then on to the C
 
 ## Further Notes
 
-- **Browser check required.** jsdom can't show real reload, Back and Forward behaviour, or the mobile sheet. A browser check covers these steps:
-  - Reload an open Conversation.
-  - Step Back and Forward between Conversations.
-  - Open a pasted Conversation URL in a new tab, signed in and signed out.
-  - Pick an existing and a new Direct Conversation in the dialog.
-  - On a phone-sized viewport, confirm that picking a Conversation closes the sheet.
-
-  Create the test data through the API and remove it afterwards.
 - `main.tsx` uses `StrictMode`, so the `/direct/:userId` lookup runs twice in dev. The lookup is read-only, so that is harmless. Check dev mode manually anyway.
 - This Spec takes over three `docs/laters.md` entries, which are removed with it: "Conversation URLs", "Typing Indicator in a new Direct view" and "Mobile sidebar sheet stays open after picking a Conversation".

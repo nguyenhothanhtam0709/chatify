@@ -2,11 +2,13 @@ import {
   ErrorCode,
   ErrorResponseSchema,
   GetConversationResponseSchema,
+  GetDirectConversationResponseSchema,
   GetMessagesResponseSchema,
   ListConversationsResponseSchema,
   MarkReadResponseSchema,
   type ConversationSummary,
   type GetConversationResponse,
+  type GetDirectConversationResponse,
   type Message,
   type TypingState,
 } from '@chat/contracts';
@@ -25,6 +27,10 @@ export type MarkReadResult =
 export type ConversationResult =
   | { ok: true; conversation: GetConversationResponse['conversation'] }
   | { ok: false; error: string; notFound?: true };
+
+/** `notFound`: an unknown User, the caller's own id, or a malformed id. */
+export type DirectConversationResult =
+  ({ ok: true } & GetDirectConversationResponse) | { ok: false; error: string; notFound?: true };
 
 export type MessagesCursor = { before?: number; after?: number };
 
@@ -90,6 +96,41 @@ export async function getConversation(
   const parsed = GetConversationResponseSchema.safeParse(payload);
   return parsed.success
     ? { ok: true, conversation: parsed.data.conversation }
+    : { ok: false, error: 'Something went wrong. Try again.' };
+}
+
+/**
+ * `GET /api/v1/direct-conversations/:userId`: the other User, and the Direct Conversation with
+ * them when there is one. A 404 `USER_NOT_FOUND` (unknown User, or the caller) and a 400
+ * `VALIDATION_FAILED` both come back as `notFound`.
+ */
+export async function getDirectConversation(
+  accessToken: string,
+  userId: string,
+  signal?: AbortSignal,
+): Promise<DirectConversationResult> {
+  let res: Response;
+  try {
+    res = await fetch(
+      new URL(`/api/v1/direct-conversations/${encodeURIComponent(userId)}`, window.location.origin),
+      { headers: { authorization: `Bearer ${accessToken}` }, signal: signal ?? null },
+    );
+  } catch {
+    return { ok: false, error: 'Could not reach the server. Try again.' };
+  }
+  const payload: unknown = await res.json().catch(() => undefined);
+  if (!res.ok) {
+    const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
+    const gone =
+      (res.status === 404 && code === ErrorCode.USER_NOT_FOUND) ||
+      (res.status === 400 && code === ErrorCode.VALIDATION_FAILED);
+    return gone
+      ? { ok: false, error: "This user can't be found.", notFound: true }
+      : { ok: false, error: 'Something went wrong. Try again.' };
+  }
+  const parsed = GetDirectConversationResponseSchema.safeParse(payload);
+  return parsed.success
+    ? { ok: true, ...parsed.data }
     : { ok: false, error: 'Something went wrong. Try again.' };
 }
 

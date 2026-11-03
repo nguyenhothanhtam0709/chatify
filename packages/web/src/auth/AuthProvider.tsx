@@ -26,6 +26,7 @@ import {
 } from '@/api/auth';
 import {
   getConversation,
+  getDirectConversation,
   listConversations,
   markRead,
   messagesPage,
@@ -35,6 +36,7 @@ import {
   type MarkReadResult,
   type ReadReceiptResult,
   type ConversationResult,
+  type DirectConversationResult,
   type MessagesCursor,
   type MessagesPageResult,
   type ListConversationsResult,
@@ -90,6 +92,8 @@ interface AuthContextValue {
   ): Promise<MessagesPageResult>;
   /** One Conversation by id, as the User may see it. */
   getConversation(conversationId: string, signal?: AbortSignal): Promise<ConversationResult>;
+  /** The other User, and the Direct Conversation with them if there is one. Creates nothing. */
+  getDirectConversation(userId: string, signal?: AbortSignal): Promise<DirectConversationResult>;
   /** The other User's Read Marker in a Direct Conversation, when both share read receipts. */
   readReceipt(conversationId: string, signal?: AbortSignal): Promise<ReadReceiptResult>;
   /** Marks the Conversation read up to `upToSequence` (forward only). */
@@ -260,6 +264,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return getConversation(accessToken, conversationId, signal);
   }, []);
 
+  const directConversation = useCallback(async (userId: string, signal?: AbortSignal) => {
+    const accessToken = accessTokenRef.current;
+    if (!accessToken) return { ok: false, error: 'You are signed out. Log in again.' } as const;
+    return getDirectConversation(accessToken, userId, signal);
+  }, []);
+
   const read = useCallback(async (conversationId: string, upToSequence: number) => {
     const accessToken = accessTokenRef.current;
     if (!accessToken) return { ok: false, error: 'You are signed out. Log in again.' } as const;
@@ -297,6 +307,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       messagesPage: page,
       readReceipt: receipt,
       getConversation: conversation,
+      getDirectConversation: directConversation,
       markRead: read,
       signalTyping: typing,
       getAccessToken,
@@ -319,6 +330,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       page,
       receipt,
       conversation,
+      directConversation,
       read,
       typing,
       getAccessToken,

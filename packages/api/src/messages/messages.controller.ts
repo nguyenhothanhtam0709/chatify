@@ -17,6 +17,7 @@ import {
   SendMessageRequestSchema,
   TypingRequestSchema,
   type GetConversationResponse,
+  type GetDirectConversationResponse,
   type GetMessagesQuery,
   type ListConversationsResponse,
   type MarkReadRequest,
@@ -55,6 +56,16 @@ export class MessagesController {
     const { message, conversation, created } = await this.messages.sendDirect(auth.userId, body);
     void reply.status(statusFor(created));
     return { message, conversation };
+  }
+
+  /** Read-only: the other User, and the Direct Conversation with them if one exists. */
+  @Get('direct-conversations/:userId')
+  @UseGuards(AuthGuard)
+  public lookupDirect(
+    @Auth() auth: AuthContext,
+    @Param('userId', ConversationIdPipe) peerId: string,
+  ): Promise<GetDirectConversationResponse> {
+    return this.messages.lookupDirect(auth.userId, peerId);
   }
 
   @Post('conversations/:id/messages')

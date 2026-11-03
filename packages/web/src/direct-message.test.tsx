@@ -54,6 +54,7 @@ async function openChatWithBob() {
     http.post('*/api/v1/auth/refresh', () => HttpResponse.json({ accessToken: token })),
     http.get('*/api/v1/users/me', () => HttpResponse.json({ user: alice })),
     http.get('*/api/v1/users/search', () => HttpResponse.json({ users: [bob] })),
+    http.get(`*/api/v1/direct-conversations/${bob.id}`, () => HttpResponse.json({ peer: bob })),
     http.post('*/api/v1/direct-messages', async ({ request }) => {
       const message = await reply(request);
       return HttpResponse.json(

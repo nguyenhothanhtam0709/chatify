@@ -271,6 +271,7 @@ export function ConversationView({
   target,
   conversationId: initialConversationId,
   onSent,
+  onStarted,
   onLeft,
   onAtLatestChange,
   reading = false,
@@ -281,6 +282,8 @@ export function ConversationView({
   conversationId?: string | undefined;
   /** Called after each send with the Conversation's ID. */
   onSent?: (conversationId: string) => void;
+  /** Called when a Message from the peer starts the Conversation this view was opened without. */
+  onStarted?: (conversationId: string) => void;
   /** Called after the User left the Group, so the Conversation list can follow. */
   onLeft?: () => void;
   /** Called whenever the view reaches or leaves the latest Message. */
@@ -605,14 +608,17 @@ export function ConversationView({
           ? message.conversationId === conversationId
           : target.kind === 'direct' && message.senderId === target.peer.id;
         if (!ours) return;
-        if (!conversationId) setConversationId(message.conversationId);
+        if (!conversationId) {
+          setConversationId(message.conversationId);
+          onStarted?.(message.conversationId);
+        }
         dropTypist(message.senderId);
         setMessages((current) => mergeMessages(current, [message]));
         setOutgoing((current) =>
           current.filter((o) => o.clientMessageId !== message.clientMessageId),
         );
       },
-      [conversationId, target, dropTypist],
+      [conversationId, target, dropTypist, onStarted],
     ),
   );
 

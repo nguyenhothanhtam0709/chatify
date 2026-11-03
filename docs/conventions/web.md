@@ -32,7 +32,7 @@ Rules for `packages/web`, on top of the [general conventions](general.md).
 
 ## Routing and realtime
 
-- Routing is react-router's `BrowserRouter` in `App.tsx`, with guards as layout routes (`RequireSignedIn`, `SignedOutOnly`). The open Conversation is the URL (`/conversations/:id`); only a Direct view with no Conversation yet is held in the history entry's state.
+- Routing is react-router's `BrowserRouter` in `App.tsx`, with guards as layout routes (`RequireSignedIn`, `SignedOutOnly`). The open Conversation is the URL (`/conversations/:id`); a Direct view with no Conversation yet is `/direct/:userId`, replaced by `/conversations/:id` once the first Message exists.
 - Components get pushed events only through the `RealtimeProvider` hooks: `useRealtimeEvents`, `useConnectionStatus` and `useReconnected`. Events are parsed with the contracts event schemas.
 
 ## Tests

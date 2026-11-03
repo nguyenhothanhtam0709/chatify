@@ -24,7 +24,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The lookup returns 200 with `conversationId` when the Direct Conversation exists, and 200 without it when it doesn't
 - [ ] The lookup never creates a Conversation

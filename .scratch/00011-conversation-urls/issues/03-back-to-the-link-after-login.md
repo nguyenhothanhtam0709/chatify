@@ -12,15 +12,15 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A signed-out visit to `/conversations/<id>` goes to `/login`, and logging in ends at `/conversations/<id>` with that Conversation open
-- [ ] The same visit, going from login to signup and signing up, ends at `/conversations/<id>`
-- [ ] The URL never carries the remembered location
-- [ ] An invalid remembered location (not an in-app path, or `/login`, or `/signup`) ends at `/`
-- [ ] A normal login with no remembered location ends at `/` as today
-- [ ] Back after landing on the Conversation doesn't return to `/login`
-- [ ] Existing login, signup, routing and session-revocation tests pass unchanged
+- [x] A signed-out visit to `/conversations/<id>` goes to `/login`, and logging in ends at `/conversations/<id>` with that Conversation open
+- [x] The same visit, going from login to signup and signing up, ends at `/conversations/<id>`
+- [x] The URL never carries the remembered location
+- [x] An invalid remembered location (not an in-app path, or `/login`, or `/signup`) ends at `/`
+- [x] A normal login with no remembered location ends at `/` as today
+- [x] Back after landing on the Conversation doesn't return to `/login`
+- [x] Existing login, signup, routing and session-revocation tests pass unchanged
 
 **Verification:**
 
@@ -43,4 +43,6 @@ Escalation 00011-03 (two questions; work is paused)
 Done so far (committed on the Task Branch, all green): RequireSignedIn keeps the path and query in location state (`packages/web/src/auth/return-to.ts`), SignedOutOnly follows it after login when it is a same-origin path other than `/login` or `/signup`, else `/`. Tests in `packages/web/src/return-after-login.test.tsx`: login lands on the Conversation, the URL never carries it, Back skips `/login`, seven invalid locations end at `/`.
 
 Answer (human, via the Orchestrator): option A. The "Account created" card gets a "Log in" link that carries the remembered location back to login; signup itself stays as it is. The flaky Group test is fixed in a separate PR on the Feature Branch; rerun it if it fails and say so in the PR body.
+
+Resolved (option A). Verified with `pnpm lint`, `pnpm typecheck`, `pnpm test` (the Ticket 01 flaky Group test failed once in the full run and passed when the web package was rerun) and `pnpm docs:check`. A browser check covered a signed-out tab on a pasted Conversation URL → login → that Conversation, Back skipping `/login`, and login → Sign up → Account created → Log in → that Conversation. Docs: `docs/architecture/runtime-flows.md`. No follow-ups.
 

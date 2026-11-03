@@ -25,6 +25,7 @@ import {
   type LoginResult,
 } from '@/api/auth';
 import {
+  getConversation,
   listConversations,
   markRead,
   messagesPage,
@@ -33,6 +34,7 @@ import {
   type TypingResult,
   type MarkReadResult,
   type ReadReceiptResult,
+  type ConversationResult,
   type MessagesCursor,
   type MessagesPageResult,
   type ListConversationsResult,
@@ -86,6 +88,8 @@ interface AuthContextValue {
     cursor?: MessagesCursor,
     signal?: AbortSignal,
   ): Promise<MessagesPageResult>;
+  /** One Conversation by id, as the User may see it. */
+  getConversation(conversationId: string, signal?: AbortSignal): Promise<ConversationResult>;
   /** The other User's Read Marker in a Direct Conversation, when both share read receipts. */
   readReceipt(conversationId: string, signal?: AbortSignal): Promise<ReadReceiptResult>;
   /** Marks the Conversation read up to `upToSequence` (forward only). */
@@ -250,6 +254,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return readReceipt(accessToken, conversationId, signal);
   }, []);
 
+  const conversation = useCallback(async (conversationId: string, signal?: AbortSignal) => {
+    const accessToken = accessTokenRef.current;
+    if (!accessToken) return { ok: false, error: 'You are signed out. Log in again.' } as const;
+    return getConversation(accessToken, conversationId, signal);
+  }, []);
+
   const read = useCallback(async (conversationId: string, upToSequence: number) => {
     const accessToken = accessTokenRef.current;
     if (!accessToken) return { ok: false, error: 'You are signed out. Log in again.' } as const;
@@ -286,6 +296,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       listConversations: conversationList,
       messagesPage: page,
       readReceipt: receipt,
+      getConversation: conversation,
       markRead: read,
       signalTyping: typing,
       getAccessToken,
@@ -307,6 +318,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       conversationList,
       page,
       receipt,
+      conversation,
       read,
       typing,
       getAccessToken,

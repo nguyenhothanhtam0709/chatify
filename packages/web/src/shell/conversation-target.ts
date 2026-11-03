@@ -1,4 +1,10 @@
-import type { ConversationMember, UserSearchResult } from '@chat/contracts';
+import type {
+  ConversationMember,
+  ConversationSummary,
+  GetConversationResponse,
+  User,
+  UserSearchResult,
+} from '@chat/contracts';
 
 /** What a view is showing: a Direct Conversation with a peer, or an existing Group. */
 export type ConversationTarget =
@@ -21,3 +27,23 @@ export const groupTarget = (
   closed: group.closed,
   isMember,
 });
+
+/** The target for a Conversation list entry, or undefined for a Direct one with no other User. */
+export function targetOfSummary(
+  conversation: ConversationSummary,
+  user: User,
+): ConversationTarget | undefined {
+  if (conversation.kind === 'group') return groupTarget(conversation, conversation.isMember);
+  const peer = conversation.members.find((m) => m.id !== user.id);
+  return peer && { kind: 'direct', peer };
+}
+
+/** The target for a Conversation fetched by id, or undefined for a Direct one with no other User. */
+export function targetOfDetail(
+  conversation: GetConversationResponse['conversation'],
+  user: User,
+): ConversationTarget | undefined {
+  if (conversation.kind === 'group') return groupTarget(conversation, conversation.isMember);
+  const peer = conversation.members.find((m) => m.id !== user.id);
+  return peer && { kind: 'direct', peer };
+}

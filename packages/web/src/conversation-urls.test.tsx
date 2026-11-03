@@ -223,6 +223,8 @@ describe('Conversation URLs', () => {
 
     expect(await screen.findByRole('heading', { name: 'Bob' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Bob/ })).not.toBeInTheDocument();
+    // The held list request must land before the test ends, or it leaks into the next test.
+    expect(await screen.findByRole('button', { name: /Bob/ })).toBeInTheDocument();
   });
 
   it('shows a Group opened from its URL before its list entry loads, and moves its Read Marker', async () => {
@@ -244,6 +246,8 @@ describe('Conversation URLs', () => {
 
     expect(await screen.findByRole('heading', { name: 'Book Club' })).toBeInTheDocument();
     await waitFor(() => expect(marked).toContainEqual({ id: bookClub, upToSequence: 3 }));
+    // The held list request must land before the test ends, or it leaks into the next test.
+    expect(await screen.findByRole('button', { name: /Bob/ })).toBeInTheDocument();
   });
 
   it('opens the new Group at its URL after creating it', async () => {

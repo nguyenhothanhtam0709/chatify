@@ -25,6 +25,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/auth/AuthProvider';
 import { useConnectionStatus } from '@/realtime/RealtimeProvider';
@@ -98,6 +99,18 @@ function UserMenu({ user }: { user: User }) {
   );
 }
 
+/**
+ * Closes the mobile sheet whenever the open Conversation changes (a pick, the new-conversation
+ * dialog, Back or Forward). Renders nothing; it sits inside the provider to reach its state.
+ */
+function CloseSheetOnConversationChange({ openId }: { openId: string | undefined }) {
+  const { setOpenMobile } = useSidebar();
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [openId, setOpenMobile]);
+  return null;
+}
+
 /** The signed-in frame: the Conversation list in a sidebar (a sheet on mobile) beside the content. */
 export function AppShell({ user }: { user: User }) {
   const [newConversationOpen, setNewConversationOpen] = useState(false);
@@ -133,6 +146,7 @@ export function AppShell({ user }: { user: User }) {
     // h-svh: the message scroller sizes its spacer from its viewport, so the frame needs a
     // definite height; with only min-h-svh the pane grows with the spacer without bound.
     <SidebarProvider className="h-svh">
+      <CloseSheetOnConversationChange openId={routeId ?? directUserId} />
       <NewConversationDialog
         open={newConversationOpen}
         onOpenChange={setNewConversationOpen}

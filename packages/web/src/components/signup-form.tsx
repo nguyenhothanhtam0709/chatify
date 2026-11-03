@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Link, useLocation } from 'react-router';
 
 type Values = Record<RegisterField, string>;
 type Errors = Partial<Record<RegisterField, string>>;
@@ -32,6 +33,7 @@ function validate(values: Values) {
 }
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
+  const location = useLocation();
   const [values, setValues] = useState<Values>({
     username: '',
     email: '',
@@ -72,6 +74,12 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
           <CardTitle>Account created</CardTitle>
           <CardDescription>Welcome, {created}. Your account is ready.</CardDescription>
         </CardHeader>
+        <CardContent>
+          {/* Carries the location the visitor was going to before login. */}
+          <Link to="/login" replace state={location.state} className="underline">
+            Log in
+          </Link>
+        </CardContent>
       </Card>
     );
   }

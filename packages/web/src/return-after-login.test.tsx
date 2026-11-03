@@ -140,4 +140,58 @@ describe('return after login', () => {
     expect(window.location.search).toBe('');
     expect(window.location.href).not.toContain(withBob);
   });
+
+  it('carries the remembered location through signup and back to login, then on to the Conversation', async () => {
+    fakeApi();
+    server.use(
+      http.post('*/api/v1/auth/register', () =>
+        HttpResponse.json({ user: alice }, { status: 201 }),
+      ),
+    );
+    window.history.pushState({}, '', '/start');
+    window.history.pushState({}, '', `/conversations/${withBob}?from=mail`);
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('link', { name: /sign up/i }));
+    await user.type(await screen.findByLabelText(/username/i), 'Alice');
+    await user.type(screen.getByLabelText(/email/i), 'alice@example.com');
+    await user.type(screen.getByLabelText(/password/i), 'correct horse battery');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+    await screen.findByText(/account created/i);
+
+    await user.click(screen.getByRole('link', { name: /log ?in/i }));
+    expect(window.location.pathname).toBe('/login');
+    expect(window.location.search).toBe('');
+    await logIn();
+
+    expect(await screen.findByRole('heading', { name: 'Bob' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe(`/conversations/${withBob}`);
+    expect(window.location.search).toBe('?from=mail');
+
+    window.history.back();
+    await waitFor(() => expect(window.location.pathname).toBe('/start'));
+  });
+
+  it('offers a plain Log in link after signing up with no remembered location, landing on /', async () => {
+    fakeApi();
+    server.use(
+      http.post('*/api/v1/auth/register', () =>
+        HttpResponse.json({ user: alice }, { status: 201 }),
+      ),
+    );
+    window.history.pushState({}, '', '/signup');
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.type(await screen.findByLabelText(/username/i), 'Alice');
+    await user.type(screen.getByLabelText(/email/i), 'alice@example.com');
+    await user.type(screen.getByLabelText(/password/i), 'correct horse battery');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+    await user.click(await screen.findByRole('link', { name: /log ?in/i }));
+    await logIn();
+
+    expect(await screen.findByText('Select a conversation to start chatting.')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/');
+  });
 });

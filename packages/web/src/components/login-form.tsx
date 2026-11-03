@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 
 type LoginField = 'identifier' | 'password';
 type Errors = Partial<Record<LoginField, string>>;
 
 export function LoginForm({ ...props }: React.ComponentProps<typeof Card>) {
   const { signIn } = useAuth();
+  const location = useLocation();
   const [values, setValues] = useState({ identifier: '', password: '' });
   const [errors, setErrors] = useState<Errors>({});
   const [formError, setFormError] = useState<string>();
@@ -78,7 +79,8 @@ export function LoginForm({ ...props }: React.ComponentProps<typeof Card>) {
               </Button>
               <FieldDescription className="text-center">
                 Don&apos;t have an account?{' '}
-                <Link to="/signup" replace>
+                {/* Carries the location the visitor was going to before login. */}
+                <Link to="/signup" replace state={location.state}>
                   Sign up
                 </Link>
               </FieldDescription>

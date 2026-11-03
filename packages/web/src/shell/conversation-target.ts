@@ -28,19 +28,12 @@ export const groupTarget = (
   isMember,
 });
 
-/** The target for a Conversation list entry, or undefined for a Direct one with no other User. */
-export function targetOfSummary(
-  conversation: ConversationSummary,
-  user: User,
-): ConversationTarget | undefined {
-  if (conversation.kind === 'group') return groupTarget(conversation, conversation.isMember);
-  const peer = conversation.members.find((m) => m.id !== user.id);
-  return peer && { kind: 'direct', peer };
-}
-
-/** The target for a Conversation fetched by id, or undefined for a Direct one with no other User. */
-export function targetOfDetail(
-  conversation: GetConversationResponse['conversation'],
+/**
+ * The target for a Conversation, from its list entry or fetched by id, or undefined for a Direct
+ * one with no other User.
+ */
+export function targetOf(
+  conversation: ConversationSummary | GetConversationResponse['conversation'],
   user: User,
 ): ConversationTarget | undefined {
   if (conversation.kind === 'group') return groupTarget(conversation, conversation.isMember);

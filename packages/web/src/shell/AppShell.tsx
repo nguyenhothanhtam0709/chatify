@@ -1,6 +1,6 @@
 import type { ConversationSummary, User } from '@chat/contracts';
 import { ChevronsUpDown, LogOut, Moon, SquarePen, Sun, UserRound, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentProps } from 'react';
 import { useMatch, useNavigate } from 'react-router';
 import { WifiOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -111,6 +111,20 @@ function CloseSheetOnConversationChange({ openId }: { openId: string | undefined
   return null;
 }
 
+/** The Conversation list, whose pick also closes the mobile sheet, even for the open Conversation. */
+function SidebarConversationList({ onSelect, ...props }: ComponentProps<typeof ConversationList>) {
+  const { setOpenMobile } = useSidebar();
+  return (
+    <ConversationList
+      {...props}
+      onSelect={(conversation) => {
+        onSelect(conversation);
+        setOpenMobile(false);
+      }}
+    />
+  );
+}
+
 /** The signed-in frame: the Conversation list in a sidebar (a sheet on mobile) beside the content. */
 export function AppShell({ user }: { user: User }) {
   const [newConversationOpen, setNewConversationOpen] = useState(false);
@@ -122,11 +136,10 @@ export function AppShell({ user }: { user: User }) {
   const navigate = useNavigate();
   const routeId = useMatch('/conversations/:id')?.params.id;
   const directUserId = useMatch('/direct/:userId')?.params.userId;
-  const openId = routeId;
   // A Direct view whose first Message started the Conversation keeps its mounted view under the
   // new `/conversations/:id` URL, so the composer keeps its focus and the Messages stay put.
   const [started, setStarted] = useState<{ userId: string; conversationId: string }>();
-  const directKey =
+  const directViewUserId =
     directUserId ??
     (started !== undefined && started.conversationId === routeId ? started.userId : undefined);
   useEffect(() => {
@@ -135,7 +148,7 @@ export function AppShell({ user }: { user: User }) {
     if (started.conversationId !== routeId) setStarted(undefined);
   }, [started, routeId, directUserId]);
   // Open, visible and at the latest Message: what arrives there is read as it arrives.
-  const readingId = tabVisible && atLatest ? openId : undefined;
+  const readingId = tabVisible && atLatest ? routeId : undefined;
   const entry = conversations?.find((c) => c.id === routeId);
   const header = (
     <div className="flex h-12 items-center border-b px-3 md:hidden">
@@ -191,14 +204,14 @@ export function AppShell({ user }: { user: User }) {
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel>Conversations</SidebarGroupLabel>
-            <ConversationList
+            <SidebarConversationList
               userId={user.id}
-              selectedId={openId}
+              selectedId={routeId}
               readingId={readingId}
               refreshKey={refreshKey}
               onLoaded={setConversations}
               onSelect={(conversation) => {
-                if (conversation.id !== openId) void navigate(`/conversations/${conversation.id}`);
+                if (conversation.id !== routeId) void navigate(`/conversations/${conversation.id}`);
               }}
             />
           </SidebarGroup>
@@ -209,16 +222,16 @@ export function AppShell({ user }: { user: User }) {
       </Sidebar>
       <SidebarInset>
         <ConnectionAlert />
-        {directKey !== undefined ? (
+        {directViewUserId !== undefined ? (
           <div className="flex min-h-0 flex-1 flex-col">
             {header}
             <RoutedDirect
-              key={directKey}
+              key={directViewUserId}
               user={user}
-              userId={directKey}
+              userId={directViewUserId}
               onExisting={(id) => void navigate(`/conversations/${id}`, { replace: true })}
               onStarted={(id) => {
-                setStarted({ userId: directKey, conversationId: id });
+                setStarted({ userId: directViewUserId, conversationId: id });
                 void navigate(`/conversations/${id}`, { replace: true });
                 setRefreshKey((k) => k + 1);
               }}

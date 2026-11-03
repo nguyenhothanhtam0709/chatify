@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ConversationSummarySchema,
   GetConversationResponseSchema,
+  GetDirectConversationResponseSchema,
   GetMessagesQuerySchema,
   MarkReadRequestSchema,
   TypingRequestSchema,
@@ -170,6 +171,38 @@ describe('GetConversationResponseSchema', () => {
     expect(
       GetConversationResponseSchema.parse({ conversation: { ...group, readUpToSequence: 3 } }),
     ).not.toHaveProperty('conversation.readUpToSequence');
+  });
+});
+
+describe('GetDirectConversationResponseSchema', () => {
+  const peer = { id, username: 'Bob', nickname: null };
+
+  it('carries the Conversation ID when there is one, or omits it', () => {
+    expect(GetDirectConversationResponseSchema.parse({ peer, conversationId: id })).toEqual({
+      peer,
+      conversationId: id,
+    });
+    expect(GetDirectConversationResponseSchema.parse({ peer })).toEqual({ peer });
+  });
+
+  it('rejects a conversationId that is not a UUID', () => {
+    expect(
+      GetDirectConversationResponseSchema.safeParse({ peer, conversationId: 'nope' }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a peer with more than the User search result fields', () => {
+    expect(
+      GetDirectConversationResponseSchema.safeParse({
+        peer: { ...peer, email: 'bob@example.com' },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a response without a peer', () => {
+    expect(GetDirectConversationResponseSchema.safeParse({ conversationId: id }).success).toBe(
+      false,
+    );
   });
 });
 

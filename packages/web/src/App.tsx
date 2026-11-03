@@ -1,7 +1,8 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
 import { LoginPage } from '@/auth/LoginPage';
 import { SignupPage } from '@/auth/SignupPage';
+import { rememberReturnTo, returnToFrom } from '@/auth/return-to';
 import { HealthPage } from '@/health/HealthPage';
 import {
   RealtimeProvider,
@@ -12,19 +13,29 @@ import { noRealtime } from '@/realtime/events';
 import { AppShell } from '@/shell/AppShell';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-/** Renders nothing while auth is loading; signed-out Users are sent to `/login`. */
+/**
+ * Renders nothing while auth is loading; signed-out Users are sent to `/login`, remembering
+ * where they were going in location state.
+ */
 function RequireSignedIn() {
   const { state } = useAuth();
+  const location = useLocation();
   if (state.status === 'loading') return null;
-  if (state.status === 'signedOut') return <Navigate to="/login" replace />;
+  if (state.status === 'signedOut') {
+    return <Navigate to="/login" replace state={rememberReturnTo(location)} />;
+  }
   return <Outlet />;
 }
 
-/** Renders nothing while auth is loading; signed-in Users are sent to `/`. */
+/**
+ * Renders nothing while auth is loading; signed-in Users are sent on to the location they were
+ * going to before login, or `/`.
+ */
 function SignedOutOnly() {
   const { state } = useAuth();
+  const location = useLocation();
   if (state.status === 'loading') return null;
-  if (state.status === 'signedIn') return <Navigate to="/" replace />;
+  if (state.status === 'signedIn') return <Navigate to={returnToFrom(location.state)} replace />;
   return <Outlet />;
 }
 

@@ -22,6 +22,7 @@ source: packages/api/src/**/*.controller.ts
 | POST | `/api/v1/conversations/:id/messages` | yes | `MessagesController.send` |
 | PUT | `/api/v1/conversations/:id/read` | yes | `MessagesController.markRead` |
 | POST | `/api/v1/conversations/:id/typing` | yes | `MessagesController.typing` |
+| GET | `/api/v1/direct-conversations/:userId` | yes | `MessagesController.lookupDirect` |
 | POST | `/api/v1/direct-messages` | yes | `MessagesController.sendDirect` |
 | POST | `/api/v1/groups` | yes | `GroupsController.create` |
 | POST | `/api/v1/groups/:id/leave` | yes | `GroupsController.leave` |

@@ -240,3 +240,15 @@ export const ListConversationsResponseSchema = z.object({
 });
 
 export type ListConversationsResponse = z.infer<typeof ListConversationsResponseSchema>;
+
+/**
+ * `GET /direct-conversations/:userId`: the other User, and the Direct Conversation with them
+ * when one exists. Read-only: the lookup never creates a Conversation.
+ */
+export const GetDirectConversationResponseSchema = z.object({
+  peer: UserSearchResultSchema,
+  /** Present only when a Direct Conversation with `peer` exists. */
+  conversationId: z.uuid().optional(),
+});
+
+export type GetDirectConversationResponse = z.infer<typeof GetDirectConversationResponseSchema>;

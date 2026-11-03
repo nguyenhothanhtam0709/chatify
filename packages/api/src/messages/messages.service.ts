@@ -4,6 +4,7 @@ import {
   RealtimeEvent,
   type Conversation,
   type GetConversationResponse,
+  type GetDirectConversationResponse,
   type GetMessagesQuery,
   type GetMessagesResponse,
   type ListConversationsResponse,
@@ -104,6 +105,33 @@ export class MessagesService {
       if (!raced) throw error;
       return this.asDirectResult(raced);
     }
+  }
+
+  /**
+   * The other User and the Direct Conversation with them, when there is one. Read-only: it never
+   * creates a Conversation. 404 for an unknown User and for the caller (a Direct Conversation
+   * needs two distinct Users).
+   */
+  public async lookupDirect(
+    userId: string,
+    rawPeerId: string,
+  ): Promise<GetDirectConversationResponse> {
+    // The route accepts any casing of a UUID; IDs are compared in the canonical one.
+    const peerId = rawPeerId.toLowerCase();
+    const userNotFound = () =>
+      new DomainException(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND, 'User not found');
+    if (peerId === userId) throw userNotFound();
+    const [peer] = await this.db
+      .select({ id: users.id, username: users.username, nickname: users.nickname })
+      .from(users)
+      .where(eq(users.id, peerId));
+    if (!peer) throw userNotFound();
+    const [low, high] = userId < peerId ? [userId, peerId] : [peerId, userId];
+    const [direct] = await this.db
+      .select({ id: directConversations.conversationId })
+      .from(directConversations)
+      .where(and(eq(directConversations.lowUserId, low), eq(directConversations.highUserId, high)));
+    return { peer, ...(direct && { conversationId: direct.id }) };
   }
 
   /** Sends to a Conversation the caller is a Member of. */

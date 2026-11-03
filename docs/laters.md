@@ -2,12 +2,6 @@
 
 Notes for a later MVP, not commitments. Any agent may append an entry with `cat >> docs/laters.md`. Remove an entry when it becomes a spec. To find an entry, run `grep -n '^## ' docs/laters.md` and read only that section: whole-file reads are denied.
 
-## Conversation URLs
-
-A URL per Conversation, so reload, Back and deep links work. Today the open Conversation lives in app shell state. Awkward for a new Direct Conversation, which has no id until the first Message is sent.
-
-Spec 00010 asked for a Conversation opened from its URL or after a reload to land at its newest Message (user stories 2 and 3). Those stories were marked n/a because no such route exists. When this entry becomes a spec, carry them over and test them like the click case in `packages/web/src/open-at-newest-message.test.tsx`.
-
 ## Contract-first development
 
 Today `packages/contracts` (Zod) is shared by the API and SPA, but endpoints are built code-first and there are no generated API docs (OpenAPI is out of scope for MVP1). In a later MVP, move to contract-first: define the HTTP contract (request, response and error shapes) before the implementation, and drive the API and SPA from it. Decide the contract format (extending the Zod contracts vs. OpenAPI) in an ADR when this is picked up.
@@ -37,12 +31,6 @@ The Unread Count is computed when the Conversation list is fetched, capped at 10
 - **Seen:** ticket 48 added the `owner_changed` System Message kind. The spec says System Messages stay out of the Conversation preview and list ordering, but the 48 diff did not touch that code, so it relies on the existing kind-based filtering. Nobody checked it, and no test covers it for this kind.
 - **Not done:** no check or test yet.
 - **Idea:** add a test (API) that an `owner_changed` message does not become the preview or move the Conversation in the list, or confirm the filter is by `kind` for every System Message.
-
-## Mobile sidebar sheet stays open after picking a Conversation
-
-- **Seen:** while verifying ticket 46 at 375x667 with touch emulation, choosing a Conversation in the sidebar sheet left the sheet open until Escape was pressed.
-- **Not done:** not ticketed, and not part of ticket 46.
-- **Idea:** close the sheet when a Conversation is selected on mobile.
 
 ## Throttler route strings are duplicated away from the controllers
 
@@ -141,10 +129,6 @@ MVP1 has only the Owner role and no renaming, deletion or invitations needing ac
 ## CI pipeline and deployment
 
 CI, deployment and OpenAPI docs were out of scope for MVP1. The required CI checks are already listed under "Enforce the doc and convention rules" and OpenAPI under "Contract-first development"; this entry is the rest: a hosting target, environment config and a deploy pipeline.
-
-## Typing Indicator in a new Direct view
-
-A Direct view opened through the new-conversation dialog sends no Typing Indicator signal until its first Message, even when the Conversation already exists, because the route needs a Conversation ID. Fix by resolving the existing Direct Conversation for the picked User when the view opens.
 
 ## Type-checking `scripts/`
 

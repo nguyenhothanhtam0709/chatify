@@ -1,0 +1,11 @@
+# graphify project settings. One key=value per line.
+# Which files graphify skips lives in .graphifyignore, not here.
+
+# Defaults for `graphify query`. Flags on the command override them.
+# Depth 3 pulls in about four times as many nodes and the answer gets cut off,
+# so stay at 2 and pass --depth 3 for the occasional wide question.
+query_budget=2000
+query_depth=2
+
+# Above this many nodes, the post-commit hook skips building graph.html.
+viz_node_limit=5000

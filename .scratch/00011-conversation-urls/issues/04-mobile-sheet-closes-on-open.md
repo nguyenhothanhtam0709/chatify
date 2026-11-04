@@ -11,13 +11,13 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] On a mobile viewport, picking a Conversation in the sheet closes the sheet and shows the Conversation
-- [ ] On a mobile viewport, a Conversation URL opens with the sheet closed
-- [ ] On a mobile viewport, Back from a Conversation doesn't reopen the sheet
-- [ ] On desktop, the sidebar is unchanged
-- [ ] Existing tests pass unchanged
+- [x] On a mobile viewport, picking a Conversation in the sheet closes the sheet and shows the Conversation
+- [x] On a mobile viewport, a Conversation URL opens with the sheet closed
+- [x] On a mobile viewport, Back from a Conversation doesn't reopen the sheet
+- [x] On desktop, the sidebar is unchanged
+- [x] Existing tests pass unchanged
 
 **Verification:**
 

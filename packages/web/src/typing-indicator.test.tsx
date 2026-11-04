@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -468,34 +468,71 @@ describe('Typing Indicator in a Group', () => {
   });
 });
 
-describe('Typing Indicator in a Direct view without a Conversation ID', () => {
-  it('sends no signal until the first Message exists (known limit)', async () => {
+describe('Typing Indicator in a Direct view picked through the dialog', () => {
+  async function pickBob({ existing }: { existing: boolean }) {
     const typed: string[] = [];
     server.use(
       http.post('*/api/v1/auth/refresh', () =>
         HttpResponse.json({ accessToken: fakeAccessToken() }),
       ),
       http.get('*/api/v1/users/me', () => HttpResponse.json({ user: alice })),
-      http.get('*/api/v1/conversations', () => HttpResponse.json({ conversations: [] })),
+      http.get('*/api/v1/conversations', () =>
+        HttpResponse.json({ conversations: existing ? [summary(bobWithNickname)] : [] }),
+      ),
       http.get('*/api/v1/users/search', () => HttpResponse.json({ users: [bobWithNickname] })),
+      http.get(`*/api/v1/direct-conversations/${bobWithNickname.id}`, () =>
+        HttpResponse.json({
+          peer: bobWithNickname,
+          ...(existing ? { conversationId: withBob } : {}),
+        }),
+      ),
+      http.get(`*/api/v1/conversations/${withBob}`, () =>
+        HttpResponse.json({
+          conversation: {
+            id: withBob,
+            kind: 'direct',
+            members: [aliceMember, bobWithNickname],
+          },
+        }),
+      ),
+      http.get(`*/api/v1/conversations/${withBob}/messages`, () =>
+        HttpResponse.json({ messages: [], hasMore: false }),
+      ),
       http.post('*/api/v1/conversations/:id/typing', async ({ request }) => {
         typed.push(((await request.json()) as { state: string }).state);
         return new HttpResponse(null, { status: 204 });
       }),
     );
     render(<App />);
-    await screen.findByText(/no conversations yet/i);
+    await screen.findByText(existing ? /bob/i : /no conversations yet/i);
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: /new conversation/i }));
     const dialog = await screen.findByRole('dialog', { name: /new conversation/i });
     await user.type(within(dialog).getByRole('combobox'), 'bo');
     await user.click(await within(dialog).findByRole('option', { name: /bob/i }));
     const box = await screen.findByRole('textbox', { name: 'Message' });
+    return { user, box, typed };
+  }
+
+  it('sends the signal for an existing Direct Conversation', async () => {
+    const { user, box, typed } = await pickBob({ existing: true });
 
     await user.type(box, 'hello');
     await user.clear(box);
     await user.tab();
 
+    expect(window.location.pathname).toBe(`/conversations/${withBob}`);
+    await waitFor(() => expect(typed).toEqual(['typing', 'stopped']));
+  });
+
+  it('sends no signal for a brand-new Direct Conversation, before its first Message', async () => {
+    const { user, box, typed } = await pickBob({ existing: false });
+
+    await user.type(box, 'hello');
+    await user.clear(box);
+    await user.tab();
+
+    expect(window.location.pathname).toBe(`/direct/${bobWithNickname.id}`);
     expect(typed).toEqual([]);
   });
 });

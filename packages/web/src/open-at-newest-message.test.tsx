@@ -79,6 +79,7 @@ function fakeConversations(conversations: FakeConversation[], gate?: string) {
     http.post('*/api/v1/auth/refresh', () => HttpResponse.json({ accessToken: fakeAccessToken() })),
     http.get('*/api/v1/users/me', () => HttpResponse.json({ user: alice })),
     http.get('*/api/v1/users/search', () => HttpResponse.json({ users: [carol] })),
+    http.get(`*/api/v1/direct-conversations/${carol.id}`, () => HttpResponse.json({ peer: carol })),
     http.get('*/api/v1/conversations', () =>
       HttpResponse.json({ conversations: conversations.map(summary) }),
     ),

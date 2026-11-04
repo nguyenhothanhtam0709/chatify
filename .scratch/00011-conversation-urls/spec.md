@@ -1,6 +1,6 @@
 # Spec: Conversation URLs
 
-Status: ready-for-agent
+Status: resolved
 
 ## Problem Statement
 

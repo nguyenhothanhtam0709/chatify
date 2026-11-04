@@ -1,9 +1,14 @@
 import {
+  ErrorCode,
+  ErrorResponseSchema,
   GetConversationResponseSchema,
+  GetDirectConversationResponseSchema,
   GetMessagesResponseSchema,
   ListConversationsResponseSchema,
   MarkReadResponseSchema,
   type ConversationSummary,
+  type GetConversationResponse,
+  type GetDirectConversationResponse,
   type Message,
   type TypingState,
 } from '@chat/contracts';
@@ -17,6 +22,15 @@ export type ReadReceiptResult =
 /** `retryable`: the failure may pass by itself (a 5xx, a 429 or no network), so trying again can work. */
 export type MarkReadResult =
   { ok: true; upToSequence: number } | { ok: false; error: string; retryable?: true };
+
+/** `notFound`: no such Conversation, a never-Member, or a malformed id; the API answers these alike. */
+export type ConversationResult =
+  | { ok: true; conversation: GetConversationResponse['conversation'] }
+  | { ok: false; error: string; notFound?: true };
+
+/** `notFound`: an unknown User, the caller's own id, or a malformed id. */
+export type DirectConversationResult =
+  ({ ok: true } & GetDirectConversationResponse) | { ok: false; error: string; notFound?: true };
 
 export type MessagesCursor = { before?: number; after?: number };
 
@@ -46,6 +60,84 @@ export async function listConversations(
   const res = await get(accessToken, '/api/v1/conversations', signal);
   if (!res.ok) return res;
   return { ok: true, ...ListConversationsResponseSchema.parse(res.payload) };
+}
+
+/**
+ * GET for a resource the caller opened by its URL. A 404 with `notFoundCode` and a 400
+ * `VALIDATION_FAILED` both come back as `notFound`.
+ */
+async function getByUrl<T>(
+  accessToken: string,
+  path: string,
+  notFoundCode: ErrorCode,
+  goneError: string,
+  parse: (payload: unknown) => T | undefined,
+  signal?: AbortSignal,
+): Promise<{ ok: true; data: T } | { ok: false; error: string; notFound?: true }> {
+  let res: Response;
+  try {
+    res = await fetch(new URL(path, window.location.origin), {
+      headers: { authorization: `Bearer ${accessToken}` },
+      signal: signal ?? null,
+    });
+  } catch {
+    return { ok: false, error: 'Could not reach the server. Try again.' };
+  }
+  const payload: unknown = await res.json().catch(() => undefined);
+  if (!res.ok) {
+    const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
+    const gone =
+      (res.status === 404 && code === notFoundCode) ||
+      (res.status === 400 && code === ErrorCode.VALIDATION_FAILED);
+    return gone
+      ? { ok: false, error: goneError, notFound: true }
+      : { ok: false, error: 'Something went wrong. Try again.' };
+  }
+  const data = parse(payload);
+  return data !== undefined
+    ? { ok: true, data }
+    : { ok: false, error: 'Something went wrong. Try again.' };
+}
+
+/**
+ * `GET /api/v1/conversations/:id`: a Conversation the caller opened by its URL. A 404
+ * `CONVERSATION_NOT_FOUND` and a 400 `VALIDATION_FAILED` both come back as `notFound`.
+ */
+export async function getConversation(
+  accessToken: string,
+  conversationId: string,
+  signal?: AbortSignal,
+): Promise<ConversationResult> {
+  const res = await getByUrl(
+    accessToken,
+    `/api/v1/conversations/${encodeURIComponent(conversationId)}`,
+    ErrorCode.CONVERSATION_NOT_FOUND,
+    'This conversation does not exist.',
+    (payload) => GetConversationResponseSchema.safeParse(payload).data?.conversation,
+    signal,
+  );
+  return res.ok ? { ok: true, conversation: res.data } : res;
+}
+
+/**
+ * `GET /api/v1/direct-conversations/:userId`: the other User, and the Direct Conversation with
+ * them when there is one. A 404 `USER_NOT_FOUND` (unknown User, or the caller) and a 400
+ * `VALIDATION_FAILED` both come back as `notFound`.
+ */
+export async function getDirectConversation(
+  accessToken: string,
+  userId: string,
+  signal?: AbortSignal,
+): Promise<DirectConversationResult> {
+  const res = await getByUrl(
+    accessToken,
+    `/api/v1/direct-conversations/${encodeURIComponent(userId)}`,
+    ErrorCode.USER_NOT_FOUND,
+    "This user can't be found.",
+    (payload) => GetDirectConversationResponseSchema.safeParse(payload).data,
+    signal,
+  );
+  return res.ok ? { ok: true, ...res.data } : res;
 }
 
 /**

@@ -24,19 +24,19 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The lookup returns 200 with `conversationId` when the Direct Conversation exists, and 200 without it when it doesn't
-- [ ] The lookup never creates a Conversation
-- [ ] The lookup returns 404 `USER_NOT_FOUND` for an unknown User and for the caller's own id, 400 for a malformed id, and 401 when signed out
-- [ ] The lookup's `peer` carries only the User search result fields
-- [ ] Picking a User with an existing Direct Conversation ends at `/conversations/<id>` and shows its history
-- [ ] Picking a User with no Direct Conversation shows "Say hello" with their name at `/direct/<userId>`, also after a reload
-- [ ] The first send replaces `/direct/<userId>` with `/conversations/<id>`, and Back doesn't return to `/direct/`
-- [ ] The other User's first Message arriving at `/direct/<userId>` replaces it with `/conversations/<id>`
-- [ ] An unknown User, the caller's own id, or a malformed id at `/direct/` shows "This user can't be found."
-- [ ] Typing in an existing Direct Conversation picked through the dialog sends the Typing Indicator signal. The test that pinned "sends no signal until the first Message exists" as a known limit now asserts this instead. A brand-new Direct Conversation still sends none
-- [ ] The HTTP routes doc lists the new endpoint
+- [x] The lookup returns 200 with `conversationId` when the Direct Conversation exists, and 200 without it when it doesn't
+- [x] The lookup never creates a Conversation
+- [x] The lookup returns 404 `USER_NOT_FOUND` for an unknown User and for the caller's own id, 400 for a malformed id, and 401 when signed out
+- [x] The lookup's `peer` carries only the User search result fields
+- [x] Picking a User with an existing Direct Conversation ends at `/conversations/<id>` and shows its history
+- [x] Picking a User with no Direct Conversation shows "Say hello" with their name at `/direct/<userId>`, also after a reload
+- [x] The first send replaces `/direct/<userId>` with `/conversations/<id>`, and Back doesn't return to `/direct/`
+- [x] The other User's first Message arriving at `/direct/<userId>` replaces it with `/conversations/<id>`
+- [x] An unknown User, the caller's own id, or a malformed id at `/direct/` shows "This user can't be found."
+- [x] Typing in an existing Direct Conversation picked through the dialog sends the Typing Indicator signal. The test that pinned "sends no signal until the first Message exists" as a known limit now asserts this instead. A brand-new Direct Conversation still sends none
+- [x] The HTTP routes doc lists the new endpoint
 
 **Verification:**
 

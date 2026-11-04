@@ -1,6 +1,7 @@
 import type { ConversationSummary, User } from '@chat/contracts';
 import { ChevronsUpDown, LogOut, Moon, SquarePen, Sun, UserRound, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentProps } from 'react';
+import { useMatch, useNavigate } from 'react-router';
 import { WifiOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -24,13 +25,14 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/auth/AuthProvider';
 import { useConnectionStatus } from '@/realtime/RealtimeProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { ConversationList } from './ConversationList';
-import { ConversationView } from './ConversationView';
-import { groupTarget, type ConversationTarget } from './conversation-target';
+import { RoutedConversation } from './RoutedConversation';
+import { RoutedDirect } from './RoutedDirect';
 import { NewConversationDialog } from './NewConversationDialog';
 import { NewGroupDialog } from './NewGroupDialog';
 import { ProfileDialog } from './ProfileDialog';
@@ -97,33 +99,74 @@ function UserMenu({ user }: { user: User }) {
   );
 }
 
-function targetOf(conversation: ConversationSummary, user: User): ConversationTarget | undefined {
-  if (conversation.kind === 'group') {
-    return groupTarget(conversation, conversation.isMember);
-  }
-  const peer = conversation.members.find((m) => m.id !== user.id);
-  return peer && { kind: 'direct', peer };
+/**
+ * Closes the mobile sheet whenever the open Conversation changes (a pick, the new-conversation
+ * dialog, Back or Forward). Renders nothing; it sits inside the provider to reach its state.
+ */
+function CloseSheetOnConversationChange({ openId }: { openId: string | undefined }) {
+  const { setOpenMobile } = useSidebar();
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [openId, setOpenMobile]);
+  return null;
+}
+
+/** The Conversation list, whose pick also closes the mobile sheet, even for the open Conversation. */
+function SidebarConversationList({ onSelect, ...props }: ComponentProps<typeof ConversationList>) {
+  const { setOpenMobile } = useSidebar();
+  return (
+    <ConversationList
+      {...props}
+      onSelect={(conversation) => {
+        onSelect(conversation);
+        setOpenMobile(false);
+      }}
+    />
+  );
 }
 
 /** The signed-in frame: the Conversation list in a sidebar (a sheet on mobile) beside the content. */
 export function AppShell({ user }: { user: User }) {
   const [newConversationOpen, setNewConversationOpen] = useState(false);
   const [newGroupOpen, setNewGroupOpen] = useState(false);
-  const [open, setOpen] = useState<{ target: ConversationTarget; conversationId?: string }>();
   const [refreshKey, setRefreshKey] = useState(0);
   const [atLatest, setAtLatest] = useState(true);
+  const [conversations, setConversations] = useState<ConversationSummary[]>();
   const tabVisible = useTabVisible();
+  const navigate = useNavigate();
+  const routeId = useMatch('/conversations/:id')?.params.id;
+  const directUserId = useMatch('/direct/:userId')?.params.userId;
+  // A Direct view whose first Message started the Conversation keeps its mounted view under the
+  // new `/conversations/:id` URL, so the composer keeps its focus and the Messages stay put.
+  const [started, setStarted] = useState<{ userId: string; conversationId: string }>();
+  const directViewUserId =
+    directUserId ??
+    (started !== undefined && started.conversationId === routeId ? started.userId : undefined);
+  useEffect(() => {
+    // Until the location has moved on, the Direct URL is still the one showing.
+    if (started === undefined || directUserId !== undefined) return;
+    if (started.conversationId !== routeId) setStarted(undefined);
+  }, [started, routeId, directUserId]);
   // Open, visible and at the latest Message: what arrives there is read as it arrives.
-  const readingId = tabVisible && atLatest ? open?.conversationId : undefined;
+  const readingId = tabVisible && atLatest ? routeId : undefined;
+  const entry = conversations?.find((c) => c.id === routeId);
+  const header = (
+    <div className="flex h-12 items-center border-b px-3 md:hidden">
+      <SidebarTrigger />
+    </div>
+  );
   return (
     // h-svh: the message scroller sizes its spacer from its viewport, so the frame needs a
     // definite height; with only min-h-svh the pane grows with the spacer without bound.
     <SidebarProvider className="h-svh">
+      <CloseSheetOnConversationChange openId={routeId ?? directUserId} />
       <NewConversationDialog
         open={newConversationOpen}
         onOpenChange={setNewConversationOpen}
         onPick={(picked) => {
-          setOpen({ target: { kind: 'direct', peer: picked } });
+          // Already in the Conversation this User's Direct view started: it is the one showing.
+          const showing = started?.userId === picked.id && started.conversationId === routeId;
+          if (!showing) void navigate(`/direct/${picked.id}`);
           setNewConversationOpen(false);
         }}
       />
@@ -131,10 +174,7 @@ export function AppShell({ user }: { user: User }) {
         open={newGroupOpen}
         onOpenChange={setNewGroupOpen}
         onCreated={(group) => {
-          setOpen({
-            target: groupTarget(group, true),
-            conversationId: group.id,
-          });
+          void navigate(`/conversations/${group.id}`);
           setRefreshKey((k) => k + 1);
           setNewGroupOpen(false);
         }}
@@ -164,23 +204,14 @@ export function AppShell({ user }: { user: User }) {
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupLabel>Conversations</SidebarGroupLabel>
-            <ConversationList
+            <SidebarConversationList
               userId={user.id}
-              selectedId={open?.conversationId}
+              selectedId={routeId}
               readingId={readingId}
               refreshKey={refreshKey}
-              onLoaded={(list) =>
-                // A reload hands the open Group's view the server's latest count and flags.
-                setOpen((current) => {
-                  if (current?.target.kind !== 'group') return current;
-                  const fresh = list.find((c) => c.id === current.conversationId);
-                  const target = fresh && targetOf(fresh, user);
-                  return target ? { ...current, target } : current;
-                })
-              }
+              onLoaded={setConversations}
               onSelect={(conversation) => {
-                const target = targetOf(conversation, user);
-                if (target) setOpen({ target, conversationId: conversation.id });
+                if (conversation.id !== routeId) void navigate(`/conversations/${conversation.id}`);
               }}
             />
           </SidebarGroup>
@@ -191,23 +222,36 @@ export function AppShell({ user }: { user: User }) {
       </Sidebar>
       <SidebarInset>
         <ConnectionAlert />
-        {open ? (
+        {directViewUserId !== undefined ? (
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex h-12 items-center border-b px-3 md:hidden">
-              <SidebarTrigger />
-            </div>
-            <ConversationView
-              key={open.target.kind === 'direct' ? open.target.peer.id : open.conversationId}
+            {header}
+            <RoutedDirect
+              key={directViewUserId}
               user={user}
-              target={open.target}
-              conversationId={open.conversationId}
+              userId={directViewUserId}
+              onExisting={(id) => void navigate(`/conversations/${id}`, { replace: true })}
+              onStarted={(id) => {
+                setStarted({ userId: directViewUserId, conversationId: id });
+                void navigate(`/conversations/${id}`, { replace: true });
+                setRefreshKey((k) => k + 1);
+              }}
+              onSent={() => setRefreshKey((k) => k + 1)}
+              onAtLatestChange={setAtLatest}
+              reading={tabVisible && atLatest}
+            />
+          </div>
+        ) : routeId !== undefined ? (
+          <div className="flex min-h-0 flex-1 flex-col">
+            {header}
+            <RoutedConversation
+              key={routeId}
+              user={user}
+              id={routeId}
+              entry={entry}
               onLeft={() => setRefreshKey((k) => k + 1)}
               onAtLatestChange={setAtLatest}
               reading={tabVisible && atLatest}
-              onSent={(conversationId) => {
-                setOpen((current) => current && { ...current, conversationId });
-                setRefreshKey((k) => k + 1);
-              }}
+              onSent={() => setRefreshKey((k) => k + 1)}
             />
           </div>
         ) : (

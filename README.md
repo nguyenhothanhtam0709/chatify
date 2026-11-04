@@ -27,7 +27,7 @@ Repeated logins during local work can hit `429 RATE_LIMITED`: set `THROTTLE_DISA
 
 ## Knowledge graph (optional)
 
-[graphify](https://github.com/safishamsi/graphify) builds a local graph that links the code to Specs, Tickets and ADRs. Use it to answer questions such as "which Ticket touched `CommitOrder`?", which text search can't.
+[graphify](https://github.com/Graphify-Labs/graphify) builds a local graph that links the code to Specs, Tickets and ADRs. Use it to answer questions such as "which Ticket touched `CommitOrder`?", which text search can't.
 
 ```sh
 uv tool install 'graphifyy[sql]'   # once; [sql] adds the Drizzle migrations

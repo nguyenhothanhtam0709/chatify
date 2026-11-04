@@ -31,18 +31,18 @@
 
 **Status:** resolved
 
-- [ ] Clicking a Conversation in the list changes the location to `/conversations/<id>`
-- [ ] Clicking the already-open Conversation adds no history entry
-- [ ] Back and Forward move between two opened Conversations, and Back past the first one shows the empty state at `/`
-- [ ] A long Conversation opened from its URL, with no click, lands at its newest Message with "Jump to latest" hidden (spec 00010 story 2)
-- [ ] A long Conversation still lands at its newest Message after a reload (spec 00010 story 3)
-- [ ] A Conversation opened from its URL before the Conversation list has loaded shows its name or the other User's name
-- [ ] A Group opened from its URL before its list entry loads still moves the Read Marker when its newest Message is in view in a visible tab
-- [ ] Creating a Group changes the location to the new Group's URL
-- [ ] A Former Member's Group and a Closed Group open read-only from their URL
-- [ ] A URL that returns 404, or a malformed id, shows "This conversation doesn't exist or you don't have access to it." The location is kept and the sidebar still works
-- [ ] `/` still shows "Select a conversation to start chatting.", and unknown paths still show the shell
-- [ ] Existing tests pass unchanged
+- [x] Clicking a Conversation in the list changes the location to `/conversations/<id>`
+- [x] Clicking the already-open Conversation adds no history entry
+- [x] Back and Forward move between two opened Conversations, and Back past the first one shows the empty state at `/`
+- [x] A long Conversation opened from its URL, with no click, lands at its newest Message with "Jump to latest" hidden (spec 00010 story 2)
+- [x] A long Conversation still lands at its newest Message after a reload (spec 00010 story 3)
+- [x] A Conversation opened from its URL before the Conversation list has loaded shows its name or the other User's name
+- [x] A Group opened from its URL before its list entry loads still moves the Read Marker when its newest Message is in view in a visible tab
+- [x] Creating a Group changes the location to the new Group's URL
+- [x] A Former Member's Group and a Closed Group open read-only from their URL
+- [x] A URL that returns 404, or a malformed id, shows "This conversation doesn't exist or you don't have access to it." The location is kept and the sidebar still works
+- [x] `/` still shows "Select a conversation to start chatting.", and unknown paths still show the shell
+- [x] Existing tests pass unchanged
 
 **Verification:**
 

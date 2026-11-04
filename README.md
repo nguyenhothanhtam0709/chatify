@@ -25,6 +25,21 @@ pnpm dev:web   # SPA on http://localhost:5173, proxies /api to the API
 
 Repeated logins during local work can hit `429 RATE_LIMITED`: set `THROTTLE_DISABLED=true` in `packages/api/.env` and restart the API ([.env.example](packages/api/.env.example)). Never set it in a deployment.
 
+## Knowledge graph (optional)
+
+[graphify](https://github.com/safishamsi/graphify) builds a local graph that links the code to Specs, Tickets and ADRs. Use it to answer questions such as "which Ticket touched `CommitOrder`?", which text search can't.
+
+```sh
+uv tool install 'graphifyy[sql]'   # once; [sql] adds the Drizzle migrations
+```
+
+- Build it: run `/graphify .` in Claude Code. Afterwards run `/graphify . --update`, which re-reads only changed files and serves unchanged docs from the cache.
+- After code-only changes: `graphify update .` (no LLM), or `graphify hook install` to run it after every commit.
+- Ask it: `graphify query "<question>"`, `graphify path "<A>" "<B>"`, `graphify explain "<name>"`. Open `graphify-out/graph.html` in a browser to browse it.
+- In a worktree, `graphify-out/` is missing (it's gitignored), so point at the main checkout's graph with `--graph <main checkout>/graphify-out/graph.json`.
+
+Settings: [.graphifyignore](.graphifyignore) (files left out) and [.graphifyrc](.graphifyrc) (query defaults).
+
 ## Docs
 
 - [docs/architecture/](docs/architecture/): how the app works today, plus Generated Docs (ER diagram, HTTP routes, realtime events, package graph, ADR index) from `pnpm docs:generate`.

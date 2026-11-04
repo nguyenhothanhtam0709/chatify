@@ -9,3 +9,6 @@ coverage
 
 # Claude Code agent worktrees
 .claude/worktrees/
+
+# graphify knowledge graph (built locally)
+graphify-out/

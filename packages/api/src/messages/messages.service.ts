@@ -59,9 +59,25 @@ interface InsertedMessage {
 /** Thrown inside a transaction to undo it (including its sequence bump) on a resend. */
 class DuplicateClientMessage extends Error {}
 
+interface HistoryRow {
+  message: typeof messages.$inferSelect;
+  subjectId: string | null;
+  subjectUsername: string | null;
+  subjectNickname: string | null;
+}
+
+const toHistoryMessage = (r: HistoryRow): Message =>
+  toMessage(
+    r.message,
+    r.subjectId === null || r.subjectUsername === null
+      ? null
+      : { id: r.subjectId, username: r.subjectUsername, nickname: r.subjectNickname },
+  );
+
 /** Direct sending, history, and the Conversation read side. Group lifecycle is `GroupsService`. */
 @Injectable()
 export class MessagesService {
+  // oxlint-disable-next-line max-params -- NestJS constructor injection takes one parameter per dependency
   constructor(
     @InjectDrizzle() private readonly db: Database,
     private readonly realtime: RealtimeGateway,
@@ -212,16 +228,7 @@ export class MessagesService {
       .orderBy(forward ? asc(messages.sequence) : desc(messages.sequence))
       .limit(limit + 1);
     return {
-      messages: rows
-        .slice(0, limit)
-        .map((r) =>
-          toMessage(
-            r.message,
-            r.subjectId === null || r.subjectUsername === null
-              ? null
-              : { id: r.subjectId, username: r.subjectUsername, nickname: r.subjectNickname },
-          ),
-        ),
+      messages: rows.slice(0, limit).map(toHistoryMessage),
       hasMore: rows.length > limit,
     };
   }
@@ -365,14 +372,17 @@ export class MessagesService {
   private async pushCreated(
     { message, readMoved }: InsertedMessage,
     newConversationRecipient: string | undefined,
-  ) {
+  ): Promise<void> {
     await this.pushMessage(message, newConversationRecipient);
     if (readMoved) {
       await this.pushMarkerMoved(message.senderId, message.conversationId, message.sequence);
     }
   }
 
-  private async pushMessage(message: Message, newConversationRecipient: string | undefined) {
+  private async pushMessage(
+    message: Message,
+    newConversationRecipient: string | undefined,
+  ): Promise<void> {
     try {
       const members = await this.db
         .select({ userId: conversationMembers.userId })

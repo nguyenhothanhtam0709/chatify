@@ -39,7 +39,7 @@ import { MessagesService } from './messages.service.js';
 const ConversationIdPipe = new ZodValidationPipe(z.uuid());
 
 /** `201` for a new Message, `200` when the client message ID had been sent before. */
-const statusFor = (created: boolean) => (created ? 201 : 200);
+const statusFor = (created: boolean): 201 | 200 => (created ? 201 : 200);
 
 @Controller()
 export class MessagesController {

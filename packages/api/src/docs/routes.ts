@@ -10,39 +10,44 @@ type ModuleRef = Type<unknown> | DynamicModule;
 /** `Reflect.getMetadata` returns `any`; the caller names the shape Nest's decorators write. */
 const read = <T>(key: string, target: object): T | undefined => Reflect.getMetadata(key, target);
 
+/** What one module declares: its controllers and the modules it imports. */
+function declaredBy(ref: ModuleRef): { controllers: Type<unknown>[]; imports: ModuleRef[] } {
+  const moduleClass = 'module' in ref ? ref.module : ref;
+  // A dynamic module's `imports` may also hold promises and forward references, which the
+  // generator's modules never use.
+  const dynamicImports =
+    'module' in ref
+      ? // oxlint-disable-next-line typescript/consistent-type-assertions -- only plain and dynamic modules are listed in imports here; see the comment above
+        ((ref.imports ?? []) as ModuleRef[])
+      : [];
+  return {
+    controllers: [
+      ...(read<Type<unknown>[]>('controllers', moduleClass) ?? []),
+      ...('module' in ref ? (ref.controllers ?? []) : []),
+    ],
+    imports: [...(read<ModuleRef[]>('imports', moduleClass) ?? []), ...dynamicImports],
+  };
+}
+
 /** Every controller declared by the given modules or the modules they import, transitively. */
 function collectControllers(modules: readonly ModuleRef[]): Type<unknown>[] {
   const seen = new Set<unknown>();
   const controllers = new Set<Type<unknown>>();
 
-  const visit = (ref: ModuleRef) => {
+  const visit = (ref: ModuleRef): void => {
     const moduleClass = 'module' in ref ? ref.module : ref;
     if (seen.has(moduleClass)) return;
     seen.add(moduleClass);
-    const ownControllers = [
-      ...(read<Type<unknown>[]>('controllers', moduleClass) ?? []),
-      ...('module' in ref ? (ref.controllers ?? []) : []),
-    ];
-    // A dynamic module's `imports` may also hold promises and forward references, which the
-    // generator's modules never use.
-    const dynamicImports =
-      'module' in ref
-        ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only plain and dynamic modules are listed in imports here; see the comment above
-          ((ref.imports ?? []) as ModuleRef[])
-        : [];
-    for (const controller of ownControllers) controllers.add(controller);
-    for (const imported of [
-      ...(read<ModuleRef[]>('imports', moduleClass) ?? []),
-      ...dynamicImports,
-    ])
-      visit(imported);
+    const declared = declaredBy(ref);
+    for (const controller of declared.controllers) controllers.add(controller);
+    declared.imports.forEach(visit);
   };
 
   modules.forEach(visit);
   return [...controllers];
 }
 
-const joinPath = (...parts: string[]) =>
+const joinPath = (...parts: string[]): string =>
   '/' +
   parts
     .flatMap((part) => part.split('/'))

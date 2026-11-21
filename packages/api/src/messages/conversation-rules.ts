@@ -10,7 +10,7 @@ import type { Reader } from './message-rows.js';
  * when the check must hold under the Conversation lock (take the lock first, then check).
  */
 
-export const conversationNotFound = () =>
+export const conversationNotFound = (): DomainException =>
   new DomainException(
     ErrorCode.CONVERSATION_NOT_FOUND,
     HttpStatus.NOT_FOUND,
@@ -18,7 +18,7 @@ export const conversationNotFound = () =>
   );
 
 /** `userIds`: the unknown Users, when more than one may be named. */
-export const userNotFound = (userIds?: string[]) =>
+export const userNotFound = (userIds?: string[]): DomainException =>
   new DomainException(
     ErrorCode.USER_NOT_FOUND,
     HttpStatus.NOT_FOUND,

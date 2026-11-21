@@ -13,9 +13,10 @@ import { AccessTokenAuthenticator } from '../auth/access-token-authenticator.js'
 import { GroupMemberships } from '../memberships/group-memberships.js';
 import { PINO } from '../logging/logging.module.js';
 
-export const userRoom = (userId: string) => `user:${userId}`;
-export const conversationRoom = (conversationId: string) => `conversation:${conversationId}`;
-export const sessionRoom = (sessionId: string) => `session:${sessionId}`;
+export const userRoom = (userId: string): string => `user:${userId}`;
+export const conversationRoom = (conversationId: string): string =>
+  `conversation:${conversationId}`;
+export const sessionRoom = (sessionId: string): string => `session:${sessionId}`;
 
 /**
  * Server-push only (ADR-0001): no `@SubscribeMessage` handlers exist, so anything a client

@@ -1,6 +1,6 @@
 import { SearchUsersQuerySchema, type UserSearchResult } from '@chat/contracts';
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/auth/AuthProvider';
+import { useAuth } from '@/auth/auth-context';
 import { Command, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import {
   Dialog,

@@ -22,6 +22,32 @@ export interface AppOverrides {
   logDestination?: LogDestination;
 }
 
+async function registerSecurityPlugins(
+  app: NestFastifyApplication,
+  spaOrigin: string,
+): Promise<void> {
+  // The API serves JSON only, so the CSP forbids loading or framing anything.
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: {
+        defaultSrc: ["'none'"],
+        baseUri: ["'none'"],
+        formAction: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+  });
+  // A function (not a string) so other origins get no CORS headers at all, rather than the
+  // SPA origin echoed back.
+  app.enableCors({
+    origin: (origin: string | undefined, callback: (err: Error | null, allow: boolean) => void) =>
+      callback(null, origin === spaOrigin),
+    credentials: true,
+  });
+  await app.register(cookie);
+}
+
 export async function createApp(
   rawConfig: Record<string, unknown>,
   overrides: AppOverrides = {},
@@ -32,7 +58,7 @@ export async function createApp(
 
   const adapter = new FastifyAdapter({
     loggerInstance: logger,
-    genReqId: () => randomUUID(),
+    genReqId: (): string => randomUUID(),
     // We emit our own single, body-free line per request (see installHttpLogging).
     disableRequestLogging: true,
   });
@@ -54,26 +80,7 @@ export async function createApp(
   app.useLogger(new PinoLoggerService(logger));
   app.useWebSocketAdapter(new RealtimeIoAdapter(app));
   app.setGlobalPrefix(API_PREFIX);
-  // The API serves JSON only, so the CSP forbids loading or framing anything.
-  await app.register(helmet, {
-    contentSecurityPolicy: {
-      useDefaults: false,
-      directives: {
-        defaultSrc: ["'none'"],
-        baseUri: ["'none'"],
-        formAction: ["'none'"],
-        frameAncestors: ["'none'"],
-      },
-    },
-  });
-  // A function (not a string) so other origins get no CORS headers at all, rather than the
-  // SPA origin echoed back.
-  app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow: boolean) => void) =>
-      callback(null, origin === config.SPA_ORIGIN),
-    credentials: true,
-  });
-  await app.register(cookie);
+  await registerSecurityPlugins(app, config.SPA_ORIGIN);
   adapter.getInstance().addHook('onClose', (_instance, done) => {
     closeLogger();
     done();

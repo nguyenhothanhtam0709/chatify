@@ -2,7 +2,7 @@ import type { ConversationSummary, Message } from '@chat/contracts';
 import { LAST_MESSAGE_PREVIEW_MAX, UNREAD_COUNT_MAX } from '@chat/contracts';
 import { MessageSquare } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useAuth } from '@/auth/AuthProvider';
+import { useAuth } from '@/auth/auth-context';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -12,7 +12,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
-import { useReconnected, useRealtimeEvents } from '@/realtime/RealtimeProvider';
+import { useReconnected, useRealtimeEvents } from '@/realtime/realtime-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 
@@ -32,7 +32,7 @@ function activityLabel(iso: string): string {
 
 /** Whitespace collapsed, at most 100 characters: the same preview the server builds. */
 const previewOf = (body: string): string =>
-  [...body.trim().replace(/\s+/g, ' ')].slice(0, LAST_MESSAGE_PREVIEW_MAX).join('');
+  Array.from(body.trim().replace(/\s+/g, ' ')).slice(0, LAST_MESSAGE_PREVIEW_MAX).join('');
 
 /** The Unread Count as the badge shows it; the server stops counting at the cap. */
 const unreadLabel = (count: number): string =>

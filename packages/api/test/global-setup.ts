@@ -10,12 +10,12 @@ export default async function setup(project: {
   provide: (key: string, value: string) => void;
 }): Promise<() => Promise<void>> {
   let url = process.env['TEST_DATABASE_URL'];
-  let stop = async () => {};
+  let stop = (): Promise<void> => Promise.resolve();
 
   if (!url) {
     const container = await new PostgreSqlContainer('postgres:18-alpine').start();
     url = container.getConnectionUri();
-    stop = async () => {
+    stop = async (): Promise<void> => {
       await container.stop();
     };
   }

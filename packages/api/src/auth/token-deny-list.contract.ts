@@ -9,17 +9,23 @@ import type { TokenDenyList } from './token-deny-list.js';
 export interface TokenDenyListUnderTest {
   denyList: TokenDenyList;
   /** Makes the entry for `jti` already expired. */
-  expire(jti: string): Promise<void>;
+  expire: (jti: string) => Promise<void>;
 }
 
+// oxlint-disable-next-line max-lines-per-function -- a contract suite shared by adapters keeps its cases in one block
 export function describeTokenDenyListContract(
   adapterName: string,
   create: () => Promise<TokenDenyListUnderTest>,
 ): void {
+  // oxlint-disable-next-line max-lines-per-function -- a contract suite shared by adapters keeps its cases in one block
   describe(`TokenDenyList contract: ${adapterName}`, () => {
-    async function setup() {
+    async function setup(): Promise<{
+      denyList: TokenDenyList;
+      expire: (jti: string) => Promise<void>;
+      inSeconds: (seconds: number) => Date;
+    }> {
       const { denyList, expire } = await create();
-      const inSeconds = (seconds: number) => new Date(Date.now() + seconds * 1000);
+      const inSeconds = (seconds: number): Date => new Date(Date.now() + seconds * 1000);
       return { denyList, expire, inSeconds };
     }
 

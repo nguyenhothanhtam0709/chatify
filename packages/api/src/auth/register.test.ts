@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { ErrorCode, ErrorResponseSchema, RegisterResponseSchema } from '@chat/contracts';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { inject, describe, expect, it } from 'vitest';
@@ -11,14 +12,36 @@ const valid = {
   nickname: 'Ali',
 };
 
-function register(app: NestFastifyApplication, payload: unknown) {
+function register(app: NestFastifyApplication, payload: unknown): Promise<LightMyRequestResponse> {
   return app.inject({ method: 'POST', url: '/api/v1/auth/register', payload: payload as object });
 }
 
-function errorOf(res: { json: () => unknown }) {
+function errorOf(res: { json: () => unknown }): {
+  code:
+    | 'VALIDATION_FAILED'
+    | 'UNAUTHENTICATED'
+    | 'SESSION_REVOKED'
+    | 'INVALID_CREDENTIALS'
+    | 'USERNAME_TAKEN'
+    | 'EMAIL_TAKEN'
+    | 'USER_NOT_FOUND'
+    | 'CONVERSATION_NOT_FOUND'
+    | 'NOT_A_MEMBER'
+    | 'NOT_GROUP_OWNER'
+    | 'ALREADY_A_MEMBER'
+    | 'GROUP_FULL'
+    | 'OWNER_CANNOT_BE_REMOVED'
+    | 'GROUP_CLOSED'
+    | 'CANNOT_MESSAGE_SELF'
+    | 'RATE_LIMITED'
+    | 'INTERNAL_ERROR';
+  message: string;
+  details?: unknown;
+} {
   return ErrorResponseSchema.parse(res.json()).error;
 }
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /auth/register', () => {
   it('creates a User and returns it exactly as typed, without any password', async () => {
     await withApp({}, async (app) => {
@@ -92,7 +115,7 @@ describe('POST /auth/register', () => {
         register(app, { ...valid, username: 'ALICE', email: 'two@example.com' }),
       ]);
 
-      expect(results.map((r) => r.statusCode).sort()).toEqual([201, 409]);
+      expect(results.map((r) => r.statusCode).sort((a, b) => a - b)).toEqual([201, 409]);
     });
   });
 

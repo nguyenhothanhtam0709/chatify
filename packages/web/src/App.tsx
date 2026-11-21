@@ -1,14 +1,12 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
-import { AuthProvider, useAuth } from '@/auth/AuthProvider';
+import { AuthProvider } from '@/auth/AuthProvider';
+import { useAuth } from '@/auth/auth-context';
 import { LoginPage } from '@/auth/LoginPage';
 import { SignupPage } from '@/auth/SignupPage';
 import { rememberReturnTo, returnToFrom } from '@/auth/return-to';
 import { HealthPage } from '@/health/HealthPage';
-import {
-  RealtimeProvider,
-  useRealtimeEvents,
-  type CreateRealtime,
-} from '@/realtime/RealtimeProvider';
+import { RealtimeProvider } from '@/realtime/RealtimeProvider';
+import { useRealtimeEvents, type CreateRealtime } from '@/realtime/realtime-context';
 import { noRealtime } from '@/realtime/events';
 import { AppShell } from '@/shell/AppShell';
 import { ThemeProvider } from '@/theme/ThemeProvider';

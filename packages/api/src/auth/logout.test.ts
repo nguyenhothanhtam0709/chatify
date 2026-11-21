@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { ErrorCode, ErrorResponseSchema, LoginResponseSchema } from '@chat/contracts';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Pool } from 'pg';
@@ -6,7 +7,9 @@ import { withApp } from '../../test/app-harness.js';
 
 const alice = { username: 'Alice', email: 'alice@example.com', password: 'correct horse battery' };
 
-async function signIn(app: NestFastifyApplication) {
+async function signIn(
+  app: NestFastifyApplication,
+): Promise<{ accessToken: string; cookie: LightMyRequestResponse['cookies'][number] }> {
   await app.inject({ method: 'POST', url: '/api/v1/auth/register', payload: alice });
   const res = await app.inject({
     method: 'POST',
@@ -19,19 +22,22 @@ async function signIn(app: NestFastifyApplication) {
   return { accessToken, cookie };
 }
 
-const bearer = (accessToken?: string) =>
+const bearer = (accessToken?: string): { authorization: string } | { authorization?: never } =>
   accessToken ? { authorization: `Bearer ${accessToken}` } : {};
 
-const me = (app: NestFastifyApplication, accessToken?: string) =>
+const me = (app: NestFastifyApplication, accessToken?: string): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'GET', url: '/api/v1/users/me', headers: bearer(accessToken) });
 
-const logout = (app: NestFastifyApplication, accessToken?: string) =>
+const logout = (
+  app: NestFastifyApplication,
+  accessToken?: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'POST', url: '/api/v1/auth/logout', headers: bearer(accessToken) });
 
-const refresh = (app: NestFastifyApplication, token: string) =>
+const refresh = (app: NestFastifyApplication, token: string): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'POST', url: '/api/v1/auth/refresh', cookies: { refresh_token: token } });
 
-const errorCode = (res: { json: () => unknown }) =>
+const errorCode = (res: { json: () => unknown }): ErrorCode =>
   ErrorResponseSchema.parse(res.json()).error.code;
 
 async function query<T extends object>(sql: string): Promise<T[]> {
@@ -43,6 +49,7 @@ async function query<T extends object>(sql: string): Promise<T[]> {
   }
 }
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /auth/logout', () => {
   it('ends the session: the access token is refused at once with SESSION_REVOKED', async () => {
     await withApp({}, async (app) => {

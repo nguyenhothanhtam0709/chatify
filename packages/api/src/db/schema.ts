@@ -1,5 +1,5 @@
 import { CONVERSATION_KINDS, MESSAGE_KINDS } from '@chat/contracts';
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import {
   boolean,
   check,
@@ -15,7 +15,8 @@ import {
 } from 'drizzle-orm/pg-core';
 
 /** `'a', 'b'` for a SQL `in (...)` list, from the shared definition in contracts. */
-const sqlList = (values: readonly string[]) => sql.raw(values.map((v) => `'${v}'`).join(', '));
+const sqlList = (values: readonly string[]): SQL<unknown> =>
+  sql.raw(values.map((v) => `'${v}'`).join(', '));
 
 /**
  * A registered person. Username and email are stored exactly as typed; the unique indexes

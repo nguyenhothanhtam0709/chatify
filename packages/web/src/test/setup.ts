@@ -29,6 +29,7 @@ if (typeof window !== 'undefined') {
     public unobserve() {}
     public disconnect() {}
   };
+  // oxlint-disable-next-line typescript/unbound-method -- jsdom lacks scrollIntoView; the polyfill is assigned onto the prototype
   Element.prototype.scrollIntoView ??= () => {};
 }
 

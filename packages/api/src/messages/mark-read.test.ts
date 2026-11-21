@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
   LoginResponseSchema,
@@ -17,7 +18,12 @@ import {
 } from '../../test/socket-client.js';
 import { bearer, createGroup, signUp, type Person } from '../../test/people.js';
 
-const sendDirect = async (app: NestFastifyApplication, as: Person, to: Person, body: string) =>
+const sendDirect = async (
+  app: NestFastifyApplication,
+  as: Person,
+  to: Person,
+  body: string,
+): Promise<{ id: string; kind: 'direct'; memberIds: string[] }> =>
   SendDirectMessageResponseSchema.parse(
     (
       await app.inject({
@@ -29,7 +35,12 @@ const sendDirect = async (app: NestFastifyApplication, as: Person, to: Person, b
     ).json(),
   ).conversation;
 
-const post = (app: NestFastifyApplication, as: Person, conversationId: string, body: string) =>
+const post = (
+  app: NestFastifyApplication,
+  as: Person,
+  conversationId: string,
+  body: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/conversations/${conversationId}/messages`,
@@ -42,7 +53,7 @@ const markRead = (
   as: Person,
   conversationId: string,
   payload: unknown,
-) =>
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'PUT',
     url: `/api/v1/conversations/${conversationId}/read`,
@@ -50,10 +61,14 @@ const markRead = (
     payload: payload as Record<string, unknown>,
   });
 
-const leave = (app: NestFastifyApplication, as: Person, groupId: string) =>
+const leave = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'POST', url: `/api/v1/groups/${groupId}/leave`, headers: bearer(as) });
 
-const errorCode = (res: { json: () => unknown }) =>
+const errorCode = (res: { json: () => unknown }): string =>
   (res.json() as { error: { code: string } }).error.code;
 
 /** A second session (another tab or device) of an existing User. */
@@ -68,15 +83,19 @@ async function logInAgain(app: NestFastifyApplication, username: string): Promis
 }
 
 /** Lets pushes that would have been sent arrive, before asserting none came. */
-const settle = () => new Promise((resolve) => setTimeout(resolve, 150));
+const settle = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 150));
 
-const readEvents = (client: TestSocket) =>
+const readEvents = (client: TestSocket): unknown[] =>
   client.received.filter(([name]) => name === 'conversation.read').map(([, payload]) => payload);
 
 afterEach(() => closeAllSockets());
 
 /** The caller's Unread Count for one Conversation, read from the Conversation list. */
-async function unreadCount(app: NestFastifyApplication, as: Person, conversationId: string) {
+async function unreadCount(
+  app: NestFastifyApplication,
+  as: Person,
+  conversationId: string,
+): Promise<number> {
   const res = await app.inject({
     method: 'GET',
     url: '/api/v1/conversations',
@@ -89,6 +108,7 @@ async function unreadCount(app: NestFastifyApplication, as: Person, conversation
   return summary.unreadCount;
 }
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('marking a Conversation as read', () => {
   it('moves the Member’s Read Marker forward only, clamped to the last Message, and returns it', async () => {
     await withApp({}, async (app) => {
@@ -181,6 +201,7 @@ describe('marking a Conversation as read', () => {
   );
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('conversation.read', () => {
   it('reaches every socket of the reader and no socket of any other User, only when the marker moved', async () => {
     await withApp({}, async (app, logs) => {

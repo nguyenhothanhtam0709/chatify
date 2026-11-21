@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-
-export type Theme = 'light' | 'dark';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ThemeContext, type Theme } from './theme-context';
 
 const STORAGE_KEY = 'theme';
 
@@ -13,13 +12,6 @@ function initialTheme(): Theme {
   }
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
-
-interface ThemeContextValue {
-  theme: Theme;
-  setTheme(theme: Theme): void;
-}
-
-const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 /** Applies the `dark` class that Tailwind and the shadcn tokens key off, and remembers the choice. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -36,10 +28,4 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({ theme, setTheme }), [theme]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
-}
-
-export function useTheme(): ThemeContextValue {
-  const value = useContext(ThemeContext);
-  if (!value) throw new Error('useTheme must be used inside ThemeProvider');
-  return value;
 }

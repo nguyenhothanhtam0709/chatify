@@ -1,7 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, type ExecutionContext } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import {
+  ThrottlerModule,
+  type ThrottlerModuleOptions,
+  type ThrottlerOptions,
+} from '@nestjs/throttler';
 import type { FastifyRequest } from 'fastify';
 import { readProperty } from '../common/read-property.js';
 import type { Config } from '../config/config.js';
@@ -20,86 +24,100 @@ const authenticatedUserId = (req: unknown): unknown =>
   readProperty(readProperty(req, 'auth'), 'userId');
 const isAuthenticated = (req: unknown): boolean => authenticatedUserId(req) !== undefined;
 
+const request = (context: ExecutionContext): FastifyRequest =>
+  context.switchToHttp().getRequest<FastifyRequest>();
+const userTracker = (req: unknown): string => `user:${String(authenticatedUserId(req))}`;
+
+const genericThrottler = (config: ConfigService<Config, true>): ThrottlerOptions => ({
+  limit: config.get('THROTTLE_LIMIT', { infer: true }),
+  ttl: config.get('THROTTLE_TTL_MS', { infer: true }),
+  // Route-level guards run after authentication; the global guard has already
+  // counted the request by then.
+  // Typing signals have their own limit and do not count against this one.
+  skipIf: (context): boolean => {
+    const req = request(context);
+    return isAuthenticated(req) || isTypingRoute(req);
+  },
+});
+
+// User search only: 30 per minute per User, counted by the route-level guard
+// once the caller is authenticated.
+const searchThrottler: ThrottlerOptions = {
+  name: 'search',
+  limit: 30,
+  ttl: 60 * 1000,
+  skipIf: (context): boolean => {
+    const req = request(context);
+    return !isAuthenticated(req) || req.routeOptions?.url !== SEARCH_URL;
+  },
+  getTracker: userTracker,
+};
+
+// Message sends only (direct and to a Conversation): 30 per 10 s per User.
+const sendThrottler: ThrottlerOptions = {
+  name: 'send',
+  limit: 30,
+  ttl: 10 * 1000,
+  skipIf: (context): boolean => {
+    const req = request(context);
+    return !isAuthenticated(req) || !isSendRoute(req);
+  },
+  getTracker: userTracker,
+};
+
+// Typing Indicator signals only: 2 per 2 s per User and Conversation (a refresh plus
+// a `stopped`).
+const typingThrottler: ThrottlerOptions = {
+  name: 'typing',
+  limit: 2,
+  ttl: 2 * 1000,
+  skipIf: (context): boolean => {
+    const req = request(context);
+    return !isAuthenticated(req) || !isTypingRoute(req);
+  },
+  getTracker: (req): string =>
+    `${userTracker(req)}:${String(readProperty(readProperty(req, 'params'), 'id')).toLowerCase()}`,
+};
+
+// Typing route only, before authentication: per IP, so bad tokens and random IDs are
+// limited too. Its own counter; the generic limit does not count typing.
+const typingIpThrottler = (config: ConfigService<Config, true>): ThrottlerOptions => ({
+  name: 'typingIp',
+  limit: config.get('THROTTLE_LIMIT', { infer: true }),
+  ttl: config.get('THROTTLE_TTL_MS', { infer: true }),
+  skipIf: (context): boolean => {
+    const req = request(context);
+    return isAuthenticated(req) || !isTypingRoute(req);
+  },
+});
+
+// Login only: 5 attempts per 15 minutes per identifier (the per-IP limit is on
+// the route itself).
+const identifierThrottler: ThrottlerOptions = {
+  name: 'identifier',
+  limit: 5,
+  ttl: 15 * 60 * 1000,
+  skipIf: (context): boolean => request(context).routeOptions?.url !== '/api/v1/auth/login',
+  getTracker: (req): string => {
+    const identifier = readProperty(readProperty(req, 'body'), 'identifier');
+    return typeof identifier === 'string'
+      ? `identifier:${identifier.normalize('NFC').toLowerCase()}`
+      : `ip:${String(req['ip'])}`;
+  },
+};
+
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService<Config, true>) => ({
+      useFactory: (config: ConfigService<Config, true>): ThrottlerModuleOptions => ({
         throttlers: [
-          {
-            limit: config.get('THROTTLE_LIMIT', { infer: true }),
-            ttl: config.get('THROTTLE_TTL_MS', { infer: true }),
-            // Route-level guards run after authentication; the global guard has already
-            // counted the request by then.
-            // Typing signals have their own limit and do not count against this one.
-            skipIf: (context) => {
-              const req = context.switchToHttp().getRequest<FastifyRequest>();
-              return isAuthenticated(req) || isTypingRoute(req);
-            },
-          },
-          // User search only: 30 per minute per User, counted by the route-level guard
-          // once the caller is authenticated.
-          {
-            name: 'search',
-            limit: 30,
-            ttl: 60 * 1000,
-            skipIf: (context) => {
-              const req = context.switchToHttp().getRequest<FastifyRequest>();
-              return !isAuthenticated(req) || req.routeOptions?.url !== SEARCH_URL;
-            },
-            getTracker: (req) => `user:${String(authenticatedUserId(req))}`,
-          },
-          // Message sends only (direct and to a Conversation): 30 per 10 s per User.
-          {
-            name: 'send',
-            limit: 30,
-            ttl: 10 * 1000,
-            skipIf: (context) => {
-              const req = context.switchToHttp().getRequest<FastifyRequest>();
-              return !isAuthenticated(req) || !isSendRoute(req);
-            },
-            getTracker: (req) => `user:${String(authenticatedUserId(req))}`,
-          },
-          // Typing Indicator signals only: 2 per 2 s per User and Conversation (a refresh plus
-          // a `stopped`).
-          {
-            name: 'typing',
-            limit: 2,
-            ttl: 2 * 1000,
-            skipIf: (context) => {
-              const req = context.switchToHttp().getRequest<FastifyRequest>();
-              return !isAuthenticated(req) || !isTypingRoute(req);
-            },
-            getTracker: (req) =>
-              `user:${String(authenticatedUserId(req))}:${String(readProperty(readProperty(req, 'params'), 'id')).toLowerCase()}`,
-          },
-          // Typing route only, before authentication: per IP, so bad tokens and random IDs are
-          // limited too. Its own counter; the generic limit does not count typing.
-          {
-            name: 'typingIp',
-            limit: config.get('THROTTLE_LIMIT', { infer: true }),
-            ttl: config.get('THROTTLE_TTL_MS', { infer: true }),
-            skipIf: (context) => {
-              const req = context.switchToHttp().getRequest<FastifyRequest>();
-              return isAuthenticated(req) || !isTypingRoute(req);
-            },
-          },
-          // Login only: 5 attempts per 15 minutes per identifier (the per-IP limit is on
-          // the route itself).
-          {
-            name: 'identifier',
-            limit: 5,
-            ttl: 15 * 60 * 1000,
-            skipIf: (context) =>
-              context.switchToHttp().getRequest<FastifyRequest>().routeOptions?.url !==
-              '/api/v1/auth/login',
-            getTracker: (req) => {
-              const identifier = readProperty(readProperty(req, 'body'), 'identifier');
-              return typeof identifier === 'string'
-                ? `identifier:${identifier.normalize('NFC').toLowerCase()}`
-                : `ip:${String(req['ip'])}`;
-            },
-          },
+          genericThrottler(config),
+          searchThrottler,
+          sendThrottler,
+          typingThrottler,
+          typingIpThrottler(config),
+          identifierThrottler,
         ],
       }),
     }),

@@ -15,7 +15,22 @@ interface JsonSchema {
   anyOf?: JsonSchema[];
 }
 
-const literal = (value: unknown) => (typeof value === 'string' ? `'${value}'` : String(value));
+const literal = (value: unknown): string =>
+  typeof value === 'string' ? `'${value}'` : String(value);
+
+function renderObject(schema: JsonSchema, indent: string): string {
+  const entries = Object.entries(schema.properties ?? {});
+  if (entries.length === 0) return '{}';
+  const inner = `${indent}  `;
+  const lines = entries.map(([key, value]) => {
+    const optional = schema.required?.includes(key) ? '' : '?';
+    const type = renderType(value, inner);
+    const comment = value.format && value.type === 'string' ? ` // ${value.format}` : '';
+    const numberComment = value.type === 'integer' ? ' // integer' : '';
+    return `${inner}${key}${optional}: ${type};${comment}${numberComment}`;
+  });
+  return `{\n${lines.join('\n')}\n${indent}}`;
+}
 
 /** A TypeScript-like rendering of a JSON Schema; `// format` comments carry string formats. */
 function renderType(schema: JsonSchema, indent: string): string {
@@ -23,19 +38,7 @@ function renderType(schema: JsonSchema, indent: string): string {
   if (schema.const !== undefined) return literal(schema.const);
   if (schema.anyOf) return schema.anyOf.map((s) => renderType(s, indent)).join(' | ');
   if (schema.type === 'array' && schema.items) return `${renderType(schema.items, indent)}[]`;
-  if (schema.type === 'object') {
-    const entries = Object.entries(schema.properties ?? {});
-    if (entries.length === 0) return '{}';
-    const inner = `${indent}  `;
-    const lines = entries.map(([key, value]) => {
-      const optional = schema.required?.includes(key) ? '' : '?';
-      const type = renderType(value, inner);
-      const comment = value.format && value.type === 'string' ? ` // ${value.format}` : '';
-      const numberComment = value.type === 'integer' ? ' // integer' : '';
-      return `${inner}${key}${optional}: ${type};${comment}${numberComment}`;
-    });
-    return `{\n${lines.join('\n')}\n${indent}}`;
-  }
+  if (schema.type === 'object') return renderObject(schema, indent);
   if (schema.type === 'integer') return 'number';
   return Array.isArray(schema.type) ? schema.type.join(' | ') : (schema.type ?? 'unknown');
 }
@@ -43,7 +46,7 @@ function renderType(schema: JsonSchema, indent: string): string {
 /** Markdown listing every server-to-client realtime event and its payload. */
 export function renderRealtimeEvents(): string {
   const sections = Object.values(RealtimeEvent).map((name) => {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- zod's JSON Schema type is looser than the subset JsonSchema reads, and every event schema fits it
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- zod's JSON Schema type is looser than the subset JsonSchema reads, and every event schema fits it
     const schema = z.toJSONSchema(RealtimeEventSchemas[name], { io: 'output' }) as JsonSchema;
     return [`## \`${name}\``, '', '```ts', renderType(schema, ''), '```', ''].join('\n');
   });

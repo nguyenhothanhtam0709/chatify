@@ -18,7 +18,7 @@ import { TokenService } from './token.service.js';
     {
       provide: TOKEN_DENY_LIST,
       inject: [getDrizzleToken()],
-      useFactory: (db: Database) => new PostgresTokenDenyList(db),
+      useFactory: (db: Database): PostgresTokenDenyList => new PostgresTokenDenyList(db),
     },
   ],
   exports: [AuthService, TokenService, AccessTokenAuthenticator, AuthGuard],

@@ -27,9 +27,9 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { useAuth } from '@/auth/AuthProvider';
-import { useConnectionStatus } from '@/realtime/RealtimeProvider';
-import { useTheme } from '@/theme/ThemeProvider';
+import { useAuth } from '@/auth/auth-context';
+import { useConnectionStatus } from '@/realtime/realtime-context';
+import { useTheme } from '@/theme/theme-context';
 import { ConversationList } from './ConversationList';
 import { RoutedConversation } from './RoutedConversation';
 import { RoutedDirect } from './RoutedDirect';

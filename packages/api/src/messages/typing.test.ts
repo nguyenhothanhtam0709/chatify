@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
   ErrorCode,
@@ -16,7 +17,11 @@ import {
 } from '../../test/socket-client.js';
 import { bearer, createGroup, signUp, type Person } from '../../test/people.js';
 
-const sendDirect = async (app: NestFastifyApplication, as: Person, to: Person) =>
+const sendDirect = async (
+  app: NestFastifyApplication,
+  as: Person,
+  to: Person,
+): Promise<{ id: string; kind: 'direct'; memberIds: string[] }> =>
   SendDirectMessageResponseSchema.parse(
     (
       await app.inject({
@@ -28,7 +33,12 @@ const sendDirect = async (app: NestFastifyApplication, as: Person, to: Person) =
     ).json(),
   ).conversation;
 
-const typing = (app: NestFastifyApplication, as: Person, conversationId: string, state: unknown) =>
+const typing = (
+  app: NestFastifyApplication,
+  as: Person,
+  conversationId: string,
+  state: unknown,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/conversations/${conversationId}/typing`,
@@ -36,16 +46,36 @@ const typing = (app: NestFastifyApplication, as: Person, conversationId: string,
     payload: { state },
   });
 
-const errorCode = (res: { json(): unknown }) => ErrorResponseSchema.parse(res.json()).error.code;
+const errorCode = (res: {
+  json(): unknown;
+}):
+  | 'VALIDATION_FAILED'
+  | 'UNAUTHENTICATED'
+  | 'SESSION_REVOKED'
+  | 'INVALID_CREDENTIALS'
+  | 'USERNAME_TAKEN'
+  | 'EMAIL_TAKEN'
+  | 'USER_NOT_FOUND'
+  | 'CONVERSATION_NOT_FOUND'
+  | 'NOT_A_MEMBER'
+  | 'NOT_GROUP_OWNER'
+  | 'ALREADY_A_MEMBER'
+  | 'GROUP_FULL'
+  | 'OWNER_CANNOT_BE_REMOVED'
+  | 'GROUP_CLOSED'
+  | 'CANNOT_MESSAGE_SELF'
+  | 'RATE_LIMITED'
+  | 'INTERNAL_ERROR' => ErrorResponseSchema.parse(res.json()).error.code;
 
 /** Lets pushes that would have been sent arrive, before asserting none came. */
-const settle = () => new Promise((resolve) => setTimeout(resolve, 150));
+const settle = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 150));
 
-const typingEvents = (client: TestSocket) =>
+const typingEvents = (client: TestSocket): unknown[] =>
   client.received.filter(([name]) => name === 'typing.updated').map(([, payload]) => payload);
 
 afterEach(() => closeAllSockets());
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /conversations/:id/typing in a Direct Conversation', () => {
   it('answers 204 and pushes typing.updated to every socket of the other User, not the typist', async () => {
     await withApp({}, async (app) => {
@@ -250,7 +280,11 @@ describe('POST /conversations/:id/typing in a Direct Conversation', () => {
   });
 });
 
-const sendGroup = (app: NestFastifyApplication, as: Person, groupId: string) =>
+const sendGroup = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/conversations/${groupId}/messages`,
@@ -258,9 +292,14 @@ const sendGroup = (app: NestFastifyApplication, as: Person, groupId: string) =>
     payload: { clientMessageId: randomUUID(), body: 'hi' },
   });
 
-const leaveGroup = (app: NestFastifyApplication, as: Person, groupId: string) =>
+const leaveGroup = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'POST', url: `/api/v1/groups/${groupId}/leave`, headers: bearer(as) });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /conversations/:id/typing in a Group', () => {
   it('pushes typing.updated to every socket of the other Members and to none of the typist', async () => {
     await withApp({}, async (app) => {
@@ -334,7 +373,7 @@ describe('POST /conversations/:id/typing in a Group', () => {
   it('logs a Group push at debug level only, with the usual fields and no payload', async () => {
     let lines: Record<string, unknown>[] = [];
     let groupId = '';
-    const run = (config: Record<string, string>) =>
+    const run = (config: Record<string, string>): Promise<void> =>
       withApp({ config }, async (app, logs) => {
         const alice = await signUp(app, 'Alice');
         const bob = await signUp(app, 'Bob');

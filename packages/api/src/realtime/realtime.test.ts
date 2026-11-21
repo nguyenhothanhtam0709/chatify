@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
   ConversationCreatedEventSchema,
@@ -57,6 +58,7 @@ afterEach(() => {
   closeAllRawSockets();
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('socket handshake', () => {
   it('accepts a valid access token in the auth payload', async () => {
     await withApp({}, async (app) => {
@@ -143,11 +145,16 @@ describe('socket handshake', () => {
   });
 });
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 150));
+const settle = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 150));
 
-const bearer = (p: Person) => ({ authorization: `Bearer ${p.token}` });
+const bearer = (p: Person): { authorization: string } => ({ authorization: `Bearer ${p.token}` });
 
-function sendDirect(app: NestFastifyApplication, from: Person, to: Person, body = 'hi') {
+function sendDirect(
+  app: NestFastifyApplication,
+  from: Person,
+  to: Person,
+  body = 'hi',
+): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'POST',
     url: '/api/v1/direct-messages',
@@ -156,6 +163,7 @@ function sendDirect(app: NestFastifyApplication, from: Person, to: Person, body 
   });
 }
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('real-time push', () => {
   it('pushes a first Direct Message to the recipient, who also gets the new Conversation', async () => {
     await withApp({}, async (app) => {
@@ -282,7 +290,7 @@ describe('real-time push', () => {
       const url = await listenOnRandomPort(app);
       const bobSocket = await connectSocket(url, bob.token);
       const payload = { recipientId: bob.id, clientMessageId: randomUUID(), body: 'once' };
-      const send = () =>
+      const send = (): Promise<LightMyRequestResponse> =>
         app.inject({
           method: 'POST',
           url: '/api/v1/direct-messages',
@@ -352,6 +360,7 @@ describe('real-time push', () => {
     });
   });
 
+  // oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
   it('logs connect, disconnect with reason, auth failure and each push, without payloads', async () => {
     await withApp({}, async (app, logs) => {
       const alice = await signUp(app, 'Alice');
@@ -406,8 +415,9 @@ describe('real-time push', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('session revocation over the socket', () => {
-  const logOut = (app: NestFastifyApplication, who: Person) =>
+  const logOut = (app: NestFastifyApplication, who: Person): Promise<LightMyRequestResponse> =>
     app.inject({ method: 'POST', url: '/api/v1/auth/logout', headers: bearer(who) });
 
   it('pushes session.revoked to every socket of the session, then disconnects them', async () => {

@@ -12,7 +12,9 @@ const LogFileFrequency = z
   .describe("'daily', 'hourly' or milliseconds");
 
 /** A PEM-encoded Ed25519 key. Env vars often carry newlines as the two characters `\n`. */
-function PemKey(kind: 'private' | 'public') {
+function PemKey(
+  kind: 'private' | 'public',
+): z.ZodPipe<z.ZodString, z.ZodTransform<string, string>> {
   return z
     .string()
     .min(1)

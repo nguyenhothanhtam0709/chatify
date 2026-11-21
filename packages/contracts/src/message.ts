@@ -14,7 +14,7 @@ const isForbiddenControl = (cp: number): boolean =>
  */
 export const MessageBodySchema = z.string().refine(
   (value) => {
-    const chars = [...value];
+    const chars = Array.from(value);
     return (
       chars.length <= MESSAGE_BODY_MAX &&
       value.trim() !== '' &&

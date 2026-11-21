@@ -1,0 +1,655 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "node": true
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/coverage/**",
+    ".scratch/**",
+    ".agents/**",
+    ".claude/**",
+    "packages/web/src/components/ui/**"
+  ],
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "class-validator",
+            "message": "Use Zod schemas from @chat/contracts; class-validator/class-transformer are banned."
+          },
+          {
+            "name": "class-transformer",
+            "message": "Use Zod schemas from @chat/contracts; class-validator/class-transformer are banned."
+          },
+          {
+            "name": "assert",
+            "message": "Import Node built-ins as node:assert."
+          },
+          {
+            "name": "assert/strict",
+            "message": "Import Node built-ins as node:assert/strict."
+          },
+          {
+            "name": "async_hooks",
+            "message": "Import Node built-ins as node:async_hooks."
+          },
+          {
+            "name": "buffer",
+            "message": "Import Node built-ins as node:buffer."
+          },
+          {
+            "name": "child_process",
+            "message": "Import Node built-ins as node:child_process."
+          },
+          {
+            "name": "cluster",
+            "message": "Import Node built-ins as node:cluster."
+          },
+          {
+            "name": "console",
+            "message": "Import Node built-ins as node:console."
+          },
+          {
+            "name": "constants",
+            "message": "Import Node built-ins as node:constants."
+          },
+          {
+            "name": "crypto",
+            "message": "Import Node built-ins as node:crypto."
+          },
+          {
+            "name": "dgram",
+            "message": "Import Node built-ins as node:dgram."
+          },
+          {
+            "name": "diagnostics_channel",
+            "message": "Import Node built-ins as node:diagnostics_channel."
+          },
+          {
+            "name": "dns",
+            "message": "Import Node built-ins as node:dns."
+          },
+          {
+            "name": "dns/promises",
+            "message": "Import Node built-ins as node:dns/promises."
+          },
+          {
+            "name": "domain",
+            "message": "Import Node built-ins as node:domain."
+          },
+          {
+            "name": "events",
+            "message": "Import Node built-ins as node:events."
+          },
+          {
+            "name": "fs",
+            "message": "Import Node built-ins as node:fs."
+          },
+          {
+            "name": "fs/promises",
+            "message": "Import Node built-ins as node:fs/promises."
+          },
+          {
+            "name": "http",
+            "message": "Import Node built-ins as node:http."
+          },
+          {
+            "name": "http2",
+            "message": "Import Node built-ins as node:http2."
+          },
+          {
+            "name": "https",
+            "message": "Import Node built-ins as node:https."
+          },
+          {
+            "name": "inspector",
+            "message": "Import Node built-ins as node:inspector."
+          },
+          {
+            "name": "inspector/promises",
+            "message": "Import Node built-ins as node:inspector/promises."
+          },
+          {
+            "name": "module",
+            "message": "Import Node built-ins as node:module."
+          },
+          {
+            "name": "net",
+            "message": "Import Node built-ins as node:net."
+          },
+          {
+            "name": "os",
+            "message": "Import Node built-ins as node:os."
+          },
+          {
+            "name": "path",
+            "message": "Import Node built-ins as node:path."
+          },
+          {
+            "name": "path/posix",
+            "message": "Import Node built-ins as node:path/posix."
+          },
+          {
+            "name": "path/win32",
+            "message": "Import Node built-ins as node:path/win32."
+          },
+          {
+            "name": "perf_hooks",
+            "message": "Import Node built-ins as node:perf_hooks."
+          },
+          {
+            "name": "process",
+            "message": "Import Node built-ins as node:process."
+          },
+          {
+            "name": "punycode",
+            "message": "Import Node built-ins as node:punycode."
+          },
+          {
+            "name": "querystring",
+            "message": "Import Node built-ins as node:querystring."
+          },
+          {
+            "name": "readline",
+            "message": "Import Node built-ins as node:readline."
+          },
+          {
+            "name": "readline/promises",
+            "message": "Import Node built-ins as node:readline/promises."
+          },
+          {
+            "name": "repl",
+            "message": "Import Node built-ins as node:repl."
+          },
+          {
+            "name": "stream",
+            "message": "Import Node built-ins as node:stream."
+          },
+          {
+            "name": "stream/consumers",
+            "message": "Import Node built-ins as node:stream/consumers."
+          },
+          {
+            "name": "stream/promises",
+            "message": "Import Node built-ins as node:stream/promises."
+          },
+          {
+            "name": "stream/web",
+            "message": "Import Node built-ins as node:stream/web."
+          },
+          {
+            "name": "string_decoder",
+            "message": "Import Node built-ins as node:string_decoder."
+          },
+          {
+            "name": "sys",
+            "message": "Import Node built-ins as node:sys."
+          },
+          {
+            "name": "timers",
+            "message": "Import Node built-ins as node:timers."
+          },
+          {
+            "name": "timers/promises",
+            "message": "Import Node built-ins as node:timers/promises."
+          },
+          {
+            "name": "tls",
+            "message": "Import Node built-ins as node:tls."
+          },
+          {
+            "name": "trace_events",
+            "message": "Import Node built-ins as node:trace_events."
+          },
+          {
+            "name": "tty",
+            "message": "Import Node built-ins as node:tty."
+          },
+          {
+            "name": "url",
+            "message": "Import Node built-ins as node:url."
+          },
+          {
+            "name": "util",
+            "message": "Import Node built-ins as node:util."
+          },
+          {
+            "name": "util/types",
+            "message": "Import Node built-ins as node:util/types."
+          },
+          {
+            "name": "v8",
+            "message": "Import Node built-ins as node:v8."
+          },
+          {
+            "name": "vm",
+            "message": "Import Node built-ins as node:vm."
+          },
+          {
+            "name": "wasi",
+            "message": "Import Node built-ins as node:wasi."
+          },
+          {
+            "name": "worker_threads",
+            "message": "Import Node built-ins as node:worker_threads."
+          },
+          {
+            "name": "zlib",
+            "message": "Import Node built-ins as node:zlib."
+          }
+        ],
+        "patterns": [
+          {
+            "group": ["class-validator/*", "class-transformer/*"],
+            "message": "Use Zod schemas from @chat/contracts; class-validator/class-transformer are banned."
+          }
+        ]
+      }
+    ],
+    "typescript/no-explicit-any": "error",
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/no-extraneous-class": [
+      "error",
+      {
+        "allowWithDecorator": true
+      }
+    ],
+    "typescript/no-dynamic-delete": "error",
+    "typescript/no-invalid-void-type": "error",
+    "typescript/unified-signatures": "error",
+    "typescript/prefer-literal-enum-member": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/no-useless-constructor": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-require-imports": "error",
+    "typescript/no-unsafe-function-type": "error",
+    "typescript/no-wrapper-object-types": "error",
+    "typescript/no-array-constructor": "error",
+    "typescript/no-this-alias": "error",
+    "typescript/no-namespace": "error",
+    "typescript/explicit-member-accessibility": [
+      "error",
+      {
+        "accessibility": "explicit",
+        "overrides": {
+          "constructors": "no-public"
+        }
+      }
+    ],
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error"
+  },
+  "overrides": [
+    {
+      "files": ["packages/**/*.{ts,tsx}"],
+      "rules": {
+        "typescript/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "never"
+          }
+        ]
+      }
+    },
+    {
+      "files": ["scripts/**/*.ts"],
+      "rules": {
+        "typescript/no-floating-promises": "off",
+        "typescript/no-misused-promises": "off"
+      }
+    },
+    {
+      "files": ["packages/*/src/**/*.{ts,tsx}"],
+      "rules": {
+        "import/no-default-export": "error",
+        "react/no-danger": "error"
+      },
+      "plugins": ["react"]
+    },
+    {
+      "files": ["**/*.d.ts"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["packages/api/**/*.ts", "packages/contracts/**/*.ts"],
+      "rules": {
+        "typescript/explicit-function-return-type": "error",
+        "typescript/explicit-module-boundary-types": "error",
+        "typescript/no-inferrable-types": "error",
+        "typescript/prefer-readonly": "error",
+        "typescript/no-empty-function": "error",
+        "typescript/switch-exhaustiveness-check": "error",
+        "typescript/await-thenable": "error",
+        "typescript/require-await": "error",
+        "no-var": "error",
+        "prefer-const": "error",
+        "eqeqeq": "error",
+        "no-param-reassign": "error",
+        "default-param-last": "error",
+        "max-params": [
+          "error",
+          {
+            "max": 4
+          }
+        ],
+        "complexity": ["warn", 10],
+        "max-lines-per-function": ["warn", 50]
+      }
+    },
+    {
+      "files": ["packages/api/src/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "class-validator",
+                "message": "Use Zod schemas from @chat/contracts; class-validator/class-transformer are banned."
+              },
+              {
+                "name": "class-transformer",
+                "message": "Use Zod schemas from @chat/contracts; class-validator/class-transformer are banned."
+              },
+              {
+                "name": "assert",
+                "message": "Import Node built-ins as node:assert."
+              },
+              {
+                "name": "assert/strict",
+                "message": "Import Node built-ins as node:assert/strict."
+              },
+              {
+                "name": "async_hooks",
+                "message": "Import Node built-ins as node:async_hooks."
+              },
+              {
+                "name": "buffer",
+                "message": "Import Node built-ins as node:buffer."
+              },
+              {
+                "name": "child_process",
+                "message": "Import Node built-ins as node:child_process."
+              },
+              {
+                "name": "cluster",
+                "message": "Import Node built-ins as node:cluster."
+              },
+              {
+                "name": "console",
+                "message": "Import Node built-ins as node:console."
+              },
+              {
+                "name": "constants",
+                "message": "Import Node built-ins as node:constants."
+              },
+              {
+                "name": "crypto",
+                "message": "Import Node built-ins as node:crypto."
+              },
+              {
+                "name": "dgram",
+                "message": "Import Node built-ins as node:dgram."
+              },
+              {
+                "name": "diagnostics_channel",
+                "message": "Import Node built-ins as node:diagnostics_channel."
+              },
+              {
+                "name": "dns",
+                "message": "Import Node built-ins as node:dns."
+              },
+              {
+                "name": "dns/promises",
+                "message": "Import Node built-ins as node:dns/promises."
+              },
+              {
+                "name": "domain",
+                "message": "Import Node built-ins as node:domain."
+              },
+              {
+                "name": "events",
+                "message": "Import Node built-ins as node:events."
+              },
+              {
+                "name": "fs",
+                "message": "Import Node built-ins as node:fs."
+              },
+              {
+                "name": "fs/promises",
+                "message": "Import Node built-ins as node:fs/promises."
+              },
+              {
+                "name": "http",
+                "message": "Import Node built-ins as node:http."
+              },
+              {
+                "name": "http2",
+                "message": "Import Node built-ins as node:http2."
+              },
+              {
+                "name": "https",
+                "message": "Import Node built-ins as node:https."
+              },
+              {
+                "name": "inspector",
+                "message": "Import Node built-ins as node:inspector."
+              },
+              {
+                "name": "inspector/promises",
+                "message": "Import Node built-ins as node:inspector/promises."
+              },
+              {
+                "name": "module",
+                "message": "Import Node built-ins as node:module."
+              },
+              {
+                "name": "net",
+                "message": "Import Node built-ins as node:net."
+              },
+              {
+                "name": "os",
+                "message": "Import Node built-ins as node:os."
+              },
+              {
+                "name": "path",
+                "message": "Import Node built-ins as node:path."
+              },
+              {
+                "name": "path/posix",
+                "message": "Import Node built-ins as node:path/posix."
+              },
+              {
+                "name": "path/win32",
+                "message": "Import Node built-ins as node:path/win32."
+              },
+              {
+                "name": "perf_hooks",
+                "message": "Import Node built-ins as node:perf_hooks."
+              },
+              {
+                "name": "process",
+                "message": "Import Node built-ins as node:process."
+              },
+              {
+                "name": "punycode",
+                "message": "Import Node built-ins as node:punycode."
+              },
+              {
+                "name": "querystring",
+                "message": "Import Node built-ins as node:querystring."
+              },
+              {
+                "name": "readline",
+                "message": "Import Node built-ins as node:readline."
+              },
+              {
+                "name": "readline/promises",
+                "message": "Import Node built-ins as node:readline/promises."
+              },
+              {
+                "name": "repl",
+                "message": "Import Node built-ins as node:repl."
+              },
+              {
+                "name": "stream",
+                "message": "Import Node built-ins as node:stream."
+              },
+              {
+                "name": "stream/consumers",
+                "message": "Import Node built-ins as node:stream/consumers."
+              },
+              {
+                "name": "stream/promises",
+                "message": "Import Node built-ins as node:stream/promises."
+              },
+              {
+                "name": "stream/web",
+                "message": "Import Node built-ins as node:stream/web."
+              },
+              {
+                "name": "string_decoder",
+                "message": "Import Node built-ins as node:string_decoder."
+              },
+              {
+                "name": "sys",
+                "message": "Import Node built-ins as node:sys."
+              },
+              {
+                "name": "timers",
+                "message": "Import Node built-ins as node:timers."
+              },
+              {
+                "name": "timers/promises",
+                "message": "Import Node built-ins as node:timers/promises."
+              },
+              {
+                "name": "tls",
+                "message": "Import Node built-ins as node:tls."
+              },
+              {
+                "name": "trace_events",
+                "message": "Import Node built-ins as node:trace_events."
+              },
+              {
+                "name": "tty",
+                "message": "Import Node built-ins as node:tty."
+              },
+              {
+                "name": "url",
+                "message": "Import Node built-ins as node:url."
+              },
+              {
+                "name": "util",
+                "message": "Import Node built-ins as node:util."
+              },
+              {
+                "name": "util/types",
+                "message": "Import Node built-ins as node:util/types."
+              },
+              {
+                "name": "v8",
+                "message": "Import Node built-ins as node:v8."
+              },
+              {
+                "name": "vm",
+                "message": "Import Node built-ins as node:vm."
+              },
+              {
+                "name": "wasi",
+                "message": "Import Node built-ins as node:wasi."
+              },
+              {
+                "name": "worker_threads",
+                "message": "Import Node built-ins as node:worker_threads."
+              },
+              {
+                "name": "zlib",
+                "message": "Import Node built-ins as node:zlib."
+              },
+              {
+                "name": "@nestjs/common",
+                "importNames": ["forwardRef"],
+                "message": "No forwardRef: give a shared leaf its own module."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["class-validator/*", "class-transformer/*"],
+                "message": "Use Zod schemas from @chat/contracts; class-validator/class-transformer are banned."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/api/src/**/*.ts"],
+      "rules": {
+        "no-console": "error"
+      }
+    },
+    {
+      "files": ["packages/api/src/**/*-cli.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["packages/api/src/**/*.ts"],
+      "rules": {
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "process",
+            "property": "env",
+            "message": "Read config through loadConfig or ConfigService."
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/api/src/main.ts", "packages/api/src/**/*-cli.ts"],
+      "rules": {
+        "no-restricted-properties": "off"
+      }
+    },
+    {
+      "files": ["packages/web/**/*.{ts,tsx}"],
+      "plugins": ["react"],
+      "env": {
+        "browser": true
+      },
+      "rules": {
+        "react/rules-of-hooks": "error",
+        "react/only-export-components": [
+          "error",
+          {
+            "allowConstantExport": true
+          }
+        ],
+        "react/set-state-in-effect": "off",
+        "react/immutability": "off",
+        "react/refs": "off"
+      }
+    },
+    {
+      "files": ["**/*.test.{ts,tsx}", "packages/web/src/test/**", "packages/api/test/**"],
+      "rules": {
+        "typescript/no-non-null-assertion": "off",
+        "typescript/consistent-type-assertions": "off"
+      }
+    }
+  ]
+}

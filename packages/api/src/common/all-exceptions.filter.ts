@@ -97,6 +97,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
         },
       };
     }
+    return this.internalError(exception);
+  }
+
+  private internalError(exception: unknown): { status: number; body: ErrorResponse } {
     this.logger.error(
       exception instanceof Error ? (exception.stack ?? exception.message) : String(exception),
     );

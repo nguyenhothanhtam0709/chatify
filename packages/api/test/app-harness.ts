@@ -19,7 +19,7 @@ export interface HarnessOptions extends Omit<AppOverrides, 'logDestination'> {
  */
 export async function withApp(
   options: HarnessOptions,
-  run: (app: NestFastifyApplication, logs: LogCapture) => Promise<void>,
+  run: (app: NestFastifyApplication, logs: LogCapture) => void | Promise<void>,
 ): Promise<void> {
   const {
     databaseUrl = inject('databaseUrl'),

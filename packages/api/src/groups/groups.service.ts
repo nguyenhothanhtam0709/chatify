@@ -65,6 +65,7 @@ type LeaveOutcome =
  */
 @Injectable()
 export class GroupsService {
+  // oxlint-disable-next-line max-params -- NestJS constructor injection takes one parameter per dependency
   constructor(
     @InjectDrizzle() private readonly db: Database,
     private readonly realtime: RealtimeGateway,
@@ -135,42 +136,7 @@ export class GroupsService {
   ): Promise<GroupMembershipResponse> {
     return this.changeMembership(
       groupId,
-      async (tx) => {
-        await requireOwner(tx, callerId, groupId);
-        const member = await findMember(tx, userId);
-        if (!member) {
-          throw userNotFound();
-        }
-        const current = await tx
-          .select({ userId: conversationMembers.userId })
-          .from(conversationMembers)
-          .where(eq(conversationMembers.conversationId, groupId));
-        if (current.some((m) => m.userId === userId)) {
-          throw new DomainException(
-            ErrorCode.ALREADY_A_MEMBER,
-            HttpStatus.CONFLICT,
-            'Already a Member of this Group',
-          );
-        }
-        if (current.length >= GROUP_MEMBERS_MAX) throw groupFull();
-        const systemMessage = await insertSystemMessage(
-          tx,
-          groupId,
-          callerId,
-          member,
-          'member_added',
-        );
-        // Messages up to now stay out of reach; the new period starts just before its own System
-        // Message, and so does the Read Marker (nothing from before joining is unread).
-        const startSequence = systemMessage.sequence - 1;
-        await tx
-          .insert(conversationMembers)
-          .values({ conversationId: groupId, userId, readMarker: startSequence });
-        await tx
-          .insert(membershipPeriods)
-          .values({ conversationId: groupId, userId, startSequence });
-        return { systemMessage, member };
-      },
+      (tx) => applyAdd(tx, callerId, groupId, userId),
       async ({ systemMessage, member }) => {
         // The room join comes before any read that can throw, as in remove and leave.
         await this.pushSafely(groupId, () => {
@@ -206,28 +172,7 @@ export class GroupsService {
   ): Promise<GroupMembershipResponse> {
     return this.changeMembership(
       groupId,
-      async (tx) => {
-        await requireOwner(tx, callerId, groupId);
-        if (userId === callerId) {
-          throw new DomainException(
-            ErrorCode.OWNER_CANNOT_BE_REMOVED,
-            HttpStatus.CONFLICT,
-            'The Owner cannot be removed from their Group',
-          );
-        }
-        const member = await findMember(tx, userId);
-        const wasMember = await dropMember(tx, groupId, userId);
-        if (!wasMember || !member) return undefined;
-        const systemMessage = await insertSystemMessage(
-          tx,
-          groupId,
-          callerId,
-          member,
-          'member_removed',
-        );
-        await endPeriod(tx, groupId, userId, systemMessage.sequence);
-        return { removed: systemMessage, member };
-      },
+      (tx) => applyRemove(tx, callerId, groupId, userId),
       async (outcome) => {
         if (!outcome) {
           throw new DomainException(
@@ -262,50 +207,7 @@ export class GroupsService {
   public leave(callerId: string, groupId: string): Promise<GroupMembershipResponse> {
     return this.changeMembership(
       groupId,
-      async (tx) => {
-        const group = await requireGroup(tx, groupId);
-        await requireReader(tx, groupId, callerId);
-        await rejectIfClosed(tx, groupId);
-        await requireMember(tx, groupId, callerId, true);
-        const leaver = await findMember(tx, callerId);
-        if (!leaver) throw new Error('Expected the leaving Member to exist');
-        if (!(await dropMember(tx, groupId, callerId))) throw conversationNotFound();
-        const systemMessage = await insertSystemMessage(
-          tx,
-          groupId,
-          callerId,
-          leaver,
-          'member_left',
-        );
-        await endPeriod(tx, groupId, callerId, systemMessage.sequence);
-        const successor = await successorOwner(tx, groupId);
-        let outcome: LeaveOutcome;
-        if (!successor) {
-          outcome = { kind: 'closed', systemMessage, notify: await everMembers(tx, groupId) };
-        } else if (group.ownerId !== callerId) {
-          outcome = { kind: 'open', systemMessage, ownerChange: undefined };
-        } else {
-          await tx
-            .update(groups)
-            .set({ ownerId: successor })
-            .where(eq(groups.conversationId, groupId));
-          const newOwner = await findMember(tx, successor);
-          if (!newOwner) throw new Error('Expected the new Owner to exist');
-          const ownerMessage = await insertSystemMessage(
-            tx,
-            groupId,
-            callerId,
-            newOwner,
-            'owner_changed',
-          );
-          outcome = {
-            kind: 'open',
-            systemMessage,
-            ownerChange: { newOwnerId: successor, systemMessage: ownerMessage },
-          };
-        }
-        return { leaver, outcome };
-      },
+      (tx) => applyLeave(tx, callerId, groupId),
       async ({ leaver, outcome }) => {
         await this.pushSafely(groupId, () => {
           this.realtime.leaveGroupRoom(callerId, groupId);
@@ -401,12 +303,125 @@ export class GroupsService {
   }
 }
 
-const groupFull = () =>
+const groupFull = (): DomainException =>
   new DomainException(
     ErrorCode.GROUP_FULL,
     HttpStatus.CONFLICT,
     `A Group has at most ${GROUP_MEMBERS_MAX} Members`,
   );
+
+/** The rules and writes of adding a Member, inside the locked transaction. */
+async function applyAdd(
+  tx: Tx,
+  callerId: string,
+  groupId: string,
+  userId: string,
+): Promise<{ systemMessage: Message; member: ConversationMember }> {
+  await requireOwner(tx, callerId, groupId);
+  const member = await findMember(tx, userId);
+  if (!member) {
+    throw userNotFound();
+  }
+  const current = await tx
+    .select({ userId: conversationMembers.userId })
+    .from(conversationMembers)
+    .where(eq(conversationMembers.conversationId, groupId));
+  if (current.some((m) => m.userId === userId)) {
+    throw new DomainException(
+      ErrorCode.ALREADY_A_MEMBER,
+      HttpStatus.CONFLICT,
+      'Already a Member of this Group',
+    );
+  }
+  if (current.length >= GROUP_MEMBERS_MAX) throw groupFull();
+  const systemMessage = await insertSystemMessage(tx, {
+    conversationId: groupId,
+    actorId: callerId,
+    subject: member,
+    kind: 'member_added',
+  });
+  // Messages up to now stay out of reach; the new period starts just before its own System
+  // Message, and so does the Read Marker (nothing from before joining is unread).
+  const startSequence = systemMessage.sequence - 1;
+  await tx
+    .insert(conversationMembers)
+    .values({ conversationId: groupId, userId, readMarker: startSequence });
+  await tx.insert(membershipPeriods).values({ conversationId: groupId, userId, startSequence });
+  return { systemMessage, member };
+}
+
+/** The rules and writes of removing a Member; undefined when that User was not a Member. */
+async function applyRemove(
+  tx: Tx,
+  callerId: string,
+  groupId: string,
+  userId: string,
+): Promise<{ removed: Message; member: ConversationMember } | undefined> {
+  await requireOwner(tx, callerId, groupId);
+  if (userId === callerId) {
+    throw new DomainException(
+      ErrorCode.OWNER_CANNOT_BE_REMOVED,
+      HttpStatus.CONFLICT,
+      'The Owner cannot be removed from their Group',
+    );
+  }
+  const member = await findMember(tx, userId);
+  const wasMember = await dropMember(tx, groupId, userId);
+  if (!wasMember || !member) return undefined;
+  const systemMessage = await insertSystemMessage(tx, {
+    conversationId: groupId,
+    actorId: callerId,
+    subject: member,
+    kind: 'member_removed',
+  });
+  await endPeriod(tx, groupId, userId, systemMessage.sequence);
+  return { removed: systemMessage, member };
+}
+
+/** The rules and writes of a Member leaving, including the hand-over of ownership. */
+async function applyLeave(
+  tx: Tx,
+  callerId: string,
+  groupId: string,
+): Promise<{ leaver: ConversationMember; outcome: LeaveOutcome }> {
+  const group = await requireGroup(tx, groupId);
+  await requireReader(tx, groupId, callerId);
+  await rejectIfClosed(tx, groupId);
+  await requireMember(tx, groupId, callerId, true);
+  const leaver = await findMember(tx, callerId);
+  if (!leaver) throw new Error('Expected the leaving Member to exist');
+  if (!(await dropMember(tx, groupId, callerId))) throw conversationNotFound();
+  const systemMessage = await insertSystemMessage(tx, {
+    conversationId: groupId,
+    actorId: callerId,
+    subject: leaver,
+    kind: 'member_left',
+  });
+  await endPeriod(tx, groupId, callerId, systemMessage.sequence);
+  const successor = await successorOwner(tx, groupId);
+  let outcome: LeaveOutcome;
+  if (!successor) {
+    outcome = { kind: 'closed', systemMessage, notify: await everMembers(tx, groupId) };
+  } else if (group.ownerId !== callerId) {
+    outcome = { kind: 'open', systemMessage, ownerChange: undefined };
+  } else {
+    await tx.update(groups).set({ ownerId: successor }).where(eq(groups.conversationId, groupId));
+    const newOwner = await findMember(tx, successor);
+    if (!newOwner) throw new Error('Expected the new Owner to exist');
+    const ownerMessage = await insertSystemMessage(tx, {
+      conversationId: groupId,
+      actorId: callerId,
+      subject: newOwner,
+      kind: 'owner_changed',
+    });
+    outcome = {
+      kind: 'open',
+      systemMessage,
+      ownerChange: { newOwnerId: successor, systemMessage: ownerMessage },
+    };
+  }
+  return { leaver, outcome };
+}
 
 /** Deletes the User's current membership; false when they were not a Member. */
 async function dropMember(tx: Tx, groupId: string, userId: string): Promise<boolean> {
@@ -420,7 +435,12 @@ async function dropMember(tx: Tx, groupId: string, userId: string): Promise<bool
 }
 
 /** Ends the User's open period at the System Message that ended their membership. */
-async function endPeriod(tx: Tx, groupId: string, userId: string, endSequence: number) {
+async function endPeriod(
+  tx: Tx,
+  groupId: string,
+  userId: string,
+  endSequence: number,
+): Promise<void> {
   await tx
     .update(membershipPeriods)
     .set({ endSequence })
@@ -458,6 +478,13 @@ async function successorOwner(tx: Tx, groupId: string): Promise<string | undefin
   return successor?.userId;
 }
 
+interface SystemMessageInput {
+  conversationId: string;
+  actorId: string;
+  subject: ConversationMember;
+  kind: SystemMessageKind;
+}
+
 /**
  * Inserts a System Message at the next position of the Conversation's sequence, inside the
  * caller's transaction (the Conversation row must be locked). `actorId` made the change,
@@ -465,10 +492,7 @@ async function successorOwner(tx: Tx, groupId: string): Promise<string | undefin
  */
 async function insertSystemMessage(
   tx: Tx,
-  conversationId: string,
-  actorId: string,
-  subject: ConversationMember,
-  kind: SystemMessageKind,
+  { conversationId, actorId, subject, kind }: SystemMessageInput,
 ): Promise<Message> {
   const row = exactlyOne(
     await tx

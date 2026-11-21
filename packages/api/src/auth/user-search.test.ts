@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import {
   ErrorCode,
   ErrorResponseSchema,
@@ -29,7 +30,11 @@ async function signUp(
   return LoginResponseSchema.parse(res.json()).accessToken;
 }
 
-function search(app: NestFastifyApplication, token: string | undefined, q: string | undefined) {
+function search(
+  app: NestFastifyApplication,
+  token: string | undefined,
+  q: string | undefined,
+): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'GET',
     url: '/api/v1/users/search',
@@ -38,12 +43,13 @@ function search(app: NestFastifyApplication, token: string | undefined, q: strin
   });
 }
 
-async function usernames(app: NestFastifyApplication, token: string, q: string) {
+async function usernames(app: NestFastifyApplication, token: string, q: string): Promise<string[]> {
   const res = await search(app, token, q);
   expect(res.statusCode).toBe(200);
   return SearchUsersResponseSchema.parse(res.json()).users.map((u) => u.username);
 }
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('GET /users/search', () => {
   it('requires authentication', async () => {
     await withApp({}, async (app) => {
@@ -75,7 +81,11 @@ describe('GET /users/search', () => {
 
       const body: unknown = res.json();
       const { users } = SearchUsersResponseSchema.parse(body);
-      expect(users.map(({ username, nickname }) => ({ username, nickname })).sort()).toEqual(
+      expect(
+        users
+          .map(({ username, nickname }) => ({ username, nickname }))
+          .sort((a, b) => a.username.localeCompare(b.username)),
+      ).toEqual(
         expect.arrayContaining([
           { username: 'Alice', nickname: 'Ali' },
           { username: 'Albert', nickname: null },

@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "GOMAXPROCS=2 oxlint --type-aware --threads=2 -c ../../.oxlintrc.json src vite.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

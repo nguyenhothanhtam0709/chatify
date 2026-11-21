@@ -1,7 +1,7 @@
 import { GroupNameSchema, type Group, type UserSearchResult } from '@chat/contracts';
 import { X } from 'lucide-react';
 import { useId, useState, type FormEvent } from 'react';
-import { useAuth } from '@/auth/AuthProvider';
+import { useAuth } from '@/auth/auth-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

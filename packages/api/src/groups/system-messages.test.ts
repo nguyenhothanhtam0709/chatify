@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
   GetMessagesResponseSchema,
@@ -11,7 +12,12 @@ import { withApp } from '../../test/app-harness.js';
 import { bearer, createGroup, signUp, type Person } from '../../test/people.js';
 import { closeAllSockets, connectSocket, listenOnRandomPort } from '../../test/socket-client.js';
 
-const addMember = (app: NestFastifyApplication, as: Person, groupId: string, userId: string) =>
+const addMember = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  userId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/groups/${groupId}/members`,
@@ -19,14 +25,24 @@ const addMember = (app: NestFastifyApplication, as: Person, groupId: string, use
     payload: { userId },
   });
 
-const removeMember = (app: NestFastifyApplication, as: Person, groupId: string, userId: string) =>
+const removeMember = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  userId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'DELETE',
     url: `/api/v1/groups/${groupId}/members/${userId}`,
     headers: bearer(as),
   });
 
-const post = (app: NestFastifyApplication, as: Person, groupId: string, body: string) =>
+const post = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  body: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/conversations/${groupId}/messages`,
@@ -34,14 +50,40 @@ const post = (app: NestFastifyApplication, as: Person, groupId: string, body: st
     payload: { clientMessageId: randomUUID(), body },
   });
 
-const history = (app: NestFastifyApplication, as: Person, groupId: string, query = '') =>
+const history = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  query = '',
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'GET',
     url: `/api/v1/conversations/${groupId}/messages${query}`,
     headers: bearer(as),
   });
 
-async function summaryOf(app: NestFastifyApplication, as: Person, groupId: string) {
+async function summaryOf(
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<
+  | {
+      id: string;
+      kind: 'direct' | 'group';
+      name: string;
+      members: { id: string; username: string; nickname: string | null }[];
+      isMember: boolean;
+      closed: boolean;
+      lastMessage: {
+        senderId: string;
+        sequence: number;
+        preview: string;
+        createdAt: string;
+      } | null;
+      unreadCount: number;
+    }
+  | undefined
+> {
   const res = await app.inject({
     method: 'GET',
     url: '/api/v1/conversations',
@@ -52,11 +94,24 @@ async function summaryOf(app: NestFastifyApplication, as: Person, groupId: strin
   );
 }
 
-const leave = (app: NestFastifyApplication, as: Person, groupId: string) =>
+const leave = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'POST', url: `/api/v1/groups/${groupId}/leave`, headers: bearer(as) });
 
 /** Oldest first, as `[kind, body-or-subject-username]`. */
-async function timeline(app: NestFastifyApplication, as: Person, groupId: string) {
+async function timeline(
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<
+  (readonly [
+    'text' | 'member_added' | 'member_removed' | 'member_left' | 'owner_changed',
+    string | undefined,
+  ])[]
+> {
   const res = await history(app, as, groupId, '?limit=100');
   return GetMessagesResponseSchema.parse(res.json())
     .messages.reverse()
@@ -65,6 +120,7 @@ async function timeline(app: NestFastifyApplication, as: Person, groupId: string
 
 afterEach(closeAllSockets);
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('stored system messages', () => {
   it('stores "added" in history at its place in the sequence, for Members and the added User', async () => {
     await withApp({}, async (app) => {

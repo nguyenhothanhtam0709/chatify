@@ -5,9 +5,10 @@ import { describe, expect, it } from 'vitest';
 import type { Config } from '../config/config.js';
 import { testJwtKeys } from '../../test/keys.js';
 import { testClock } from '../../test/test-clock.js';
+import type { Clock } from '../clock/clock.js';
 import { TokenService } from './token.service.js';
 
-function service() {
+function service(): { tokens: TokenService; clock: Clock } {
   const clock = testClock();
   const values: Partial<Config> = { ...testJwtKeys, ACCESS_TOKEN_TTL_SECONDS: 900 };
   const config = new ConfigService<Config, true>(values);

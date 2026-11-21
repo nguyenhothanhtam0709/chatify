@@ -12,7 +12,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "GOMAXPROCS=2 oxlint --type-aware --threads=2 -c ../../.oxlintrc.json src"
   },
   "dependencies": {
     "zod": "^4.6.7"

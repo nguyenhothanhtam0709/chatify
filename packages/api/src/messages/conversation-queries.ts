@@ -5,7 +5,7 @@ import {
   type ConversationMember,
   type ConversationSummary,
 } from '@chat/contracts';
-import { and, desc, eq, exists, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, exists, inArray, sql, type SQL } from 'drizzle-orm';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import type { Database } from '../db/database.module.js';
 import {
@@ -17,6 +17,89 @@ import {
   users,
 } from '../db/schema.js';
 
+function lastVisibleSequenceOf(userId: string): SQL {
+  // The newest Message inside one of the caller's membership periods (Former Members must
+  // not see a preview of anything said after they left).
+  return sql`(
+    select max(vm.sequence) from messages vm
+    join membership_periods vp on vp.conversation_id = vm.conversation_id
+    where vm.conversation_id = ${conversations.id} and vp.user_id = ${userId}
+      and vm.kind = 'text'
+      and vm.sequence > vp.start_sequence and vm.sequence <= vp.end_sequence
+  )`;
+}
+
+function unreadCountOf(userId: string): SQL<number> {
+  // Other Members' `text` Messages after the caller's Read Marker, counting at most the cap.
+  // A Former Member (and so every reader of a Closed Group) has no Member row, so none.
+  return sql<number>`(
+    select count(*)::int from (
+      select 1 from messages um
+      join conversation_members ucm
+        on ucm.conversation_id = um.conversation_id and ucm.user_id = ${userId}
+      where um.conversation_id = ${conversations.id}
+        and um.kind = 'text' and um.sender_id <> ${userId}
+        and um.sequence > ucm.read_marker
+      limit ${UNREAD_COUNT_MAX}
+    ) unread
+  )`;
+}
+
+interface SummaryRow {
+  id: string;
+  unreadCount: number;
+  isMember: boolean;
+  kind: ConversationSummary['kind'];
+  groupName: string | null;
+  senderId: string | null;
+  sequence: number | null;
+  preview: string | null;
+  createdAt: Date | null;
+}
+
+function lastMessageOf(row: SummaryRow): ConversationSummary['lastMessage'] {
+  if (
+    row.senderId === null ||
+    row.sequence === null ||
+    row.preview === null ||
+    row.createdAt === null
+  ) {
+    return null;
+  }
+  return {
+    senderId: row.senderId,
+    sequence: row.sequence,
+    preview: row.preview,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+function toSummary(
+  row: SummaryRow,
+  all: ConversationMember[],
+  userId: string,
+): ConversationSummary {
+  let name = row.groupName;
+  if (name === null) {
+    const other = all.find((m) => m.id !== userId);
+    if (other === undefined) {
+      throw new Error(`Invariant violated: Direct Conversation ${row.id} has no other Member`);
+    }
+    name = other.nickname ?? other.username;
+  }
+  return {
+    id: row.id,
+    kind: row.groupName === null ? ('direct' as const) : ('group' as const),
+    name,
+    // A Former Member of a Group sees no Members (who joined later is not theirs to know).
+    members: row.groupName !== null && !row.isMember ? [] : all,
+    isMember: row.isMember,
+    closed: row.groupName !== null && all.length === 0,
+    lastMessage: lastMessageOf(row),
+    unreadCount: row.unreadCount,
+  };
+}
+
 /** Read models of Conversations, shared by the Message and Group services. */
 @Injectable()
 export class ConversationQueries {
@@ -26,28 +109,15 @@ export class ConversationQueries {
     userId: string,
     onlyConversationId?: string,
   ): Promise<ConversationSummary[]> {
-    // The newest Message inside one of the caller's membership periods (Former Members must
-    // not see a preview of anything said after they left).
-    const lastVisibleSequence = sql`(
-      select max(vm.sequence) from messages vm
-      join membership_periods vp on vp.conversation_id = vm.conversation_id
-      where vm.conversation_id = ${conversations.id} and vp.user_id = ${userId}
-        and vm.kind = 'text'
-        and vm.sequence > vp.start_sequence and vm.sequence <= vp.end_sequence
-    )`;
-    // Other Members' `text` Messages after the caller's Read Marker, counting at most the cap.
-    // A Former Member (and so every reader of a Closed Group) has no Member row, so none.
-    const unreadCount = sql<number>`(
-      select count(*)::int from (
-        select 1 from messages um
-        join conversation_members ucm
-          on ucm.conversation_id = um.conversation_id and ucm.user_id = ${userId}
-        where um.conversation_id = ${conversations.id}
-          and um.kind = 'text' and um.sender_id <> ${userId}
-          and um.sequence > ucm.read_marker
-        limit ${UNREAD_COUNT_MAX}
-      ) unread
-    )`;
+    const rows = await this.summaryRows(userId, onlyConversationId);
+    const members = await this.membersOf(rows.map((r) => r.id));
+    return rows.map((row) => toSummary(row, members.get(row.id) ?? [], userId));
+  }
+
+  // oxlint-disable-next-line max-lines-per-function -- splitting this would not make it clearer
+  private async summaryRows(userId: string, onlyConversationId?: string): Promise<SummaryRow[]> {
+    const lastVisibleSequence = lastVisibleSequenceOf(userId);
+    const unreadCount = unreadCountOf(userId);
     const rows = await this.db
       .select({
         id: conversations.id,
@@ -94,40 +164,7 @@ export class ConversationQueries {
         desc(sql`coalesce(${messages.createdAt}, ${conversations.createdAt})`),
         desc(conversations.id),
       );
-    const members = await this.membersOf(rows.map((r) => r.id));
-    return rows.map((row) => {
-      const all = members.get(row.id) ?? [];
-      let name = row.groupName;
-      if (name === null) {
-        const other = all.find((m) => m.id !== userId);
-        if (other === undefined) {
-          throw new Error(`Invariant violated: Direct Conversation ${row.id} has no other Member`);
-        }
-        name = other.nickname ?? other.username;
-      }
-      return {
-        id: row.id,
-        kind: row.groupName === null ? ('direct' as const) : ('group' as const),
-        name,
-        // A Former Member of a Group sees no Members (who joined later is not theirs to know).
-        members: row.groupName !== null && !row.isMember ? [] : all,
-        isMember: row.isMember,
-        closed: row.groupName !== null && all.length === 0,
-        lastMessage:
-          row.senderId === null ||
-          row.sequence === null ||
-          row.preview === null ||
-          row.createdAt === null
-            ? null
-            : {
-                senderId: row.senderId,
-                sequence: row.sequence,
-                preview: row.preview,
-                createdAt: row.createdAt.toISOString(),
-              },
-        unreadCount: row.unreadCount,
-      };
-    });
+    return rows;
   }
 
   public async membersOf(conversationIds: string[]): Promise<Map<string, ConversationMember[]>> {

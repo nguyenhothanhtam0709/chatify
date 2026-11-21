@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
   ConversationCreatedEventSchema,
@@ -41,9 +42,13 @@ async function signUp(app: NestFastifyApplication, username: string): Promise<Pe
   return { id: login.user.id, token: login.accessToken };
 }
 
-const bearer = (p: Person) => ({ authorization: `Bearer ${p.token}` });
+const bearer = (p: Person): { authorization: string } => ({ authorization: `Bearer ${p.token}` });
 
-function createGroup(app: NestFastifyApplication, as: Person, payload: unknown) {
+function createGroup(
+  app: NestFastifyApplication,
+  as: Person,
+  payload: unknown,
+): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'POST',
     url: '/api/v1/groups',
@@ -52,7 +57,26 @@ function createGroup(app: NestFastifyApplication, as: Person, payload: unknown) 
   });
 }
 
-function errorCode(res: { json(): unknown }) {
+function errorCode(res: {
+  json(): unknown;
+}):
+  | 'VALIDATION_FAILED'
+  | 'UNAUTHENTICATED'
+  | 'SESSION_REVOKED'
+  | 'INVALID_CREDENTIALS'
+  | 'USERNAME_TAKEN'
+  | 'EMAIL_TAKEN'
+  | 'USER_NOT_FOUND'
+  | 'CONVERSATION_NOT_FOUND'
+  | 'NOT_A_MEMBER'
+  | 'NOT_GROUP_OWNER'
+  | 'ALREADY_A_MEMBER'
+  | 'GROUP_FULL'
+  | 'OWNER_CANNOT_BE_REMOVED'
+  | 'GROUP_CLOSED'
+  | 'CANNOT_MESSAGE_SELF'
+  | 'RATE_LIMITED'
+  | 'INTERNAL_ERROR' {
   return ErrorResponseSchema.parse(res.json()).error.code;
 }
 
@@ -69,6 +93,7 @@ async function insertUsers(app: NestFastifyApplication, count: number): Promise<
 
 afterEach(closeAllSockets);
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /groups', () => {
   it('requires authentication', async () => {
     await withApp({}, async (app) => {
@@ -197,6 +222,7 @@ describe('POST /groups', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('Groups in the Conversation endpoints', () => {
   it('lists the Group for every Member with its name, before any Message', async () => {
     await withApp({}, async (app) => {
@@ -296,7 +322,7 @@ describe('Groups in the Conversation endpoints', () => {
       const { conversation } = CreateGroupResponseSchema.parse(
         (await createGroup(app, alice, { name: 'Club', memberIds: [bob.id] })).json(),
       );
-      const send = (as: Person, body: string) =>
+      const send = (as: Person, body: string): Promise<LightMyRequestResponse> =>
         app.inject({
           method: 'POST',
           url: `/api/v1/conversations/${conversation.id}/messages`,
@@ -324,6 +350,7 @@ describe('Groups in the Conversation endpoints', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('Group push', () => {
   it('pushes conversation.created to every initial Member and nobody else', async () => {
     await withApp({}, async (app) => {

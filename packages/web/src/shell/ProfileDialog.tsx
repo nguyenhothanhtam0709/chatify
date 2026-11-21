@@ -1,6 +1,6 @@
 import { UpdateProfileRequestSchema, type User } from '@chat/contracts';
 import { useState, type FormEvent } from 'react';
-import { useAuth } from '@/auth/AuthProvider';
+import { useAuth } from '@/auth/auth-context';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

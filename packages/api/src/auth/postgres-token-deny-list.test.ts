@@ -15,7 +15,7 @@ describeTokenDenyListContract('Postgres', async () => {
   pools.push(pool);
   return {
     denyList: new PostgresTokenDenyList(drizzle(pool, { schema })),
-    async expire(jti) {
+    async expire(jti): Promise<void> {
       await pool.query(
         `update token_deny_list set expires_at = now() - interval '1 second' where jti = $1`,
         [jti],

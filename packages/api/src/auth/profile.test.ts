@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import {
   ErrorCode,
   ErrorResponseSchema,
@@ -11,7 +12,7 @@ import { withApp } from '../../test/app-harness.js';
 
 const alice = { username: 'Alice', email: 'alice@example.com', password: 'correct horse battery' };
 
-async function signIn(app: NestFastifyApplication) {
+async function signIn(app: NestFastifyApplication): Promise<string> {
   await app.inject({ method: 'POST', url: '/api/v1/auth/register', payload: alice });
   const res = await app.inject({
     method: 'POST',
@@ -21,7 +22,11 @@ async function signIn(app: NestFastifyApplication) {
   return LoginResponseSchema.parse(res.json()).accessToken;
 }
 
-function patchMe(app: NestFastifyApplication, accessToken: string | undefined, payload: unknown) {
+function patchMe(
+  app: NestFastifyApplication,
+  accessToken: string | undefined,
+  payload: unknown,
+): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'PATCH',
     url: '/api/v1/users/me',
@@ -30,7 +35,16 @@ function patchMe(app: NestFastifyApplication, accessToken: string | undefined, p
   });
 }
 
-async function currentUser(app: NestFastifyApplication, accessToken: string) {
+async function currentUser(
+  app: NestFastifyApplication,
+  accessToken: string,
+): Promise<{
+  id: string;
+  username: string;
+  email: string;
+  nickname: string | null;
+  shareReadReceipts: boolean;
+}> {
   const res = await app.inject({
     method: 'GET',
     url: '/api/v1/users/me',

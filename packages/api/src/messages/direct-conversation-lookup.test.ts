@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
   ErrorCode,
@@ -11,7 +12,11 @@ import { describe, expect, it } from 'vitest';
 import { withApp } from '../../test/app-harness.js';
 import { bearer, signUp, type Person } from '../../test/people.js';
 
-function lookup(app: NestFastifyApplication, as: Person, userId: string) {
+function lookup(
+  app: NestFastifyApplication,
+  as: Person,
+  userId: string,
+): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'GET',
     url: `/api/v1/direct-conversations/${userId}`,
@@ -19,7 +24,11 @@ function lookup(app: NestFastifyApplication, as: Person, userId: string) {
   });
 }
 
-function sendDirect(app: NestFastifyApplication, from: Person, recipientId: string) {
+function sendDirect(
+  app: NestFastifyApplication,
+  from: Person,
+  recipientId: string,
+): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'POST',
     url: '/api/v1/direct-messages',
@@ -28,7 +37,26 @@ function sendDirect(app: NestFastifyApplication, from: Person, recipientId: stri
   });
 }
 
-const errorCode = (res: { json(): unknown }) => ErrorResponseSchema.parse(res.json()).error.code;
+const errorCode = (res: {
+  json(): unknown;
+}):
+  | 'VALIDATION_FAILED'
+  | 'UNAUTHENTICATED'
+  | 'SESSION_REVOKED'
+  | 'INVALID_CREDENTIALS'
+  | 'USERNAME_TAKEN'
+  | 'EMAIL_TAKEN'
+  | 'USER_NOT_FOUND'
+  | 'CONVERSATION_NOT_FOUND'
+  | 'NOT_A_MEMBER'
+  | 'NOT_GROUP_OWNER'
+  | 'ALREADY_A_MEMBER'
+  | 'GROUP_FULL'
+  | 'OWNER_CANNOT_BE_REMOVED'
+  | 'GROUP_CLOSED'
+  | 'CANNOT_MESSAGE_SELF'
+  | 'RATE_LIMITED'
+  | 'INTERNAL_ERROR' => ErrorResponseSchema.parse(res.json()).error.code;
 
 describe('GET /direct-conversations/:userId', () => {
   it('requires authentication', async () => {
@@ -84,8 +112,8 @@ describe('GET /direct-conversations/:userId', () => {
   });
 
   it.each([
-    ['an unknown User', () => randomUUID()],
-    ['the caller', (alice: Person) => alice.id],
+    ['an unknown User', (): `${string}-${string}-${string}-${string}-${string}` => randomUUID()],
+    ['the caller', (alice: Person): string => alice.id],
   ])('returns 404 USER_NOT_FOUND for %s', async (_name, pick) => {
     await withApp({}, async (app) => {
       const alice = await signUp(app, 'Alice');

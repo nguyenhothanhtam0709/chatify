@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
   ErrorCode,
@@ -11,10 +12,19 @@ import { inject, describe, expect, it } from 'vitest';
 import { withApp } from '../../test/app-harness.js';
 import { bearer, createGroup, signUp, type Person } from '../../test/people.js';
 
-const leave = (app: NestFastifyApplication, as: Person, groupId: string) =>
+const leave = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'POST', url: `/api/v1/groups/${groupId}/leave`, headers: bearer(as) });
 
-const addMember = (app: NestFastifyApplication, as: Person, groupId: string, userId: string) =>
+const addMember = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  userId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/groups/${groupId}/members`,
@@ -22,14 +32,24 @@ const addMember = (app: NestFastifyApplication, as: Person, groupId: string, use
     payload: { userId },
   });
 
-const removeMember = (app: NestFastifyApplication, as: Person, groupId: string, userId: string) =>
+const removeMember = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  userId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'DELETE',
     url: `/api/v1/groups/${groupId}/members/${userId}`,
     headers: bearer(as),
   });
 
-const post = (app: NestFastifyApplication, as: Person, groupId: string, body = 'hello') =>
+const post = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  body = 'hello',
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/conversations/${groupId}/messages`,
@@ -37,9 +57,40 @@ const post = (app: NestFastifyApplication, as: Person, groupId: string, body = '
     payload: { clientMessageId: randomUUID(), body },
   });
 
-const errorCode = (res: { json(): unknown }) => ErrorResponseSchema.parse(res.json()).error.code;
+const errorCode = (res: {
+  json(): unknown;
+}):
+  | 'VALIDATION_FAILED'
+  | 'UNAUTHENTICATED'
+  | 'SESSION_REVOKED'
+  | 'INVALID_CREDENTIALS'
+  | 'USERNAME_TAKEN'
+  | 'EMAIL_TAKEN'
+  | 'USER_NOT_FOUND'
+  | 'CONVERSATION_NOT_FOUND'
+  | 'NOT_A_MEMBER'
+  | 'NOT_GROUP_OWNER'
+  | 'ALREADY_A_MEMBER'
+  | 'GROUP_FULL'
+  | 'OWNER_CANNOT_BE_REMOVED'
+  | 'GROUP_CLOSED'
+  | 'CANNOT_MESSAGE_SELF'
+  | 'RATE_LIMITED'
+  | 'INTERNAL_ERROR' => ErrorResponseSchema.parse(res.json()).error.code;
 
-const group = async (app: NestFastifyApplication, as: Person, groupId: string) => {
+const group = async (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<{
+  id: string;
+  kind: 'group';
+  name: string;
+  members: { id: string; username: string; nickname: string | null }[];
+  closed: boolean;
+  isMember: boolean;
+  ownerId?: string | undefined;
+}> => {
   const res = await app.inject({
     method: 'GET',
     url: `/api/v1/conversations/${groupId}`,
@@ -50,7 +101,11 @@ const group = async (app: NestFastifyApplication, as: Person, groupId: string) =
   return conversation;
 };
 
-const textBodies = async (app: NestFastifyApplication, as: Person, groupId: string) =>
+const textBodies = async (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<string[]> =>
   GetMessagesResponseSchema.parse(
     (
       await app.inject({
@@ -67,7 +122,7 @@ const textBodies = async (app: NestFastifyApplication, as: Person, groupId: stri
 async function raceInOrder(
   groupId: string,
   requests: Array<() => Promise<{ statusCode: number; json(): unknown }>>,
-) {
+): Promise<{ statusCode: number; json(): unknown }[]> {
   const pool = new Pool({ connectionString: inject('databaseUrl') });
   const holder = await pool.connect();
   try {
@@ -100,8 +155,8 @@ describe('Group rules are re-checked under the Conversation lock', () => {
       const g = await createGroup(app, alice);
 
       const [left, added] = await raceInOrder(g.id, [
-        () => leave(app, alice, g.id),
-        () => addMember(app, alice, g.id, bob.id),
+        (): Promise<LightMyRequestResponse> => leave(app, alice, g.id),
+        (): Promise<LightMyRequestResponse> => addMember(app, alice, g.id, bob.id),
       ]);
 
       expect(left!.statusCode).toBe(200);
@@ -118,8 +173,8 @@ describe('Group rules are re-checked under the Conversation lock', () => {
       const g = await createGroup(app, alice);
 
       const [added, left] = await raceInOrder(g.id, [
-        () => addMember(app, alice, g.id, bob.id),
-        () => leave(app, alice, g.id),
+        (): Promise<LightMyRequestResponse> => addMember(app, alice, g.id, bob.id),
+        (): Promise<LightMyRequestResponse> => leave(app, alice, g.id),
       ]);
 
       expect(added!.statusCode).toBe(201);
@@ -133,13 +188,21 @@ describe('Group rules are re-checked under the Conversation lock', () => {
   it.each([
     [
       'add',
-      (app: NestFastifyApplication, as: Person, g: string, to: Person) =>
-        addMember(app, as, g, to.id),
+      (
+        app: NestFastifyApplication,
+        as: Person,
+        g: string,
+        to: Person,
+      ): Promise<LightMyRequestResponse> => addMember(app, as, g, to.id),
     ],
     [
       'remove',
-      (app: NestFastifyApplication, as: Person, g: string, to: Person) =>
-        removeMember(app, as, g, to.id),
+      (
+        app: NestFastifyApplication,
+        as: Person,
+        g: string,
+        to: Person,
+      ): Promise<LightMyRequestResponse> => removeMember(app, as, g, to.id),
     ],
   ])('an ex-Owner cannot %s once ownership has passed mid-request', async (_name, act) => {
     await withApp({}, async (app) => {
@@ -150,9 +213,9 @@ describe('Group rules are re-checked under the Conversation lock', () => {
       // Alice leaves and Bob (now Owner) adds her back as a plain Member; her request, fired
       // while she still owned the Group, runs last.
       const [left, readded, attempt] = await raceInOrder(g.id, [
-        () => leave(app, alice, g.id),
-        () => addMember(app, bob, g.id, alice.id),
-        () => act(app, alice, g.id, carol),
+        (): Promise<LightMyRequestResponse> => leave(app, alice, g.id),
+        (): Promise<LightMyRequestResponse> => addMember(app, bob, g.id, alice.id),
+        (): Promise<LightMyRequestResponse> => act(app, alice, g.id, carol),
       ]);
 
       expect(left!.statusCode).toBe(200);
@@ -172,8 +235,8 @@ describe('Group rules are re-checked under the Conversation lock', () => {
       const g = await createGroup(app, alice, [bob.id]);
 
       const [removed, left] = await raceInOrder(g.id, [
-        () => removeMember(app, alice, g.id, bob.id),
-        () => leave(app, bob, g.id),
+        (): Promise<LightMyRequestResponse> => removeMember(app, alice, g.id, bob.id),
+        (): Promise<LightMyRequestResponse> => leave(app, bob, g.id),
       ]);
 
       expect(removed!.statusCode).toBe(200);
@@ -189,8 +252,8 @@ describe('Group rules are re-checked under the Conversation lock', () => {
       const g = await createGroup(app, alice, [bob.id]);
 
       const [removed, sent] = await raceInOrder(g.id, [
-        () => removeMember(app, alice, g.id, bob.id),
-        () => post(app, bob, g.id, 'too late'),
+        (): Promise<LightMyRequestResponse> => removeMember(app, alice, g.id, bob.id),
+        (): Promise<LightMyRequestResponse> => post(app, bob, g.id, 'too late'),
       ]);
 
       expect(removed!.statusCode).toBe(200);

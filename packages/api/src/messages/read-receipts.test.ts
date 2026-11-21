@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
   ConversationReceiptEventSchema,
@@ -15,7 +16,12 @@ import {
 } from '../../test/socket-client.js';
 import { bearer, createGroup, signUp, type Person } from '../../test/people.js';
 
-const sendDirect = async (app: NestFastifyApplication, as: Person, to: Person, body: string) =>
+const sendDirect = async (
+  app: NestFastifyApplication,
+  as: Person,
+  to: Person,
+  body: string,
+): Promise<{ id: string; kind: 'direct'; memberIds: string[] }> =>
   SendDirectMessageResponseSchema.parse(
     (
       await app.inject({
@@ -27,7 +33,12 @@ const sendDirect = async (app: NestFastifyApplication, as: Person, to: Person, b
     ).json(),
   ).conversation;
 
-const post = (app: NestFastifyApplication, as: Person, conversationId: string, body: string) =>
+const post = (
+  app: NestFastifyApplication,
+  as: Person,
+  conversationId: string,
+  body: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/conversations/${conversationId}/messages`,
@@ -40,7 +51,7 @@ const markRead = (
   as: Person,
   conversationId: string,
   upToSequence: number,
-) =>
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'PUT',
     url: `/api/v1/conversations/${conversationId}/read`,
@@ -48,7 +59,11 @@ const markRead = (
     payload: { upToSequence },
   });
 
-const shareReadReceipts = (app: NestFastifyApplication, as: Person, share: boolean) =>
+const shareReadReceipts = (
+  app: NestFastifyApplication,
+  as: Person,
+  share: boolean,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'PATCH',
     url: '/api/v1/users/me',
@@ -60,7 +75,11 @@ const shareReadReceipts = (app: NestFastifyApplication, as: Person, share: boole
  * The Conversation as `as` opens it, validated against contracts but returned as sent, so a
  * field the schema would strip (a Group's `readUpToSequence`) still shows.
  */
-async function open(app: NestFastifyApplication, as: Person, conversationId: string) {
+async function open(
+  app: NestFastifyApplication,
+  as: Person,
+  conversationId: string,
+): Promise<{ readUpToSequence?: number }> {
   const res = await app.inject({
     method: 'GET',
     url: `/api/v1/conversations/${conversationId}`,
@@ -71,9 +90,9 @@ async function open(app: NestFastifyApplication, as: Person, conversationId: str
 }
 
 /** Lets pushes that would have been sent arrive, before asserting none came. */
-const settle = () => new Promise((resolve) => setTimeout(resolve, 150));
+const settle = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 150));
 
-const receipts = (client: TestSocket) =>
+const receipts = (client: TestSocket): unknown[] =>
   client.received.filter(([name]) => name === 'conversation.receipt').map(([, payload]) => payload);
 
 afterEach(() => closeAllSockets());

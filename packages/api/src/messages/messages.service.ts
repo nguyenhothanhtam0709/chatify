@@ -365,14 +365,17 @@ export class MessagesService {
   private async pushCreated(
     { message, readMoved }: InsertedMessage,
     newConversationRecipient: string | undefined,
-  ) {
+  ): Promise<void> {
     await this.pushMessage(message, newConversationRecipient);
     if (readMoved) {
       await this.pushMarkerMoved(message.senderId, message.conversationId, message.sequence);
     }
   }
 
-  private async pushMessage(message: Message, newConversationRecipient: string | undefined) {
+  private async pushMessage(
+    message: Message,
+    newConversationRecipient: string | undefined,
+  ): Promise<void> {
     try {
       const members = await this.db
         .select({ userId: conversationMembers.userId })

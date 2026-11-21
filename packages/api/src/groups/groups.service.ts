@@ -401,7 +401,7 @@ export class GroupsService {
   }
 }
 
-const groupFull = () =>
+const groupFull = (): DomainException =>
   new DomainException(
     ErrorCode.GROUP_FULL,
     HttpStatus.CONFLICT,
@@ -420,7 +420,12 @@ async function dropMember(tx: Tx, groupId: string, userId: string): Promise<bool
 }
 
 /** Ends the User's open period at the System Message that ended their membership. */
-async function endPeriod(tx: Tx, groupId: string, userId: string, endSequence: number) {
+async function endPeriod(
+  tx: Tx,
+  groupId: string,
+  userId: string,
+  endSequence: number,
+): Promise<void> {
   await tx
     .update(membershipPeriods)
     .set({ endSequence })

@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
   ErrorCode,
@@ -16,10 +17,19 @@ import { withApp } from '../../test/app-harness.js';
 import { bearer, createGroup, signUp, type Person } from '../../test/people.js';
 import { closeAllSockets, connectSocket, listenOnRandomPort } from '../../test/socket-client.js';
 
-const leave = (app: NestFastifyApplication, as: Person, groupId: string) =>
+const leave = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'POST', url: `/api/v1/groups/${groupId}/leave`, headers: bearer(as) });
 
-const addMember = (app: NestFastifyApplication, as: Person, groupId: string, userId: string) =>
+const addMember = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  userId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/groups/${groupId}/members`,
@@ -27,7 +37,12 @@ const addMember = (app: NestFastifyApplication, as: Person, groupId: string, use
     payload: { userId },
   });
 
-const post = (app: NestFastifyApplication, as: Person, groupId: string, body = 'hello') =>
+const post = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  body = 'hello',
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/conversations/${groupId}/messages`,
@@ -35,9 +50,32 @@ const post = (app: NestFastifyApplication, as: Person, groupId: string, body = '
     payload: { clientMessageId: randomUUID(), body },
   });
 
-const errorCode = (res: { json(): unknown }) => ErrorResponseSchema.parse(res.json()).error.code;
+const errorCode = (res: {
+  json(): unknown;
+}):
+  | 'VALIDATION_FAILED'
+  | 'UNAUTHENTICATED'
+  | 'SESSION_REVOKED'
+  | 'INVALID_CREDENTIALS'
+  | 'USERNAME_TAKEN'
+  | 'EMAIL_TAKEN'
+  | 'USER_NOT_FOUND'
+  | 'CONVERSATION_NOT_FOUND'
+  | 'NOT_A_MEMBER'
+  | 'NOT_GROUP_OWNER'
+  | 'ALREADY_A_MEMBER'
+  | 'GROUP_FULL'
+  | 'OWNER_CANNOT_BE_REMOVED'
+  | 'GROUP_CLOSED'
+  | 'CANNOT_MESSAGE_SELF'
+  | 'RATE_LIMITED'
+  | 'INTERNAL_ERROR' => ErrorResponseSchema.parse(res.json()).error.code;
 
-const ownerOf = async (app: NestFastifyApplication, as: Person, groupId: string) => {
+const ownerOf = async (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<string | undefined> => {
   const res = await app.inject({
     method: 'GET',
     url: `/api/v1/conversations/${groupId}`,
@@ -47,7 +85,11 @@ const ownerOf = async (app: NestFastifyApplication, as: Person, groupId: string)
   return conversation.kind === 'group' ? conversation.ownerId : undefined;
 };
 
-const readBodies = async (app: NestFastifyApplication, as: Person, groupId: string) =>
+const readBodies = async (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<string[]> =>
   GetMessagesResponseSchema.parse(
     (
       await app.inject({
@@ -61,7 +103,7 @@ const readBodies = async (app: NestFastifyApplication, as: Person, groupId: stri
     .map((m) => m.body)
     .sort();
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 100));
+const settle = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 100));
 
 afterEach(closeAllSockets);
 
@@ -287,7 +329,27 @@ describe('POST /groups/:id/leave', () => {
 });
 
 describe('the closed flag', () => {
-  const getGroup = async (app: NestFastifyApplication, as: Person, groupId: string) => {
+  const getGroup = async (
+    app: NestFastifyApplication,
+    as: Person,
+    groupId: string,
+  ): Promise<
+    | {
+        id: string;
+        kind: 'direct';
+        members: { id: string; username: string; nickname: string | null }[];
+        readUpToSequence?: number | undefined;
+      }
+    | {
+        id: string;
+        kind: 'group';
+        name: string;
+        members: { id: string; username: string; nickname: string | null }[];
+        closed: boolean;
+        isMember: boolean;
+        ownerId?: string | undefined;
+      }
+  > => {
     const res = await app.inject({
       method: 'GET',
       url: `/api/v1/conversations/${groupId}`,
@@ -295,7 +357,28 @@ describe('the closed flag', () => {
     });
     return GetConversationResponseSchema.parse(res.json()).conversation;
   };
-  const listed = async (app: NestFastifyApplication, as: Person, groupId: string) => {
+  const listed = async (
+    app: NestFastifyApplication,
+    as: Person,
+    groupId: string,
+  ): Promise<
+    | {
+        id: string;
+        kind: 'direct' | 'group';
+        name: string;
+        members: { id: string; username: string; nickname: string | null }[];
+        isMember: boolean;
+        closed: boolean;
+        lastMessage: {
+          senderId: string;
+          sequence: number;
+          preview: string;
+          createdAt: string;
+        } | null;
+        unreadCount: number;
+      }
+    | undefined
+  > => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/v1/conversations',

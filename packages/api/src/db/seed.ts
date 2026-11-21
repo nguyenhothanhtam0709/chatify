@@ -80,14 +80,19 @@ async function newConversation(tx: Tx, kind: 'direct' | 'group'): Promise<string
   ).id;
 }
 
-async function addText(tx: Tx, conversationId: string, senderId: string, body: string) {
+async function addText(
+  tx: Tx,
+  conversationId: string,
+  senderId: string,
+  body: string,
+): Promise<void> {
   await tx
     .insert(messages)
     .values({ conversationId, senderId, sequence: await nextSequence(tx, conversationId), body });
 }
 
 /** Same rows a first Direct Message creates: normalized pair, two Members, periods from 0. */
-async function seedDirect(tx: Tx, a: string, b: string) {
+async function seedDirect(tx: Tx, a: string, b: string): Promise<void> {
   const [low, high] = a < b ? [a, b] : [b, a];
   const conversationId = await newConversation(tx, 'direct');
   await tx.insert(directConversations).values({ conversationId, lowUserId: low, highUserId: high });
@@ -131,7 +136,7 @@ async function addSystemMessage(
  * removes dave (his period ends at the member_removed System Message) and adds carol (her
  * period starts just before her member_added System Message, so she cannot read what came before).
  */
-async function seedGroup(tx: Tx, id: Ids) {
+async function seedGroup(tx: Tx, id: Ids): Promise<void> {
   const conversationId = await newConversation(tx, 'group');
   await tx.insert(groups).values({ conversationId, name: 'Weekend plans', ownerId: id.alice });
   const initial = [id.alice, id.bob, id.dave];

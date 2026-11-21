@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import {
   ErrorCode,
   ErrorResponseSchema,
@@ -29,7 +30,11 @@ async function signUp(
   return LoginResponseSchema.parse(res.json()).accessToken;
 }
 
-function search(app: NestFastifyApplication, token: string | undefined, q: string | undefined) {
+function search(
+  app: NestFastifyApplication,
+  token: string | undefined,
+  q: string | undefined,
+): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'GET',
     url: '/api/v1/users/search',
@@ -38,7 +43,7 @@ function search(app: NestFastifyApplication, token: string | undefined, q: strin
   });
 }
 
-async function usernames(app: NestFastifyApplication, token: string, q: string) {
+async function usernames(app: NestFastifyApplication, token: string, q: string): Promise<string[]> {
   const res = await search(app, token, q);
   expect(res.statusCode).toBe(200);
   return SearchUsersResponseSchema.parse(res.json()).users.map((u) => u.username);

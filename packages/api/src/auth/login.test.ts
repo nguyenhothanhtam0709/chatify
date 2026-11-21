@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { ErrorCode, ErrorResponseSchema, LoginResponseSchema } from '@chat/contracts';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { describe, expect, it } from 'vitest';
@@ -10,12 +11,16 @@ const alice = {
   nickname: 'Ali',
 };
 
-async function registerAlice(app: NestFastifyApplication) {
+async function registerAlice(app: NestFastifyApplication): Promise<void> {
   const res = await app.inject({ method: 'POST', url: '/api/v1/auth/register', payload: alice });
   expect(res.statusCode).toBe(201);
 }
 
-function login(app: NestFastifyApplication, identifier: string, password = alice.password) {
+function login(
+  app: NestFastifyApplication,
+  identifier: string,
+  password = alice.password,
+): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'POST',
     url: '/api/v1/auth/login',
@@ -55,7 +60,7 @@ describe('POST /auth/login', () => {
   it('does comparable hashing work whether or not the User exists', async () => {
     await withApp({}, async (app) => {
       await registerAlice(app);
-      const median = async (identifier: string) => {
+      const median = async (identifier: string): Promise<number> => {
         const times: number[] = [];
         for (let i = 0; i < 3; i++) {
           const start = performance.now();

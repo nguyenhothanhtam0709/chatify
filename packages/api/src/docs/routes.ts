@@ -15,7 +15,7 @@ function collectControllers(modules: readonly ModuleRef[]): Type<unknown>[] {
   const seen = new Set<unknown>();
   const controllers = new Set<Type<unknown>>();
 
-  const visit = (ref: ModuleRef) => {
+  const visit = (ref: ModuleRef): void => {
     const moduleClass = 'module' in ref ? ref.module : ref;
     if (seen.has(moduleClass)) return;
     seen.add(moduleClass);
@@ -42,7 +42,7 @@ function collectControllers(modules: readonly ModuleRef[]): Type<unknown>[] {
   return [...controllers];
 }
 
-const joinPath = (...parts: string[]) =>
+const joinPath = (...parts: string[]): string =>
   '/' +
   parts
     .flatMap((part) => part.split('/'))

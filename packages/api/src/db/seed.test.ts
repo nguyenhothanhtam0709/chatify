@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import {
   GetConversationResponseSchema,
   GetMessagesResponseSchema,
@@ -19,7 +20,7 @@ async function withPool<T>(run: (pool: Pool) => Promise<T>): Promise<T> {
   }
 }
 
-async function loginAs(app: NestFastifyApplication, username: string) {
+async function loginAs(app: NestFastifyApplication, username: string): Promise<string> {
   const res = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/login',
@@ -29,7 +30,11 @@ async function loginAs(app: NestFastifyApplication, username: string) {
   return LoginResponseSchema.parse(res.json()).accessToken;
 }
 
-const get = (app: NestFastifyApplication, token: string, url: string) =>
+const get = (
+  app: NestFastifyApplication,
+  token: string,
+  url: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'GET',
     url: `/api/v1${url}`,
@@ -48,7 +53,7 @@ describe('seedDatabase', () => {
     await withPool(seedDatabase);
     await withPool(seedDatabase);
     const counts = await withPool(async (pool) => {
-      const count = async (table: string) =>
+      const count = async (table: string): Promise<number> =>
         Number((await pool.query(`select count(*) from ${table}`)).rows[0].count);
       return { users: await count('users'), conversations: await count('conversations') };
     });
@@ -76,7 +81,21 @@ describe('seedDatabase', () => {
         group.members.find((m) => m.username === 'alice')?.id,
       );
 
-      const read = async (token: string) =>
+      const read = async (
+        token: string,
+      ): Promise<
+        {
+          id: string;
+          conversationId: string;
+          senderId: string;
+          sequence: number;
+          clientMessageId: string;
+          kind: 'text' | 'member_added' | 'member_removed' | 'member_left' | 'owner_changed';
+          body: string;
+          createdAt: string;
+          subject?: { id: string; username: string; nickname: string | null } | undefined;
+        }[]
+      > =>
         GetMessagesResponseSchema.parse(
           (await get(app, token, `/conversations/${group.id}/messages?limit=100`)).json(),
         ).messages;

@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DrizzleModule, getDrizzleToken } from '@nestjs/drizzle';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import type { Logger } from 'pino';
 import type { Config } from '../config/config.js';
@@ -11,7 +11,7 @@ import * as schema from './schema.js';
 
 export const PG_POOL = Symbol('PG_POOL');
 
-function createDatabase(pool: Pool) {
+function createDatabase(pool: Pool): NodePgDatabase<typeof schema> & { $client: Pool } {
   return drizzle(pool, { schema });
 }
 

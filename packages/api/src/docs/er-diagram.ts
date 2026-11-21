@@ -6,7 +6,7 @@ const GENERATOR = 'packages/api/src/docs/er-diagram.ts';
 const SOURCE = 'packages/api/src/db/schema.ts';
 
 /** Mermaid attribute types are a single word. */
-const mermaidType = (sqlType: string) =>
+const mermaidType = (sqlType: string): string =>
   sqlType === 'timestamp with time zone' ? 'timestamptz' : sqlType.replace(/\s+/g, '_');
 
 /** Markdown with a Mermaid ER diagram of every table exported by the Drizzle schema module. */

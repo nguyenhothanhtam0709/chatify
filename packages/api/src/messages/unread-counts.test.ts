@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { ListConversationsResponseSchema, SendDirectMessageResponseSchema } from '@chat/contracts';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -5,7 +6,12 @@ import { describe, expect, it } from 'vitest';
 import { withApp } from '../../test/app-harness.js';
 import { bearer, createGroup, signUp, type Person } from '../../test/people.js';
 
-const addMember = (app: NestFastifyApplication, as: Person, groupId: string, userId: string) =>
+const addMember = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  userId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/groups/${groupId}/members`,
@@ -13,17 +19,31 @@ const addMember = (app: NestFastifyApplication, as: Person, groupId: string, use
     payload: { userId },
   });
 
-const removeMember = (app: NestFastifyApplication, as: Person, groupId: string, userId: string) =>
+const removeMember = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  userId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'DELETE',
     url: `/api/v1/groups/${groupId}/members/${userId}`,
     headers: bearer(as),
   });
 
-const leave = (app: NestFastifyApplication, as: Person, groupId: string) =>
+const leave = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'POST', url: `/api/v1/groups/${groupId}/leave`, headers: bearer(as) });
 
-const sendDirect = async (app: NestFastifyApplication, as: Person, to: Person, body: string) =>
+const sendDirect = async (
+  app: NestFastifyApplication,
+  as: Person,
+  to: Person,
+  body: string,
+): Promise<{ id: string; kind: 'direct'; memberIds: string[] }> =>
   SendDirectMessageResponseSchema.parse(
     (
       await app.inject({
@@ -35,7 +55,12 @@ const sendDirect = async (app: NestFastifyApplication, as: Person, to: Person, b
     ).json(),
   ).conversation;
 
-const post = (app: NestFastifyApplication, as: Person, conversationId: string, body: string) =>
+const post = (
+  app: NestFastifyApplication,
+  as: Person,
+  conversationId: string,
+  body: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/conversations/${conversationId}/messages`,
@@ -44,7 +69,11 @@ const post = (app: NestFastifyApplication, as: Person, conversationId: string, b
   });
 
 /** The caller's Unread Count for one Conversation, read from the Conversation list. */
-async function unreadCount(app: NestFastifyApplication, as: Person, conversationId: string) {
+async function unreadCount(
+  app: NestFastifyApplication,
+  as: Person,
+  conversationId: string,
+): Promise<number> {
   const res = await app.inject({
     method: 'GET',
     url: '/api/v1/conversations',

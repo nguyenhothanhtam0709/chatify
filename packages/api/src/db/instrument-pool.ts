@@ -19,7 +19,7 @@ export function instrumentPool(pool: Pool, logger: Logger, slowQueryMs: number):
   const instrumented = (...args: unknown[]): unknown => {
     const start = performance.now();
     const sql = sqlText(args[0]);
-    const report = () => {
+    const report = (): void => {
       const durationMs = Math.round((performance.now() - start) * 1000) / 1000;
       const slow = durationMs > slowQueryMs;
       logger[slow ? 'warn' : 'debug']({ sql, durationMs }, slow ? 'slow db query' : 'db query');

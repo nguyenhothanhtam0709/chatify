@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
   ConversationCreatedEventSchema,
@@ -143,11 +144,16 @@ describe('socket handshake', () => {
   });
 });
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 150));
+const settle = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 150));
 
-const bearer = (p: Person) => ({ authorization: `Bearer ${p.token}` });
+const bearer = (p: Person): { authorization: string } => ({ authorization: `Bearer ${p.token}` });
 
-function sendDirect(app: NestFastifyApplication, from: Person, to: Person, body = 'hi') {
+function sendDirect(
+  app: NestFastifyApplication,
+  from: Person,
+  to: Person,
+  body = 'hi',
+): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'POST',
     url: '/api/v1/direct-messages',
@@ -282,7 +288,7 @@ describe('real-time push', () => {
       const url = await listenOnRandomPort(app);
       const bobSocket = await connectSocket(url, bob.token);
       const payload = { recipientId: bob.id, clientMessageId: randomUUID(), body: 'once' };
-      const send = () =>
+      const send = (): Promise<LightMyRequestResponse> =>
         app.inject({
           method: 'POST',
           url: '/api/v1/direct-messages',
@@ -407,7 +413,7 @@ describe('real-time push', () => {
 });
 
 describe('session revocation over the socket', () => {
-  const logOut = (app: NestFastifyApplication, who: Person) =>
+  const logOut = (app: NestFastifyApplication, who: Person): Promise<LightMyRequestResponse> =>
     app.inject({ method: 'POST', url: '/api/v1/auth/logout', headers: bearer(who) });
 
   it('pushes session.revoked to every socket of the session, then disconnects them', async () => {

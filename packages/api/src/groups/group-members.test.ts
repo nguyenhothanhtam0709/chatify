@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
   ConversationCreatedEventSchema,
@@ -17,7 +18,12 @@ import { bearer, createGroup, signUp, type Person } from '../../test/people.js';
 import { closeAllSockets, connectSocket, listenOnRandomPort } from '../../test/socket-client.js';
 import { PG_POOL } from '../db/database.module.js';
 
-const addMember = (app: NestFastifyApplication, as: Person, groupId: string, userId: string) =>
+const addMember = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  userId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/groups/${groupId}/members`,
@@ -25,14 +31,24 @@ const addMember = (app: NestFastifyApplication, as: Person, groupId: string, use
     payload: { userId },
   });
 
-const removeMember = (app: NestFastifyApplication, as: Person, groupId: string, userId: string) =>
+const removeMember = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  userId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'DELETE',
     url: `/api/v1/groups/${groupId}/members/${userId}`,
     headers: bearer(as),
   });
 
-const post = (app: NestFastifyApplication, as: Person, groupId: string, body = 'hello') =>
+const post = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  body = 'hello',
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/conversations/${groupId}/messages`,
@@ -40,14 +56,33 @@ const post = (app: NestFastifyApplication, as: Person, groupId: string, body = '
     payload: { clientMessageId: randomUUID(), body },
   });
 
-const errorCode = (res: { json(): unknown }) => ErrorResponseSchema.parse(res.json()).error.code;
+const errorCode = (res: {
+  json(): unknown;
+}):
+  | 'VALIDATION_FAILED'
+  | 'UNAUTHENTICATED'
+  | 'SESSION_REVOKED'
+  | 'INVALID_CREDENTIALS'
+  | 'USERNAME_TAKEN'
+  | 'EMAIL_TAKEN'
+  | 'USER_NOT_FOUND'
+  | 'CONVERSATION_NOT_FOUND'
+  | 'NOT_A_MEMBER'
+  | 'NOT_GROUP_OWNER'
+  | 'ALREADY_A_MEMBER'
+  | 'GROUP_FULL'
+  | 'OWNER_CANNOT_BE_REMOVED'
+  | 'GROUP_CLOSED'
+  | 'CANNOT_MESSAGE_SELF'
+  | 'RATE_LIMITED'
+  | 'INTERNAL_ERROR' => ErrorResponseSchema.parse(res.json()).error.code;
 
-const memberIdsOf = (res: { json(): unknown }) =>
+const memberIdsOf = (res: { json(): unknown }): string[] =>
   GroupMembershipResponseSchema.parse(res.json())
     .conversation.members.map((m) => m.id)
     .sort();
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 100));
+const settle = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 100));
 
 afterEach(closeAllSockets);
 

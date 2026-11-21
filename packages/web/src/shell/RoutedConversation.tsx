@@ -1,6 +1,6 @@
 import type { ConversationSummary, User } from '@chat/contracts';
 import { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '@/auth/AuthProvider';
+import { useAuth } from '@/auth/auth-context';
 import { ConversationView } from './ConversationView';
 import { targetOf, type ConversationTarget } from './conversation-target';
 import { LoadingConversation, Unreachable } from './RoutedStatus';

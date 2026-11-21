@@ -9,6 +9,7 @@
     "start": "node dist/main.js",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "lint": "GOMAXPROCS=2 oxlint --type-aware --threads=2 -c ../../.oxlintrc.json src test vitest.config.ts drizzle.config.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsc -p tsconfig.build.json && node --env-file-if-exists=.env dist/db/migrate-cli.js",
     "db:seed": "tsc -p tsconfig.build.json && node --env-file-if-exists=.env dist/db/seed-cli.js"

@@ -2,6 +2,7 @@ import { Pool, type QueryResult } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, inject } from 'vitest';
 import { truncateAllTables } from '../../test/database.js';
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('system message invariant', () => {
   let pool: Pool;
   let userId: string;

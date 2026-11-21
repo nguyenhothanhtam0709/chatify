@@ -65,6 +65,7 @@ type LeaveOutcome =
  */
 @Injectable()
 export class GroupsService {
+  // oxlint-disable-next-line max-params -- NestJS constructor injection takes one parameter per dependency
   constructor(
     @InjectDrizzle() private readonly db: Database,
     private readonly realtime: RealtimeGateway,

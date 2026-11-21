@@ -114,6 +114,7 @@ describe('refresh cookie', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /auth/refresh', () => {
   it('rotates the refresh token and issues a working access token', async () => {
     await withApp({}, async (app) => {
@@ -172,6 +173,7 @@ describe('POST /auth/refresh', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('GET /users/me', () => {
   it('returns the current User profile', async () => {
     await withApp({}, async (app) => {

@@ -61,7 +61,7 @@ export async function seedDatabase(pool: Pool): Promise<boolean> {
         })),
       )
       .returning({ id: users.id, username: users.username });
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the insert above adds one row per SEED_USERNAMES entry, so every key is present
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- the insert above adds one row per SEED_USERNAMES entry, so every key is present
     const id = Object.fromEntries(rows.map((r) => [r.username, r.id])) as Record<
       SeedUsername,
       string

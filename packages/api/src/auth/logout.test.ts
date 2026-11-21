@@ -49,6 +49,7 @@ async function query<T extends object>(sql: string): Promise<T[]> {
   }
 }
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /auth/logout', () => {
   it('ends the session: the access token is refused at once with SESSION_REVOKED', async () => {
     await withApp({}, async (app) => {

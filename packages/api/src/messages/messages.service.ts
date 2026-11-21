@@ -77,6 +77,7 @@ const toHistoryMessage = (r: HistoryRow): Message =>
 /** Direct sending, history, and the Conversation read side. Group lifecycle is `GroupsService`. */
 @Injectable()
 export class MessagesService {
+  // oxlint-disable-next-line max-params -- NestJS constructor injection takes one parameter per dependency
   constructor(
     @InjectDrizzle() private readonly db: Database,
     private readonly realtime: RealtimeGateway,

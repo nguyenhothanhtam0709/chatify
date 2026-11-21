@@ -114,6 +114,7 @@ export class ConversationQueries {
     return rows.map((row) => toSummary(row, members.get(row.id) ?? [], userId));
   }
 
+  // oxlint-disable-next-line max-lines-per-function -- splitting this would not make it clearer
   private async summaryRows(userId: string, onlyConversationId?: string): Promise<SummaryRow[]> {
     const lastVisibleSequence = lastVisibleSequenceOf(userId);
     const unreadCount = unreadCountOf(userId);

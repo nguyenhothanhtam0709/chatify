@@ -62,6 +62,7 @@ afterEach(async () => {
   probe = undefined;
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('validation failures', () => {
   it('maps an invalid body to 400 VALIDATION_FAILED with Zod issues in details', async () => {
     const app = await probeApp();

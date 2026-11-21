@@ -106,6 +106,7 @@ function errorCode(res: {
   return ErrorResponseSchema.parse(res.json()).error.code;
 }
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /direct-messages', () => {
   it('requires authentication', async () => {
     await withApp({}, async (app) => {
@@ -263,6 +264,7 @@ describe('POST /direct-messages', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /conversations/:id/messages', () => {
   it('sends to an existing Conversation with the next sequence', async () => {
     await withApp({}, async (app) => {
@@ -373,6 +375,7 @@ describe('POST /conversations/:id/messages', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('GET /conversations/:id/messages', () => {
   it('returns the latest Messages, most recent first, to either Member', async () => {
     await withApp({}, async (app) => {
@@ -530,6 +533,7 @@ const listConversations = (
 ): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'GET', url: '/api/v1/conversations', headers: bearer(as) });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('GET /conversations', () => {
   it('requires authentication', async () => {
     await withApp({}, async (app) => {

@@ -10,7 +10,7 @@ export const GROUP_MEMBERS_MAX = 256;
 /** Trimmed, NFC, 1-100 characters, no control or bidi-override characters. Not unique. */
 export const GroupNameSchema = nameText(true).refine(
   (value) => {
-    const length = [...value].length;
+    const length = Array.from(value).length;
     return length >= 1 && length <= GROUP_NAME_MAX;
   },
   { message: `must be 1-${GROUP_NAME_MAX} characters` },

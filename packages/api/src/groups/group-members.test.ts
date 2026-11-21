@@ -86,6 +86,7 @@ const settle = (): Promise<unknown> => new Promise((resolve) => setTimeout(resol
 
 afterEach(closeAllSockets);
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /groups/:id/members', () => {
   it('requires authentication', async () => {
     await withApp({}, async (app) => {
@@ -257,6 +258,7 @@ describe('POST /groups/:id/members', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('DELETE /groups/:id/members/:userId', () => {
   it('lets the Owner remove a Member, who can then no longer post', async () => {
     await withApp({}, async (app) => {

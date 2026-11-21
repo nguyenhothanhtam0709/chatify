@@ -120,6 +120,7 @@ const errorCode = (res: {
   | 'RATE_LIMITED'
   | 'INTERNAL_ERROR' => ErrorResponseSchema.parse(res.json()).error.code;
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('membership periods and history windows', () => {
   it('shows a newly added Member only the Messages sent after they joined', async () => {
     await withApp({}, async (app) => {
@@ -163,7 +164,9 @@ describe('membership periods and history windows', () => {
     });
   });
 
+  // oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
   it('shows a Former Member no Members, and the Members again once they are re-added', async () => {
+    // oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
     await withApp({}, async (app) => {
       const alice = await signUp(app, 'Alice');
       const bob = await signUp(app, 'Bob');

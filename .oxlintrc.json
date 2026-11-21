@@ -285,16 +285,28 @@
         }
       }
     ],
-    "typescript/consistent-type-assertions": [
-      "error",
-      {
-        "assertionStyle": "never"
-      }
-    ],
     "typescript/no-floating-promises": "error",
     "typescript/no-misused-promises": "error"
   },
   "overrides": [
+    {
+      "files": ["packages/**/*.{ts,tsx}"],
+      "rules": {
+        "typescript/consistent-type-assertions": [
+          "error",
+          {
+            "assertionStyle": "never"
+          }
+        ]
+      }
+    },
+    {
+      "files": ["scripts/**/*.ts"],
+      "rules": {
+        "typescript/no-floating-promises": "off",
+        "typescript/no-misused-promises": "off"
+      }
+    },
     {
       "files": ["packages/*/src/**/*.{ts,tsx}"],
       "rules": {
@@ -626,7 +638,10 @@
           {
             "allowConstantExport": true
           }
-        ]
+        ],
+        "react/set-state-in-effect": "off",
+        "react/immutability": "off",
+        "react/refs": "off"
       }
     },
     {

@@ -16,12 +16,12 @@ import {
   type KeyboardEvent,
   type UIEvent,
 } from 'react';
-import { useAuth } from '@/auth/AuthProvider';
+import { useAuth } from '@/auth/auth-context';
 import {
   useConnectionStatus,
   useReconnected,
   useRealtimeEvents,
-} from '@/realtime/RealtimeProvider';
+} from '@/realtime/realtime-context';
 import { Bubble, BubbleContent } from '@/components/ui/bubble';
 import { Button } from '@/components/ui/button';
 import {
@@ -179,7 +179,7 @@ function Composer({
     signal(value === '' ? 'stopped' : 'typing');
   }
 
-  const length = [...text].length;
+  const length = Array.from(text).length;
   const sendable = MessageBodySchema.safeParse(text).success;
 
   function submit() {

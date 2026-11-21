@@ -93,6 +93,7 @@ async function insertUsers(app: NestFastifyApplication, count: number): Promise<
 
 afterEach(closeAllSockets);
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /groups', () => {
   it('requires authentication', async () => {
     await withApp({}, async (app) => {
@@ -221,6 +222,7 @@ describe('POST /groups', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('Groups in the Conversation endpoints', () => {
   it('lists the Group for every Member with its name, before any Message', async () => {
     await withApp({}, async (app) => {
@@ -348,6 +350,7 @@ describe('Groups in the Conversation endpoints', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('Group push', () => {
   it('pushes conversation.created to every initial Member and nobody else', async () => {
     await withApp({}, async (app) => {

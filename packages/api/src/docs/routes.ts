@@ -17,7 +17,7 @@ function declaredBy(ref: ModuleRef): { controllers: Type<unknown>[]; imports: Mo
   // generator's modules never use.
   const dynamicImports =
     'module' in ref
-      ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- only plain and dynamic modules are listed in imports here; see the comment above
+      ? // oxlint-disable-next-line typescript/consistent-type-assertions -- only plain and dynamic modules are listed in imports here; see the comment above
         ((ref.imports ?? []) as ModuleRef[])
       : [];
   return {

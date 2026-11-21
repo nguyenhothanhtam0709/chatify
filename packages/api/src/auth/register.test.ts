@@ -41,6 +41,7 @@ function errorOf(res: { json: () => unknown }): {
   return ErrorResponseSchema.parse(res.json()).error;
 }
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /auth/register', () => {
   it('creates a User and returns it exactly as typed, without any password', async () => {
     await withApp({}, async (app) => {

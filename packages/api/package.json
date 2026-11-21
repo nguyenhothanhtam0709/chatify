@@ -29,7 +29,7 @@
     "@ttsc/paths": "^0.37.2",
     "@types/node": "^26.6.5",
     "@types/pg": "^8.23.1",
-    "@vitest/coverage-v8": "^5.1.1",
+    "@vitest/coverage-v8": "~5.0.5",
     "drizzle-kit": "^0.31.11",
     "socket.io-client": "^4.8.4",
     "testcontainers": "^12.2.1",

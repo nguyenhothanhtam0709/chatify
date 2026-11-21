@@ -15,6 +15,7 @@
     "build:clean": "ttsc clean -p tsconfig.build.json && rm -rf dist *.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:cov": "vitest run --coverage",
     "typecheck": "ttsc --noEmit --checkers 2",
     "format:check": "prettier --check \"src/**/*.ts\"",
@@ -25,7 +26,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^5.1.1",
+    "@vitest/coverage-v8": "~5.0.5",
     "ttsc": "^0.37.2",
     "typescript": "~7.0.2",
     "vitest": "^5.0.5"

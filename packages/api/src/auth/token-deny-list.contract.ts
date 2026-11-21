@@ -19,11 +19,9 @@ export function describeTokenDenyListContract(
 ): void {
   // oxlint-disable-next-line max-lines-per-function -- a contract suite shared by adapters keeps its cases in one block
   describe(`TokenDenyList contract: ${adapterName}`, () => {
-    async function setup(): Promise<{
-      denyList: TokenDenyList;
-      expire: (jti: string) => Promise<void>;
-      inSeconds: (seconds: number) => Date;
-    }> {
+    async function setup(): Promise<
+      TokenDenyListUnderTest & { inSeconds: (seconds: number) => Date }
+    > {
       const { denyList, expire } = await create();
       const inSeconds = (seconds: number): Date => new Date(Date.now() + seconds * 1000);
       return { denyList, expire, inSeconds };

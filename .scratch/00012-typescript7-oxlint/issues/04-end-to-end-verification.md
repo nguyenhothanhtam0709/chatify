@@ -37,7 +37,7 @@ A failing step is compared with the same step on `main` before it is blamed on t
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Steps 1 to 11 each pass, or the failure is fixed in this Ticket (or escalated if it needs a package change)
 - [x] The API test covers every endpoint group and socket event listed in step 6

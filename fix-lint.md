@@ -1,3 +1,7 @@
+---
+kind: descriptive
+---
+
 # Lint debt
 
 Every bypass of an oxlint rule that Ticket 00012-01 could not fix, one line each. Each also carries an `// oxlint-disable-next-line <rule> -- <why>` comment in the source. Fixing them is out of scope there.

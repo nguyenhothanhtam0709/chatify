@@ -102,7 +102,11 @@ export function connectRawSocket(
         const encoder = new parser.Encoder();
         const auth = accessToken === undefined ? {} : { token: accessToken };
         // The typings say one buffer; the parser returns an array of them.
-        const chunks = encoder.encode({ type: 0, nsp: '/', data: auth }) as unknown as Uint8Array[];
+        const chunks = encoder.encode({
+          type: 0,
+          nsp: '/',
+          data: auth,
+        }) as unknown as Uint8Array<ArrayBuffer>[];
         for (const chunk of chunks) ws.send(chunk);
       } else {
         decoder.add(Buffer.from(event.data as ArrayBuffer));

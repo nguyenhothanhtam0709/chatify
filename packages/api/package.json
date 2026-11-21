@@ -8,8 +8,8 @@
     "build:dev": "ttsc -p tsconfig.build.json --checkers 2",
     "build:clean": "ttsc clean -p tsconfig.build.json && rm -rf dist *.tsbuildinfo",
     "dev": "pnpm start:dev",
-    "start:dev": "node --env-file-if-exists=.env --enable-source-maps --watch --watch-path=src --import=ttsc/register src/main.ts",
-    "start:debug": "node --env-file-if-exists=.env --enable-source-maps --watch --watch-path=src --import=ttsc/register --inspect src/main.ts",
+    "start:dev": "GOMAXPROCS=2 node --env-file-if-exists=.env --enable-source-maps --watch --watch-path=src --import=ttsc/register src/main.ts",
+    "start:debug": "GOMAXPROCS=2 node --env-file-if-exists=.env --enable-source-maps --watch --watch-path=src --import=ttsc/register --inspect src/main.ts",
     "start:prod": "node --env-file-if-exists=.env --enable-source-maps dist/main.js",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -20,8 +20,8 @@
     "lint": "GOMAXPROCS=2 oxlint --type-aware --threads=2 -c ../../.oxlintrc.json src test vitest.config.ts drizzle.config.ts",
     "lint:fix": "GOMAXPROCS=2 oxlint --type-aware --threads=2 --fix -c ../../.oxlintrc.json src test vitest.config.ts drizzle.config.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node --env-file-if-exists=.env --enable-source-maps --import=ttsc/register src/db/migrate-cli.ts",
-    "db:seed": "node --env-file-if-exists=.env --enable-source-maps --import=ttsc/register src/db/seed-cli.ts"
+    "db:migrate": "GOMAXPROCS=2 node --env-file-if-exists=.env --enable-source-maps --import=ttsc/register src/db/migrate-cli.ts",
+    "db:seed": "GOMAXPROCS=2 node --env-file-if-exists=.env --enable-source-maps --import=ttsc/register src/db/seed-cli.ts"
   },
   "devDependencies": {
     "@nestjs/testing": "^12.2.0",

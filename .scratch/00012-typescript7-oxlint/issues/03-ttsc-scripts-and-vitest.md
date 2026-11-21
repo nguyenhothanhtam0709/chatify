@@ -17,7 +17,7 @@ Rules this Ticket needs:
 
 **Blocked by:** 02
 
-**Status:** needs-info
+**Status:** resolved
 
 - [x] `api` and `contracts` typecheck, build and clean through `ttsc`; `contracts` output still has `.d.ts` files that `api` and `web` consume
 - [x] `api` targets `esnext` and has an `@<folder>/*` alias for each source subfolder; an alias import resolves in the build, at runtime and in the tests (check with a throwaway import, then revert)
@@ -40,3 +40,7 @@ Rules this Ticket needs:
 - `ttsc/register` (0.37.2) takes no `--checkers`: it is a Node `--import` hook that calls `prepareExecution` with no checker option (only `ttsx` parses `--checkers`), and I found no environment variable for it. So `dev`/`start:*`, `db:migrate` and `db:seed` run it with the default thread count. Question: add a `GOMAXPROCS=2` prefix to those scripts (as the Spec does for type-aware oxlint), switch them to `ttsx --checkers 2`, or leave them? Recommendation: `GOMAXPROCS=2`. This is the only open item.
 - SWC removed: the full `api` suite (36 files, 323 tests, real Postgres) passes on Vitest's own transform with `resolve.tsconfigPaths`, so `unplugin-swc`, `@swc/core` and the allow-list entry are gone.
 - `ttsc --noEmit` on this repo, 3 runs each (macOS): api `--checkers 2` 0.60 s / 362 MB, default 0.60 to 0.68 s / 362 MB; contracts 0.16 s / 125 MB with the flag, 0.16 s / 131 MB default.
+
+### Human decision
+
+Prefix every script that runs `ttsc/register` (`start:dev`, `start:debug`, `db:migrate`, `db:seed`; `dev` calls `start:dev`) with `GOMAXPROCS=2`, like oxlint. No new package. Done in the last commit; Status moved needs-info, then ready-for-agent, then resolved.

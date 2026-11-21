@@ -80,7 +80,11 @@ describe('GET /users/search', () => {
 
       const body: unknown = res.json();
       const { users } = SearchUsersResponseSchema.parse(body);
-      expect(users.map(({ username, nickname }) => ({ username, nickname })).sort()).toEqual(
+      expect(
+        users
+          .map(({ username, nickname }) => ({ username, nickname }))
+          .sort((a, b) => a.username.localeCompare(b.username)),
+      ).toEqual(
         expect.arrayContaining([
           { username: 'Alice', nickname: 'Ali' },
           { username: 'Albert', nickname: null },

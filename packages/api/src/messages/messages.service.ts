@@ -59,6 +59,21 @@ interface InsertedMessage {
 /** Thrown inside a transaction to undo it (including its sequence bump) on a resend. */
 class DuplicateClientMessage extends Error {}
 
+interface HistoryRow {
+  message: typeof messages.$inferSelect;
+  subjectId: string | null;
+  subjectUsername: string | null;
+  subjectNickname: string | null;
+}
+
+const toHistoryMessage = (r: HistoryRow): Message =>
+  toMessage(
+    r.message,
+    r.subjectId === null || r.subjectUsername === null
+      ? null
+      : { id: r.subjectId, username: r.subjectUsername, nickname: r.subjectNickname },
+  );
+
 /** Direct sending, history, and the Conversation read side. Group lifecycle is `GroupsService`. */
 @Injectable()
 export class MessagesService {
@@ -212,16 +227,7 @@ export class MessagesService {
       .orderBy(forward ? asc(messages.sequence) : desc(messages.sequence))
       .limit(limit + 1);
     return {
-      messages: rows
-        .slice(0, limit)
-        .map((r) =>
-          toMessage(
-            r.message,
-            r.subjectId === null || r.subjectUsername === null
-              ? null
-              : { id: r.subjectId, username: r.subjectUsername, nickname: r.subjectNickname },
-          ),
-        ),
+      messages: rows.slice(0, limit).map(toHistoryMessage),
       hasMore: rows.length > limit,
     };
   }

@@ -9,7 +9,7 @@ import type { TokenDenyList } from './token-deny-list.js';
 export interface TokenDenyListUnderTest {
   denyList: TokenDenyList;
   /** Makes the entry for `jti` already expired. */
-  expire(jti: string): Promise<void>;
+  expire: (jti: string) => Promise<void>;
 }
 
 export function describeTokenDenyListContract(

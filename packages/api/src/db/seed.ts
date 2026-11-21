@@ -114,10 +114,17 @@ type Ids = Record<SeedUsername, string>;
 /** A System Message takes a sequence position; its subject lives in `system_messages`. */
 async function addSystemMessage(
   tx: Tx,
-  conversationId: string,
-  actorId: string,
-  subjectId: string,
-  kind: 'member_added' | 'member_removed',
+  {
+    conversationId,
+    actorId,
+    subjectId,
+    kind,
+  }: {
+    conversationId: string;
+    actorId: string;
+    subjectId: string;
+    kind: 'member_added' | 'member_removed';
+  },
 ): Promise<number> {
   const sequence = await nextSequence(tx, conversationId);
   const row = exactlyOne(
@@ -151,7 +158,12 @@ async function seedGroup(tx: Tx, id: Ids): Promise<void> {
   await addText(tx, conversationId, id.dave, 'Thanks for adding me.');
   await addText(tx, conversationId, id.bob, 'What are we doing this weekend?');
 
-  const removedAt = await addSystemMessage(tx, conversationId, id.alice, id.dave, 'member_removed');
+  const removedAt = await addSystemMessage(tx, {
+    conversationId,
+    actorId: id.alice,
+    subjectId: id.dave,
+    kind: 'member_removed',
+  });
   await tx.delete(conversationMembers).where(eq(conversationMembers.userId, id.dave));
   await tx
     .update(membershipPeriods)
@@ -161,7 +173,12 @@ async function seedGroup(tx: Tx, id: Ids): Promise<void> {
     );
 
   await tx.insert(conversationMembers).values({ conversationId, userId: id.carol });
-  const addedAt = await addSystemMessage(tx, conversationId, id.alice, id.carol, 'member_added');
+  const addedAt = await addSystemMessage(tx, {
+    conversationId,
+    actorId: id.alice,
+    subjectId: id.carol,
+    kind: 'member_added',
+  });
   await tx
     .insert(membershipPeriods)
     .values({ conversationId, userId: id.carol, startSequence: addedAt - 1 });

@@ -61,7 +61,7 @@ async function buildStreams(
 export interface AppLogger {
   logger: pino.Logger;
   /** Flushes and closes the log file, if any. Safe to call once at shutdown. */
-  close(): void;
+  close: () => void;
 }
 
 /**

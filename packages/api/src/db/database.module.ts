@@ -26,13 +26,16 @@ export type Database = ReturnType<typeof createDatabase>;
   imports: [
     DrizzleModule.forRootAsync({
       inject: [ConfigService, PINO],
-      useFactory: (config: ConfigService<Config, true>, logger: Logger) => {
+      useFactory: (
+        config: ConfigService<Config, true>,
+        logger: Logger,
+      ): { db: ReturnType<typeof createDatabase> } => {
         const pool = new Pool({
           connectionString: config.get('DATABASE_URL', { infer: true }),
           connectionTimeoutMillis: 2_000,
         });
         // An idle-client error must not crash the process.
-        pool.on('error', () => {});
+        pool.on('error', (): void => undefined);
         const instrumented = instrumentPool(
           pool,
           logger,
@@ -46,7 +49,7 @@ export type Database = ReturnType<typeof createDatabase>;
     {
       provide: PG_POOL,
       inject: [getDrizzleToken()],
-      useFactory: (db: Database) => db.$client,
+      useFactory: (db: Database): Pool => db.$client,
     },
   ],
   exports: [PG_POOL],

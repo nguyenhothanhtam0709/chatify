@@ -66,7 +66,7 @@ describe('request logging', () => {
   });
 
   it('routes Nest boot logs through the shared logger', async () => {
-    await withApp({}, async (_app, logs) => {
+    await withApp({}, (_app, logs) => {
       const bootLine = logs.lines.find((l) => l['context'] === 'NestFactory');
       expect(bootLine).toBeDefined();
       expect(bootLine!.msg).toMatch(/Starting Nest application/);

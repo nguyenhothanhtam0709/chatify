@@ -114,7 +114,7 @@ describe('POST /auth/register', () => {
         register(app, { ...valid, username: 'ALICE', email: 'two@example.com' }),
       ]);
 
-      expect(results.map((r) => r.statusCode).sort()).toEqual([201, 409]);
+      expect(results.map((r) => r.statusCode).sort((a, b) => a - b)).toEqual([201, 409]);
     });
   });
 

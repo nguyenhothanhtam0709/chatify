@@ -13,8 +13,8 @@ function sqlText(first: unknown): string {
  * than `slowQueryMs` at warn. Bound parameters are never logged.
  */
 export function instrumentPool(pool: Pool, logger: Logger, slowQueryMs: number): Pool {
-  const originalQuery = pool.query;
-  const original = (...args: unknown[]): unknown => Reflect.apply(originalQuery, pool, args);
+  const original = (...args: unknown[]): unknown =>
+    Reflect.apply(pool.query.bind(pool), pool, args);
 
   const instrumented = (...args: unknown[]): unknown => {
     const start = performance.now();

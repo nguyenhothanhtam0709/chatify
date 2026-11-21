@@ -96,7 +96,7 @@ describe('migration test database', () => {
 
   it('rejects a migration name that does not exist', async () => {
     await expect(
-      withDatabaseMigratedUpTo('9999_no_such_migration', async () => {}),
+      withDatabaseMigratedUpTo('9999_no_such_migration', (): Promise<void> => Promise.resolve()),
     ).rejects.toThrow('No migration named 9999_no_such_migration');
   });
 });

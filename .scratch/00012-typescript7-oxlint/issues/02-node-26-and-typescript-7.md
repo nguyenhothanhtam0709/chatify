@@ -16,16 +16,18 @@ Rules this Ticket needs:
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `typescript` is `~7.0.2` in the root, `api`, `web` and `contracts`
-- [ ] `pnpm typecheck`, `pnpm build:contracts`, the `api` and `web` builds, `pnpm test`, `pnpm lint` and `pnpm docs:check` all pass on Node 26
-- [ ] `moduleDetection: force` is in the shared tsconfig; targets are unchanged
-- [ ] `web` has no `baseUrl` and its `@` alias still resolves in the dev server, the build and the tests
-- [ ] `engines.node` is `>=26`, the README says Node 26, and `.nvmrc` is `26`
+- [x] `typescript` is `~7.0.2` in the root, `api`, `web` and `contracts`
+- [x] `pnpm typecheck`, `pnpm build:contracts`, the `api` and `web` builds, `pnpm test`, `pnpm lint` and `pnpm docs:check` all pass on Node 26
+- [x] `moduleDetection: force` is in the shared tsconfig; targets are unchanged
+- [x] `web` has no `baseUrl` and its `@` alias still resolves in the dev server, the build and the tests
+- [x] `engines.node` is `>=26`, the README says Node 26, and `.nvmrc` is `26`
 
 **Verification:** run `pnpm test` once, including the `api` behaviour tests with real Postgres. One browser check per [browser check](../../../docs/workflow/browser-check.md): `dev:web` loads and a login works. Record both in the PR.
 
 **Out of scope:** `ttsc`, `esnext`, path aliases in `api`, new scripts, Vitest config changes, rewriting old specs.
 
 ## Comments
+
+Resolved. On Node 26.13.1: `pnpm lint`, `pnpm typecheck`, `pnpm build:contracts`, api and web builds, `pnpm test` (api 245, web 323, contracts 248 pass, real Postgres) and `pnpm docs:check` pass. Browser check: `dev:web` loads, login as alice reaches `/`. One code fix forced by TypeScript 7: `Uint8Array<ArrayBuffer>[]` cast in `packages/api/test/socket-client.ts`. The `@` alias resolves in typecheck, build and tests. No assumptions.

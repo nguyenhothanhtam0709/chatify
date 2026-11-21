@@ -111,20 +111,17 @@ async function seedDirect(tx: Tx, a: string, b: string): Promise<void> {
 
 type Ids = Record<SeedUsername, string>;
 
+interface SystemMessageInput {
+  conversationId: string;
+  actorId: string;
+  subjectId: string;
+  kind: 'member_added' | 'member_removed';
+}
+
 /** A System Message takes a sequence position; its subject lives in `system_messages`. */
 async function addSystemMessage(
   tx: Tx,
-  {
-    conversationId,
-    actorId,
-    subjectId,
-    kind,
-  }: {
-    conversationId: string;
-    actorId: string;
-    subjectId: string;
-    kind: 'member_added' | 'member_removed';
-  },
+  { conversationId, actorId, subjectId, kind }: SystemMessageInput,
 ): Promise<number> {
   const sequence = await nextSequence(tx, conversationId);
   const row = exactlyOne(

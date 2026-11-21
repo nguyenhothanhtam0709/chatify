@@ -26,6 +26,11 @@ const isAuthenticated = (req: unknown): boolean => authenticatedUserId(req) !== 
 
 const request = (context: ExecutionContext): FastifyRequest =>
   context.switchToHttp().getRequest<FastifyRequest>();
+// Adapts a predicate on the request to the `skipIf` the throttler takes.
+const skipWhen =
+  (shouldSkip: (req: FastifyRequest) => boolean) =>
+  (context: ExecutionContext): boolean =>
+    shouldSkip(request(context));
 const userTracker = (req: unknown): string => `user:${String(authenticatedUserId(req))}`;
 
 const genericThrottler = (config: ConfigService<Config, true>): ThrottlerOptions => ({
@@ -34,10 +39,7 @@ const genericThrottler = (config: ConfigService<Config, true>): ThrottlerOptions
   // Route-level guards run after authentication; the global guard has already
   // counted the request by then.
   // Typing signals have their own limit and do not count against this one.
-  skipIf: (context): boolean => {
-    const req = request(context);
-    return isAuthenticated(req) || isTypingRoute(req);
-  },
+  skipIf: skipWhen((req) => isAuthenticated(req) || isTypingRoute(req)),
 });
 
 // User search only: 30 per minute per User, counted by the route-level guard
@@ -46,10 +48,7 @@ const searchThrottler: ThrottlerOptions = {
   name: 'search',
   limit: 30,
   ttl: 60 * 1000,
-  skipIf: (context): boolean => {
-    const req = request(context);
-    return !isAuthenticated(req) || req.routeOptions?.url !== SEARCH_URL;
-  },
+  skipIf: skipWhen((req) => !isAuthenticated(req) || req.routeOptions?.url !== SEARCH_URL),
   getTracker: userTracker,
 };
 
@@ -58,10 +57,7 @@ const sendThrottler: ThrottlerOptions = {
   name: 'send',
   limit: 30,
   ttl: 10 * 1000,
-  skipIf: (context): boolean => {
-    const req = request(context);
-    return !isAuthenticated(req) || !isSendRoute(req);
-  },
+  skipIf: skipWhen((req) => !isAuthenticated(req) || !isSendRoute(req)),
   getTracker: userTracker,
 };
 
@@ -71,10 +67,7 @@ const typingThrottler: ThrottlerOptions = {
   name: 'typing',
   limit: 2,
   ttl: 2 * 1000,
-  skipIf: (context): boolean => {
-    const req = request(context);
-    return !isAuthenticated(req) || !isTypingRoute(req);
-  },
+  skipIf: skipWhen((req) => !isAuthenticated(req) || !isTypingRoute(req)),
   getTracker: (req): string =>
     `${userTracker(req)}:${String(readProperty(readProperty(req, 'params'), 'id')).toLowerCase()}`,
 };
@@ -85,10 +78,7 @@ const typingIpThrottler = (config: ConfigService<Config, true>): ThrottlerOption
   name: 'typingIp',
   limit: config.get('THROTTLE_LIMIT', { infer: true }),
   ttl: config.get('THROTTLE_TTL_MS', { infer: true }),
-  skipIf: (context): boolean => {
-    const req = request(context);
-    return isAuthenticated(req) || !isTypingRoute(req);
-  },
+  skipIf: skipWhen((req) => isAuthenticated(req) || !isTypingRoute(req)),
 });
 
 // Login only: 5 attempts per 15 minutes per identifier (the per-IP limit is on

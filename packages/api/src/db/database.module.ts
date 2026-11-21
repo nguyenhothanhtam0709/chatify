@@ -26,10 +26,7 @@ export type Database = ReturnType<typeof createDatabase>;
   imports: [
     DrizzleModule.forRootAsync({
       inject: [ConfigService, PINO],
-      useFactory: (
-        config: ConfigService<Config, true>,
-        logger: Logger,
-      ): { db: ReturnType<typeof createDatabase> } => {
+      useFactory: (config: ConfigService<Config, true>, logger: Logger): { db: Database } => {
         const pool = new Pool({
           connectionString: config.get('DATABASE_URL', { infer: true }),
           connectionTimeoutMillis: 2_000,

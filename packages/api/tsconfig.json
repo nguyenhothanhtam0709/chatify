@@ -22,8 +22,7 @@
       "@messages/*": ["./src/messages/*"],
       "@realtime/*": ["./src/realtime/*"],
       "@security/*": ["./src/security/*"],
-      "@throttling/*": ["./src/throttling/*"],
-      "@types/*": ["./src/types/*"]
+      "@throttling/*": ["./src/throttling/*"]
     }
   },
   "include": ["src", "test", "vitest.config.ts", "drizzle.config.ts"]

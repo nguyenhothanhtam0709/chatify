@@ -1,11 +1,10 @@
-import path from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
+  resolve: { tsconfigPaths: true },
   // One chunk: ~785 kB today; warn only if it grows past 1 MB.
   build: { chunkSizeWarningLimit: 1000 },
   server: {

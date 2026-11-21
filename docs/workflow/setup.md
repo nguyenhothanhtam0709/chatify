@@ -37,7 +37,7 @@ Use `printf`, not `echo`: zsh's `echo` turns each `\n` into a real newline and b
 
 ```sh
 pnpm db:up             # Postgres from docker-compose.yml on localhost:5432, waits until healthy
-pnpm build:contracts   # migrate and seed compile the API, which imports the built contracts
+pnpm build:contracts   # the API imports the built contracts; migrate and seed run the TypeScript source through ttsc/register
 pnpm db:migrate        # applies packages/api/drizzle/
 pnpm db:seed           # optional dev data, safe to rerun, refuses in production
 ```
@@ -92,7 +92,7 @@ pnpm --filter @chat/<package> test                       # one package
 
 ```sh
 pnpm lint            # builds contracts, then type-aware oxlint per package, then Prettier check
-pnpm typecheck       # builds contracts, then tsc in every package
+pnpm typecheck       # builds contracts, then ttsc in api and contracts, tsc in web
 pnpm docs:generate   # rewrites the Generated Docs in docs/architecture/
 pnpm docs:check      # Generated Docs match the code, links resolve, docs declare a kind, resolved Specs have no open Ticket
 ```

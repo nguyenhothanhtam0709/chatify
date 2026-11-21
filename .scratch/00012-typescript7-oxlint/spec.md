@@ -1,6 +1,6 @@
 # Spec: TypeScript 7 and oxlint
 
-Status: ready-for-agent
+Status: resolved
 
 ## Problem Statement
 

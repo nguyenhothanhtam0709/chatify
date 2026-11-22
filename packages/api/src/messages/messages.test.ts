@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
   ErrorCode,
@@ -39,13 +40,13 @@ async function signUp(app: NestFastifyApplication, username: string): Promise<Pe
   return { id: login.user.id, token: login.accessToken };
 }
 
-const bearer = (p: Person) => ({ authorization: `Bearer ${p.token}` });
+const bearer = (p: Person): { authorization: string } => ({ authorization: `Bearer ${p.token}` });
 
 function sendDirect(
   app: NestFastifyApplication,
   from: Person,
   payload: { recipientId: string; body?: string; clientMessageId?: string },
-) {
+): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'POST',
     url: '/api/v1/direct-messages',
@@ -59,7 +60,7 @@ function sendTo(
   from: Person,
   conversationId: string,
   payload: { body?: string; clientMessageId?: string } = {},
-) {
+): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'POST',
     url: `/api/v1/conversations/${conversationId}/messages`,
@@ -73,7 +74,7 @@ function history(
   as: Person,
   conversationId: string,
   query: Record<string, string> = {},
-) {
+): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'GET',
     url: `/api/v1/conversations/${conversationId}/messages`,
@@ -82,10 +83,30 @@ function history(
   });
 }
 
-function errorCode(res: { json(): unknown }) {
+function errorCode(res: {
+  json(): unknown;
+}):
+  | 'VALIDATION_FAILED'
+  | 'UNAUTHENTICATED'
+  | 'SESSION_REVOKED'
+  | 'INVALID_CREDENTIALS'
+  | 'USERNAME_TAKEN'
+  | 'EMAIL_TAKEN'
+  | 'USER_NOT_FOUND'
+  | 'CONVERSATION_NOT_FOUND'
+  | 'NOT_A_MEMBER'
+  | 'NOT_GROUP_OWNER'
+  | 'ALREADY_A_MEMBER'
+  | 'GROUP_FULL'
+  | 'OWNER_CANNOT_BE_REMOVED'
+  | 'GROUP_CLOSED'
+  | 'CANNOT_MESSAGE_SELF'
+  | 'RATE_LIMITED'
+  | 'INTERNAL_ERROR' {
   return ErrorResponseSchema.parse(res.json()).error.code;
 }
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /direct-messages', () => {
   it('requires authentication', async () => {
     await withApp({}, async (app) => {
@@ -243,6 +264,7 @@ describe('POST /direct-messages', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /conversations/:id/messages', () => {
   it('sends to an existing Conversation with the next sequence', async () => {
     await withApp({}, async (app) => {
@@ -353,6 +375,7 @@ describe('POST /conversations/:id/messages', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('GET /conversations/:id/messages', () => {
   it('returns the latest Messages, most recent first, to either Member', async () => {
     await withApp({}, async (app) => {
@@ -504,9 +527,13 @@ describe('Message body handling', () => {
   });
 });
 
-const listConversations = (app: NestFastifyApplication, as: Person) =>
+const listConversations = (
+  app: NestFastifyApplication,
+  as: Person,
+): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'GET', url: '/api/v1/conversations', headers: bearer(as) });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('GET /conversations', () => {
   it('requires authentication', async () => {
     await withApp({}, async (app) => {

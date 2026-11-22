@@ -3,7 +3,7 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ErrorCode, type RegisterResponse, type SearchUsersResponse } from '@chat/contracts';
 import * as argon2 from 'argon2';
-import { and, eq, gt, ne, or, sql } from 'drizzle-orm';
+import { and, eq, gt, ne, or, sql, type SQL } from 'drizzle-orm';
 import { DomainException } from '../common/all-exceptions.filter.js';
 import { readProperty } from '../common/read-property.js';
 import type { Config } from '../config/config.js';
@@ -64,7 +64,7 @@ export class AuthService {
   }
 
   /** The database computes "now plus the refresh TTL"; only the duration is passed in. */
-  private refreshExpiry() {
+  private refreshExpiry(): SQL<unknown> {
     return sql`now() + make_interval(secs => ${this.refreshTtlSeconds})`;
   }
 
@@ -119,7 +119,7 @@ export class AuthService {
 
   /** Swaps a live refresh token for a new one and a fresh access token. */
   public async refresh(refreshToken: string | undefined): Promise<IssuedSession> {
-    const unauthenticated = () =>
+    const unauthenticated = (): DomainException =>
       new DomainException(ErrorCode.UNAUTHENTICATED, HttpStatus.UNAUTHORIZED, 'Not signed in');
     if (!refreshToken) throw unauthenticated();
 

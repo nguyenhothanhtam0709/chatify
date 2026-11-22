@@ -2,10 +2,28 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    "target": "esnext",
     "verbatimModuleSyntax": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "types": ["node"]
+    "types": ["node"],
+    "plugins": [{ "transform": "@ttsc/paths" }],
+    "paths": {
+      "@auth/*": ["./src/auth/*"],
+      "@clock/*": ["./src/clock/*"],
+      "@common/*": ["./src/common/*"],
+      "@config/*": ["./src/config/*"],
+      "@db/*": ["./src/db/*"],
+      "@docs/*": ["./src/docs/*"],
+      "@groups/*": ["./src/groups/*"],
+      "@health/*": ["./src/health/*"],
+      "@logging/*": ["./src/logging/*"],
+      "@memberships/*": ["./src/memberships/*"],
+      "@messages/*": ["./src/messages/*"],
+      "@realtime/*": ["./src/realtime/*"],
+      "@security/*": ["./src/security/*"],
+      "@throttling/*": ["./src/throttling/*"]
+    }
   },
   "include": ["src", "test", "vitest.config.ts", "drizzle.config.ts"]
 }

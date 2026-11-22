@@ -1,7 +1,7 @@
 import type { Group, User, UserSearchResult } from '@chat/contracts';
 import { EllipsisVertical, LogOut, UserMinus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { useAuth } from '@/auth/AuthProvider';
+import { useAuth } from '@/auth/auth-context';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +28,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { useRealtimeEvents } from '@/realtime/RealtimeProvider';
+import { useRealtimeEvents } from '@/realtime/realtime-context';
 import { displayName } from './conversation-target';
 import { UserSearchCombobox } from './NewConversationDialog';
 
@@ -103,7 +103,7 @@ export function GroupDetailsSheet({
           };
         });
       },
-      [groupId],
+      [groupId, user.id],
     ),
   );
 

@@ -1,16 +1,7 @@
-import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  plugins: [
-    swc.vite({
-      jsc: {
-        target: 'es2023',
-        parser: { syntax: 'typescript', decorators: true },
-        transform: { legacyDecorator: true, decoratorMetadata: true },
-      },
-    }),
-  ],
+  resolve: { tsconfigPaths: true },
   test: {
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
     globalSetup: ['./test/global-setup.ts'],

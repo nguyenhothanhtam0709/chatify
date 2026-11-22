@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import {
   ErrorCode,
@@ -11,7 +12,12 @@ import { describe, expect, it } from 'vitest';
 import { withApp } from '../../test/app-harness.js';
 import { bearer, createGroup, signUp, type Person } from '../../test/people.js';
 
-const addMember = (app: NestFastifyApplication, as: Person, groupId: string, userId: string) =>
+const addMember = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  userId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/groups/${groupId}/members`,
@@ -19,14 +25,24 @@ const addMember = (app: NestFastifyApplication, as: Person, groupId: string, use
     payload: { userId },
   });
 
-const removeMember = (app: NestFastifyApplication, as: Person, groupId: string, userId: string) =>
+const removeMember = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  userId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'DELETE',
     url: `/api/v1/groups/${groupId}/members/${userId}`,
     headers: bearer(as),
   });
 
-const post = (app: NestFastifyApplication, as: Person, groupId: string, body: string) =>
+const post = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  body: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/conversations/${groupId}/messages`,
@@ -34,19 +50,45 @@ const post = (app: NestFastifyApplication, as: Person, groupId: string, body: st
     payload: { clientMessageId: randomUUID(), body },
   });
 
-const history = (app: NestFastifyApplication, as: Person, groupId: string, query = '') =>
+const history = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  query = '',
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'GET',
     url: `/api/v1/conversations/${groupId}/messages${query}`,
     headers: bearer(as),
   });
 
-const bodies = (res: { json(): unknown }) =>
+const bodies = (res: { json(): unknown }): string[] =>
   GetMessagesResponseSchema.parse(res.json())
     .messages.filter((m) => m.kind === 'text')
     .map((m) => m.body);
 
-async function summaryOf(app: NestFastifyApplication, as: Person, groupId: string) {
+async function summaryOf(
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<
+  | {
+      id: string;
+      kind: 'direct' | 'group';
+      name: string;
+      members: { id: string; username: string; nickname: string | null }[];
+      isMember: boolean;
+      closed: boolean;
+      lastMessage: {
+        senderId: string;
+        sequence: number;
+        preview: string;
+        createdAt: string;
+      } | null;
+      unreadCount: number;
+    }
+  | undefined
+> {
   const res = await app.inject({
     method: 'GET',
     url: '/api/v1/conversations',
@@ -57,8 +99,28 @@ async function summaryOf(app: NestFastifyApplication, as: Person, groupId: strin
   );
 }
 
-const errorCode = (res: { json(): unknown }) => ErrorResponseSchema.parse(res.json()).error.code;
+const errorCode = (res: {
+  json(): unknown;
+}):
+  | 'VALIDATION_FAILED'
+  | 'UNAUTHENTICATED'
+  | 'SESSION_REVOKED'
+  | 'INVALID_CREDENTIALS'
+  | 'USERNAME_TAKEN'
+  | 'EMAIL_TAKEN'
+  | 'USER_NOT_FOUND'
+  | 'CONVERSATION_NOT_FOUND'
+  | 'NOT_A_MEMBER'
+  | 'NOT_GROUP_OWNER'
+  | 'ALREADY_A_MEMBER'
+  | 'GROUP_FULL'
+  | 'OWNER_CANNOT_BE_REMOVED'
+  | 'GROUP_CLOSED'
+  | 'CANNOT_MESSAGE_SELF'
+  | 'RATE_LIMITED'
+  | 'INTERNAL_ERROR' => ErrorResponseSchema.parse(res.json()).error.code;
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('membership periods and history windows', () => {
   it('shows a newly added Member only the Messages sent after they joined', async () => {
     await withApp({}, async (app) => {
@@ -102,7 +164,9 @@ describe('membership periods and history windows', () => {
     });
   });
 
+  // oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
   it('shows a Former Member no Members, and the Members again once they are re-added', async () => {
+    // oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
     await withApp({}, async (app) => {
       const alice = await signUp(app, 'Alice');
       const bob = await signUp(app, 'Bob');
@@ -111,7 +175,25 @@ describe('membership periods and history windows', () => {
       const group = await createGroup(app, alice, [bob.id]);
       await removeMember(app, alice, group.id, bob.id);
       await addMember(app, alice, group.id, carol.id);
-      const get = async (as: Person) =>
+      const get = async (
+        as: Person,
+      ): Promise<
+        | {
+            id: string;
+            kind: 'direct';
+            members: { id: string; username: string; nickname: string | null }[];
+            readUpToSequence?: number | undefined;
+          }
+        | {
+            id: string;
+            kind: 'group';
+            name: string;
+            members: { id: string; username: string; nickname: string | null }[];
+            closed: boolean;
+            isMember: boolean;
+            ownerId?: string | undefined;
+          }
+      > =>
         GetConversationResponseSchema.parse(
           (
             await app.inject({

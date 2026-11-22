@@ -9,13 +9,14 @@ import { runMigrations } from '../src/db/migrate.js';
 export default async function setup(project: {
   provide: (key: string, value: string) => void;
 }): Promise<() => Promise<void>> {
+  // oxlint-disable-next-line no-restricted-properties -- the Vitest global setup runs before and outside Nest, and TEST_DATABASE_URL is a test-runner switch, not app config
   let url = process.env['TEST_DATABASE_URL'];
-  let stop = async () => {};
+  let stop = (): Promise<void> => Promise.resolve();
 
   if (!url) {
     const container = await new PostgreSqlContainer('postgres:18-alpine').start();
     url = container.getConnectionUri();
-    stop = async () => {
+    stop = async (): Promise<void> => {
       await container.stop();
     };
   }

@@ -1,6 +1,6 @@
 import type { User, UserSearchResult } from '@chat/contracts';
 import { useEffect, useRef, useState } from 'react';
-import { useAuth } from '@/auth/AuthProvider';
+import { useAuth } from '@/auth/auth-context';
 import { ConversationView } from './ConversationView';
 import { LoadingConversation, Unreachable } from './RoutedStatus';
 

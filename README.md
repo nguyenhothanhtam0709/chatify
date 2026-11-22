@@ -16,7 +16,7 @@ Agents start from [AGENTS.md](AGENTS.md), not from this file.
 
 ## Quick start
 
-Needs Node 24, pnpm and Docker. Follow [setup](docs/workflow/setup.md) once (install, `.env` with a JWT key pair, database up, migrate, optional seed), then:
+Needs Node 26, pnpm and Docker. Follow [setup](docs/workflow/setup.md) once (install, `.env` with a JWT key pair, database up, migrate, optional seed), then:
 
 ```sh
 pnpm dev:api   # API on http://localhost:3000/api/v1

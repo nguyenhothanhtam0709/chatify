@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DrizzleModule, getDrizzleToken } from '@nestjs/drizzle';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import type { Logger } from 'pino';
 import type { Config } from '../config/config.js';
@@ -11,7 +11,7 @@ import * as schema from './schema.js';
 
 export const PG_POOL = Symbol('PG_POOL');
 
-function createDatabase(pool: Pool) {
+function createDatabase(pool: Pool): NodePgDatabase<typeof schema> & { $client: Pool } {
   return drizzle(pool, { schema });
 }
 
@@ -26,13 +26,13 @@ export type Database = ReturnType<typeof createDatabase>;
   imports: [
     DrizzleModule.forRootAsync({
       inject: [ConfigService, PINO],
-      useFactory: (config: ConfigService<Config, true>, logger: Logger) => {
+      useFactory: (config: ConfigService<Config, true>, logger: Logger): { db: Database } => {
         const pool = new Pool({
           connectionString: config.get('DATABASE_URL', { infer: true }),
           connectionTimeoutMillis: 2_000,
         });
         // An idle-client error must not crash the process.
-        pool.on('error', () => {});
+        pool.on('error', (): void => undefined);
         const instrumented = instrumentPool(
           pool,
           logger,
@@ -46,7 +46,7 @@ export type Database = ReturnType<typeof createDatabase>;
     {
       provide: PG_POOL,
       inject: [getDrizzleToken()],
-      useFactory: (db: Database) => db.$client,
+      useFactory: (db: Database): Pool => db.$client,
     },
   ],
   exports: [PG_POOL],

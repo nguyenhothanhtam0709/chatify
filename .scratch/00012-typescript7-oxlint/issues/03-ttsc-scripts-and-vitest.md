@@ -17,20 +17,30 @@ Rules this Ticket needs:
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `api` and `contracts` typecheck, build and clean through `ttsc`; `contracts` output still has `.d.ts` files that `api` and `web` consume
-- [ ] `api` targets `esnext` and has an `@<folder>/*` alias for each source subfolder; an alias import resolves in the build, at runtime and in the tests (check with a throwaway import, then revert)
-- [ ] `build` equals the reference's `build:prod`; `build:dev` and `build:clean` exist
-- [ ] `pnpm dev:api` runs the source with watch mode; `db:migrate` and `db:seed` run without a build step; `start:prod` runs the built output
-- [ ] The listed extra scripts exist and work (`test:cov` produces coverage)
-- [ ] Every `ttsc` script uses `--checkers 2` (or the reason is in Comments for `ttsc/register`), and the PR shows peak memory and time
-- [ ] `web` and `api` Vitest resolve aliases from the tsconfig
-- [ ] SWC is removed from `api` with the full suite green, or kept with the reason in Comments
-- [ ] `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm docs:check` pass
+- [x] `api` and `contracts` typecheck, build and clean through `ttsc`; `contracts` output still has `.d.ts` files that `api` and `web` consume
+- [x] `api` targets `esnext` and has an `@<folder>/*` alias for each source subfolder; an alias import resolves in the build, at runtime and in the tests (check with a throwaway import, then revert)
+- [x] `build` equals the reference's `build:prod`; `build:dev` and `build:clean` exist
+- [x] `pnpm dev:api` runs the source with watch mode; `db:migrate` and `db:seed` run without a build step; `start:prod` runs the built output
+- [x] The listed extra scripts exist and work (`test:cov` produces coverage)
+- [x] Every `ttsc` script uses `--checkers 2` (or the reason is in Comments for `ttsc/register`), and the PR shows peak memory and time
+- [x] `web` and `api` Vitest resolve aliases from the tsconfig
+- [x] SWC is removed from `api` with the full suite green, or kept with the reason in Comments
+- [x] `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm docs:check` pass
 
 **Verification:** run `pnpm test` once, including the `api` behaviour tests with real Postgres (they decide the SWC question). One browser check per [browser check](../../../docs/workflow/browser-check.md): `dev:api` and `dev:web` start and a message sends. Record both in the PR.
 
 **Out of scope:** aliases or `@ttsc/paths` in `contracts`; rewriting existing imports or enforcing aliases; a `test:e2e` script; `ttsc` in `web`; the `esnext` target for `web` or `contracts`.
 
 ## Comments
+
+### Implementer (needs-info)
+
+- `ttsc/register` (0.37.2) takes no `--checkers`: it is a Node `--import` hook that calls `prepareExecution` with no checker option (only `ttsx` parses `--checkers`), and I found no environment variable for it. So `dev`/`start:*`, `db:migrate` and `db:seed` run it with the default thread count. Question: add a `GOMAXPROCS=2` prefix to those scripts (as the Spec does for type-aware oxlint), switch them to `ttsx --checkers 2`, or leave them? Recommendation: `GOMAXPROCS=2`. This is the only open item.
+- SWC removed: the full `api` suite (36 files, 323 tests, real Postgres) passes on Vitest's own transform with `resolve.tsconfigPaths`, so `unplugin-swc`, `@swc/core` and the allow-list entry are gone.
+- `ttsc --noEmit` on this repo, 3 runs each (macOS): api `--checkers 2` 0.60 s / 362 MB, default 0.60 to 0.68 s / 362 MB; contracts 0.16 s / 125 MB with the flag, 0.16 s / 131 MB default.
+
+### Human decision
+
+Prefix every script that runs `ttsc/register` (`start:dev`, `start:debug`, `db:migrate`, `db:seed`; `dev` calls `start:dev`) with `GOMAXPROCS=2`, like oxlint. No new package. Done in the last commit; Status moved needs-info, then ready-for-agent, then resolved.

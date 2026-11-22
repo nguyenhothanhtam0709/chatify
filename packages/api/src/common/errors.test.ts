@@ -16,7 +16,10 @@ const QuerySchema = z.object({ limit: z.coerce.number().int().min(1).max(100) })
 @Controller('probe')
 class ProbeController {
   @Post()
-  public create(@Body(new ZodValidationPipe(BodySchema)) body: z.infer<typeof BodySchema>) {
+  public create(@Body(new ZodValidationPipe(BodySchema)) body: z.infer<typeof BodySchema>): {
+    name: string;
+    age: number;
+  } {
     return body;
   }
 
@@ -26,12 +29,16 @@ class ProbeController {
   }
 
   @Get('list')
-  public list(@Query(new ZodValidationPipe(QuerySchema)) query: z.infer<typeof QuerySchema>) {
+  public list(@Query(new ZodValidationPipe(QuerySchema)) query: z.infer<typeof QuerySchema>): {
+    limit: number;
+  } {
     return query;
   }
 
   @Get(':id')
-  public get(@Param(new ZodValidationPipe(ParamSchema)) params: z.infer<typeof ParamSchema>) {
+  public get(@Param(new ZodValidationPipe(ParamSchema)) params: z.infer<typeof ParamSchema>): {
+    id: string;
+  } {
     return params;
   }
 }
@@ -55,6 +62,7 @@ afterEach(async () => {
   probe = undefined;
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('validation failures', () => {
   it('maps an invalid body to 400 VALIDATION_FAILED with Zod issues in details', async () => {
     const app = await probeApp();

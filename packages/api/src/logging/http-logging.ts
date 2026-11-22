@@ -18,7 +18,7 @@ export function installHttpLogging(fastify: FastifyInstance, logger: Logger): vo
 
   fastify.addHook('onResponse', (request, reply, done) => {
     const context = contexts.get(request);
-    const log = () =>
+    const log = (): void =>
       logger.info(
         {
           method: request.method,

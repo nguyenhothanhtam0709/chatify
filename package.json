@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@11.18.0",
   "engines": {
-    "node": ">=24"
+    "node": ">=26"
   },
   "scripts": {
     "build:contracts": "pnpm --filter @chat/contracts build",
@@ -17,7 +17,8 @@
     "db:migrate": "pnpm --filter @chat/api db:migrate",
     "db:seed": "pnpm --filter @chat/api db:seed",
     "test": "pnpm build:contracts && pnpm -r --workspace-concurrency=1 test && pnpm test:scripts",
-    "lint": "pnpm build:contracts && eslint . && prettier --check .",
+    "lint": "pnpm build:contracts && pnpm -r --workspace-concurrency=1 lint && pnpm lint:scripts && prettier --check .",
+    "lint:scripts": "GOMAXPROCS=2 oxlint --type-aware --threads=2 -c .oxlintrc.json scripts",
     "format": "prettier --write .",
     "docs:generate": "pnpm build:contracts && pnpm --filter @chat/api build && node scripts/docs/generate.ts",
     "typecheck": "pnpm build:contracts && pnpm -r typecheck",
@@ -26,11 +27,9 @@
     "metrics:tokens": "node scripts/metrics/token-report.ts"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "eslint": "^10.13.0",
-    "globals": "^17.13.0",
+    "oxlint": "^1.94.0",
+    "oxlint-tsgolint": "^7.0.2007",
     "prettier": "^3.9.10",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.71.2"
+    "typescript": "~7.0.2"
   }
 }

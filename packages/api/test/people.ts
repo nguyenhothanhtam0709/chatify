@@ -23,7 +23,9 @@ export async function signUp(app: NestFastifyApplication, username: string): Pro
   return { id: login.user.id, token: login.accessToken };
 }
 
-export const bearer = (p: Person) => ({ authorization: `Bearer ${p.token}` });
+export const bearer = (p: Person): { authorization: string } => ({
+  authorization: `Bearer ${p.token}`,
+});
 
 export async function createGroup(
   app: NestFastifyApplication,

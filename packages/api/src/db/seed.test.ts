@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import {
   GetConversationResponseSchema,
   GetMessagesResponseSchema,
@@ -19,7 +20,7 @@ async function withPool<T>(run: (pool: Pool) => Promise<T>): Promise<T> {
   }
 }
 
-async function loginAs(app: NestFastifyApplication, username: string) {
+async function loginAs(app: NestFastifyApplication, username: string): Promise<string> {
   const res = await app.inject({
     method: 'POST',
     url: '/api/v1/auth/login',
@@ -29,13 +30,18 @@ async function loginAs(app: NestFastifyApplication, username: string) {
   return LoginResponseSchema.parse(res.json()).accessToken;
 }
 
-const get = (app: NestFastifyApplication, token: string, url: string) =>
+const get = (
+  app: NestFastifyApplication,
+  token: string,
+  url: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'GET',
     url: `/api/v1${url}`,
     headers: { authorization: `Bearer ${token}` },
   });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('seedDatabase', () => {
   it('lets every seeded User log in with the shared password', async () => {
     await withPool(seedDatabase);
@@ -48,15 +54,17 @@ describe('seedDatabase', () => {
     await withPool(seedDatabase);
     await withPool(seedDatabase);
     const counts = await withPool(async (pool) => {
-      const count = async (table: string) =>
+      const count = async (table: string): Promise<number> =>
         Number((await pool.query(`select count(*) from ${table}`)).rows[0].count);
       return { users: await count('users'), conversations: await count('conversations') };
     });
     expect(counts).toEqual({ users: 5, conversations: 2 });
   });
 
+  // oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
   it('gives the Group a Former Member and history windows that follow the membership periods', async () => {
     await withPool(seedDatabase);
+    // oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
     await withApp({}, async (app) => {
       const alice = await loginAs(app, 'alice');
       const carol = await loginAs(app, 'carol');
@@ -76,7 +84,21 @@ describe('seedDatabase', () => {
         group.members.find((m) => m.username === 'alice')?.id,
       );
 
-      const read = async (token: string) =>
+      const read = async (
+        token: string,
+      ): Promise<
+        {
+          id: string;
+          conversationId: string;
+          senderId: string;
+          sequence: number;
+          clientMessageId: string;
+          kind: 'text' | 'member_added' | 'member_removed' | 'member_left' | 'owner_changed';
+          body: string;
+          createdAt: string;
+          subject?: { id: string; username: string; nickname: string | null } | undefined;
+        }[]
+      > =>
         GetMessagesResponseSchema.parse(
           (await get(app, token, `/conversations/${group.id}/messages?limit=100`)).json(),
         ).messages;

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { withApp } from '../../test/app-harness.js';
 import { LEVEL } from '../../test/log-capture.js';
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('request logging', () => {
   it('logs exactly one line per request with method, route, status, duration, request ID and IP', async () => {
     await withApp({}, async (app, logs) => {
@@ -66,7 +67,7 @@ describe('request logging', () => {
   });
 
   it('routes Nest boot logs through the shared logger', async () => {
-    await withApp({}, async (_app, logs) => {
+    await withApp({}, (_app, logs) => {
       const bootLine = logs.lines.find((l) => l['context'] === 'NestFactory');
       expect(bootLine).toBeDefined();
       expect(bootLine!.msg).toMatch(/Starting Nest application/);

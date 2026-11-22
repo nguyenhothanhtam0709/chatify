@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import {
   ErrorCode,
   ErrorResponseSchema,
@@ -15,7 +16,11 @@ import { testClock } from '../../test/test-clock.js';
 
 const alice = { username: 'Alice', email: 'alice@example.com', password: 'correct horse battery' };
 
-async function signIn(app: NestFastifyApplication) {
+async function signIn(app: NestFastifyApplication): Promise<{
+  accessToken: string;
+  cookie: LightMyRequestResponse['cookies'][number];
+  response: LightMyRequestResponse;
+}> {
   await app.inject({ method: 'POST', url: '/api/v1/auth/register', payload: alice });
   const res = await app.inject({
     method: 'POST',
@@ -28,7 +33,7 @@ async function signIn(app: NestFastifyApplication) {
   return { accessToken, cookie, response: res };
 }
 
-function me(app: NestFastifyApplication, accessToken?: string) {
+function me(app: NestFastifyApplication, accessToken?: string): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'GET',
     url: '/api/v1/users/me',
@@ -36,7 +41,7 @@ function me(app: NestFastifyApplication, accessToken?: string) {
   });
 }
 
-function refresh(app: NestFastifyApplication, token?: string) {
+function refresh(app: NestFastifyApplication, token?: string): Promise<LightMyRequestResponse> {
   return app.inject({
     method: 'POST',
     url: '/api/v1/auth/refresh',
@@ -44,7 +49,7 @@ function refresh(app: NestFastifyApplication, token?: string) {
   });
 }
 
-function errorCode(res: { json: () => unknown }) {
+function errorCode(res: { json: () => unknown }): ErrorCode {
   return ErrorResponseSchema.parse(res.json()).error.code;
 }
 
@@ -109,6 +114,7 @@ describe('refresh cookie', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /auth/refresh', () => {
   it('rotates the refresh token and issues a working access token', async () => {
     await withApp({}, async (app) => {
@@ -167,6 +173,7 @@ describe('POST /auth/refresh', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('GET /users/me', () => {
   it('returns the current User profile', async () => {
     await withApp({}, async (app) => {
@@ -224,7 +231,10 @@ describe('GET /users/me', () => {
 });
 
 describe('login rate limits', () => {
-  const attempt = (app: NestFastifyApplication, identifier: string) =>
+  const attempt = (
+    app: NestFastifyApplication,
+    identifier: string,
+  ): Promise<LightMyRequestResponse> =>
     app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',

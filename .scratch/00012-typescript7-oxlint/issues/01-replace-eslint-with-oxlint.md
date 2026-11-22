@@ -18,19 +18,31 @@ Rules this Ticket needs:
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `pnpm lint` exits 0 on a clean tree, using type-aware oxlint plus `prettier --check`
-- [ ] No ESLint package or config remains in the workspace
-- [ ] Every oxlint invocation uses `GOMAXPROCS=2` and `--threads=2`, lint runs packages one at a time, and the PR shows peak memory, time and the type-aware pass's observed CPU use
-- [ ] `api` and `contracts` use the full reference rule set plus today's rules; `web` uses today's rules plus the react rules, minus the three excluded rules
-- [ ] Each ported custom rule fails on a deliberate violation (default export, `dangerouslySetInnerHTML`, `forwardRef`, a bare `fs` import, a `class-validator` import, `console.log`, `process.env`, a type assertion); the violation is reverted afterwards
-- [ ] Every error and warning is fixed, or bypassed with a reasoned disable comment that has a matching line in `fix-lint.md`
-- [ ] The docs that named ESLint or the old disable comment are updated
-- [ ] `pnpm typecheck`, `pnpm test` and `pnpm docs:check` still pass, with no behaviour change
+- [x] `pnpm lint` exits 0 on a clean tree, using type-aware oxlint plus `prettier --check`
+- [x] No ESLint package or config remains in the workspace
+- [x] Every oxlint invocation uses `GOMAXPROCS=2` and `--threads=2`, lint runs packages one at a time, and the PR shows peak memory, time and the type-aware pass's observed CPU use
+- [x] `api` and `contracts` use the full reference rule set plus today's rules; `web` uses today's rules plus the react rules, minus the three excluded rules
+- [x] Each ported custom rule fails on a deliberate violation (default export, `dangerouslySetInnerHTML`, `forwardRef`, a bare `fs` import, a `class-validator` import, `console.log`, `process.env`, a type assertion); the violation is reverted afterwards
+- [x] Every error and warning is fixed, or bypassed with a reasoned disable comment that has a matching line in `fix-lint.md`
+- [x] The docs that named ESLint or the old disable comment are updated
+- [x] `pnpm typecheck`, `pnpm test` and `pnpm docs:check` still pass, with no behaviour change
 
 **Verification:** run the deliberate-violation checks above once and record the results in the PR. No new test files. No browser check (no UI change); the existing web behaviour tests cover the lint-driven source edits.
 
 **Out of scope:** replacing Prettier with `oxfmt`; adding `--deny-warnings`; paying down the debt recorded in `fix-lint.md`; TypeScript 7 or Node 26.
 
 ## Comments
+
+Resolved. Verified with `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm docs:check`, and by hand with one deliberate violation per ported rule (all failed, then reverted).
+
+Assumptions and decisions:
+
+- `packages/web/tsconfig.json` loses `baseUrl` here: tsgolint rejects the option ("Option baseUrl has been removed"), so type-aware lint cannot run on web with it. `paths` keeps working without it. Ticket 02 covers the rest of the alias change.
+- The `react` plugin also turns on `react/set-state-in-effect`, `react/immutability` and `react/refs` (React Compiler rules). The spec names only `rules-of-hooks` and `only-export-components` for web, so those three are off. `exhaustive-deps` stays on (one fix: `user.id` added to a dependency list).
+- `only-export-components` is fixed by moving contexts and hooks into `auth-context.ts`, `realtime-context.ts` and `theme-context.ts`.
+- `typescript/no-floating-promises` and `no-misused-promises` are off for `scripts/` (they did not apply there under ESLint; node:test files call `test()` at top level).
+- `consistent-type-assertions` applies under `packages/` only, as before.
+- Spread of a string became `Array.from` (same code-point counting) for `typescript/no-misused-spread`.
+- Bypasses are listed in `fix-lint.md`: `max-lines-per-function` on long test suites, NestJS constructors over 4 parameters, and two `unbound-method` in web test setup.

@@ -37,16 +37,18 @@ A failing step is compared with the same step on `main` before it is blamed on t
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Steps 1 to 11 each pass, or the failure is fixed in this Ticket (or escalated if it needs a package change)
-- [ ] The API test covers every endpoint group and socket event listed in step 6
-- [ ] The browser test covers every flow listed in step 7 with two sessions
-- [ ] The PR records each command and its result, and says which step, if any, also failed on `main`
-- [ ] Nothing from the scratchpad scripts is committed, and all dev servers and containers are stopped at the end (ports 3000 and 5173 are free)
+- [x] Steps 1 to 11 each pass, or the failure is fixed in this Ticket (or escalated if it needs a package change)
+- [x] The API test covers every endpoint group and socket event listed in step 6
+- [x] The browser test covers every flow listed in step 7 with two sessions
+- [x] The PR records each command and its result, and says which step, if any, also failed on `main`
+- [x] Nothing from the scratchpad scripts is committed, and all dev servers and containers are stopped at the end (ports 3000 and 5173 are free)
 
 **Verification:** the steps above are the verification. Follow [browser check](../../../docs/workflow/browser-check.md) for the dev stack and for stopping it cleanly.
 
 **Out of scope:** a committed `test:e2e` script or e2e spec files; new packages; new lint rules or app behaviour changes; paying down `fix-lint.md`.
 
 ## Comments
+
+Steps 1 to 11 pass on Node 26.13.1; no step failed, so nothing was compared with `main` and no fix was needed. API test: 74 checks plus a separate login-limit probe, all pass (every endpoint group and socket event in step 6). Browser test: every flow in step 7 was run with two sessions (`alice`, `bob`; plus a signed-up `webtester`). Console compared with `main` (bc1074d, own worktree and Postgres, Node 24, same flows): the 401 from `/auth/refresh` before login, the `WebSocket is closed before the connection is established` warning and the Radix `aria-hidden` focus warning (on confirming a member removal) appear on `main` too, so they are pre-existing. The one 404 was seen once in the first run and did not recur in two later runs on this branch or one on `main`; its URL was not captured, so it could not be identified or attributed. Observations: `web` `typecheck`/`build` call `tsc --noEmit` with no `--checkers 2` (not a `ttsc` call); a cold Go plugin cache makes `ttsc` (typecheck, `ttsc/register` in `db:migrate`) peak at about 2.4 GB for 30 to 50 s, warm runs match the Ticket 01 and 03 numbers.

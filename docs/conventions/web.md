@@ -28,7 +28,7 @@ Rules for `packages/web`, on top of the [general conventions](general.md).
 ## State and hooks
 
 - State is local `useState` plus context providers (Auth, Realtime, Theme). Use no query or state library. Only `ThemeProvider` uses `localStorage`.
-- A custom hook lives in its provider's file (`useAuth`, `useTheme`, `useRealtimeEvents`). `hooks/` holds only shadcn's `use-mobile.ts`.
+- A context and its hooks (`useAuth`, `useTheme`, `useRealtimeEvents`) live in `src/{auth,realtime,theme}/*-context.ts`, apart from the provider component, because `react/only-export-components` forbids a component file from exporting them. `hooks/` holds only shadcn's `use-mobile.ts`.
 
 ## Routing and realtime
 

@@ -23,13 +23,13 @@ describe('test harness', () => {
     const fixed = new Date('2030-01-02T03:04:05.000Z');
     const clock: Clock = { now: () => fixed };
 
-    await withApp({ clock }, async (app) => {
+    await withApp({ clock }, (app) => {
       expect(app.get<Clock>(CLOCK).now().toISOString()).toBe('2030-01-02T03:04:05.000Z');
     });
   });
 
   it('uses the real clock by default', async () => {
-    await withApp({}, async (app) => {
+    await withApp({}, (app) => {
       const before = Date.now();
       const now = app.get<Clock>(CLOCK).now().getTime();
       expect(now).toBeGreaterThanOrEqual(before);

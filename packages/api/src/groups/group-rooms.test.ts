@@ -1,3 +1,4 @@
+import type { LightMyRequestResponse } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { GroupMembershipEndedEventSchema } from '@chat/contracts';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -13,14 +14,24 @@ import {
 import { MessagesService } from '../messages/messages.service.js';
 import { RealtimeGateway, conversationRoom } from '../realtime/realtime.gateway.js';
 
-const removeMember = (app: NestFastifyApplication, as: Person, groupId: string, userId: string) =>
+const removeMember = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  userId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'DELETE',
     url: `/api/v1/groups/${groupId}/members/${userId}`,
     headers: bearer(as),
   });
 
-const addMember = (app: NestFastifyApplication, as: Person, groupId: string, userId: string) =>
+const addMember = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  userId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/groups/${groupId}/members`,
@@ -28,10 +39,19 @@ const addMember = (app: NestFastifyApplication, as: Person, groupId: string, use
     payload: { userId },
   });
 
-const leave = (app: NestFastifyApplication, as: Person, groupId: string) =>
+const leave = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'POST', url: `/api/v1/groups/${groupId}/leave`, headers: bearer(as) });
 
-const post = (app: NestFastifyApplication, as: Person, groupId: string, body = 'hello') =>
+const post = (
+  app: NestFastifyApplication,
+  as: Person,
+  groupId: string,
+  body = 'hello',
+): Promise<LightMyRequestResponse> =>
   app.inject({
     method: 'POST',
     url: `/api/v1/conversations/${groupId}/messages`,
@@ -39,7 +59,7 @@ const post = (app: NestFastifyApplication, as: Person, groupId: string, body = '
     payload: { clientMessageId: randomUUID(), body },
   });
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 200));
+const settle = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 200));
 
 const inRoom = async (app: NestFastifyApplication, groupId: string): Promise<string[]> => {
   const sockets = await app
@@ -49,13 +69,14 @@ const inRoom = async (app: NestFastifyApplication, groupId: string): Promise<str
   return sockets.map((s) => s.id).sort();
 };
 
-const ids = (...clients: TestSocket[]) => clients.map((c) => c.socket.id!).sort();
-const names = (client: TestSocket) => client.received.map(([name]) => name);
-const bothNext = (event: string, a: TestSocket, b: TestSocket) =>
+const ids = (...clients: TestSocket[]): string[] => clients.map((c) => c.socket.id!).sort();
+const names = (client: TestSocket): string[] => client.received.map(([name]) => name);
+const bothNext = (event: string, a: TestSocket, b: TestSocket): Promise<[unknown, unknown]> =>
   Promise.all([a.next(event), b.next(event)]);
 
 afterEach(closeAllSockets);
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('Group rooms', () => {
   it('puts the sockets of every Member, on connect, in the Group room and nobody else', async () => {
     await withApp({}, async (app) => {
@@ -180,6 +201,7 @@ describe('Group rooms', () => {
     });
   });
 
+  // oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
   describe('leak windows', () => {
     type Rooms = { groupRoomsOf(userId: string): Promise<string[]> };
 

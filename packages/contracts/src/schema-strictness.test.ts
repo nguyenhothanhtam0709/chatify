@@ -26,7 +26,7 @@ const objectSchemas = Object.entries(contracts).filter((entry): entry is [string
   isObjectSchema(entry[1]),
 );
 
-const isInput = (name: string) => /(Request|Query)Schema$/.test(name);
+const isInput = (name: string): boolean => /(Request|Query)Schema$/.test(name);
 
 const inputs = objectSchemas
   .filter(([name]) => isInput(name))

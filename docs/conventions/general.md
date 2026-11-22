@@ -8,7 +8,7 @@ These apply to every package.
 
 ## Enforced by tools
 
-Lint and the compiler already enforce these, so they are not restated: Zod-only validation, no `dangerouslySetInnerHTML`, no `any` or `@ts-` comments, no floating or misused promises in `packages/*/src` and `packages/api/test` (typed lint), no `!` non-null assertion outside tests, no `as` (other than `as const`) outside tests and `scripts/`, named exports only in `packages/*/src`, the `node:` prefix on Node built-ins, Prettier style, strict mode, an explicit `public`, `private` or `protected` on every class member except constructors (which take no `public`), `noUncheckedIndexedAccess` and `.js` suffixes on relative imports (NodeNext). In `packages/api/src`: no `forwardRef`, no `console.*` outside the CLIs, and no `process.env` outside `main.ts` and the CLIs.
+Lint and the compiler already enforce these, so they are not restated: Zod-only validation, no `dangerouslySetInnerHTML`, no `any` or `@ts-` comments, no floating or misused promises in `packages/*/src` and `packages/api/test` (typed lint), no `!` non-null assertion outside tests, no `as` (other than `as const`) outside tests and `scripts/`, named exports only in `packages/*/src`, the `node:` prefix on Node built-ins, Prettier style, strict mode, an explicit `public`, `private` or `protected` on every class member except constructors (which take no `public`), `noUncheckedIndexedAccess` and `.js` suffixes on relative imports (NodeNext). In `packages/api` and `packages/contracts`: explicit return types, at most 4 parameters, complexity 10 and 50 lines per function (warnings, fixed like errors) and the rest of the oxlint config in [.oxlintrc.json](../../.oxlintrc.json). In `packages/api/src`: no `forwardRef`, no `console.*` outside the CLIs, and no `process.env` outside `main.ts` and the CLIs.
 
 ## Naming
 
@@ -19,7 +19,7 @@ Lint and the compiler already enforce these, so they are not restated: Zod-only 
 
 Use `interface` for named object shapes and `type` for unions and aliases. Ambient `.d.ts` files may use `export default`.
 
-Instead of `as`, narrow with a type guard, annotate the type, or give the library call a better type. Where a library or framework leaves no way, use `// eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- <why the cast is safe>`. A disable with no reason fails review: no lint rule checks it, because that would need a new package.
+Instead of `as`, narrow with a type guard, annotate the type, or give the library call a better type. Where a library or framework leaves no way, use `// oxlint-disable-next-line typescript/consistent-type-assertions -- <why the cast is safe>` on the line above. oxlint also honours the `eslint-disable-next-line` form, but write the `oxlint-` form. Any rule can be bypassed the same way, with its own name, and each bypass also gets a line in the root `fix-lint.md` (location, rule, reason). A disable with no reason fails review: no lint rule checks it, because that would need a new package.
 
 ## Errors
 

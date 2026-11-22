@@ -95,6 +95,7 @@ describe('request context', () => {
   });
 });
 
+// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('log transports', () => {
   it('writes to a rotating file when enabled, honouring the file level', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'chat-logs-'));

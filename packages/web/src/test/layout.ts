@@ -8,8 +8,10 @@ export const VIEWPORT_HEIGHT = 300;
  * ITEM_HEIGHT tall, stacked from the top of the content, offset by the viewport's scrollTop.
  */
 export function stubLayout() {
-  // oxlint-disable-next-line typescript/unbound-method -- saves the prototype method to delegate to it from the stub
-  const original = HTMLElement.prototype.getBoundingClientRect;
+  const original: HTMLElement['getBoundingClientRect'] = Reflect.get(
+    HTMLElement.prototype,
+    'getBoundingClientRect',
+  );
   const rect = (top: number, height: number) =>
     ({
       top,

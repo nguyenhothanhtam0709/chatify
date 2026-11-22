@@ -10,16 +10,15 @@ type ModuleRef = Type<unknown> | DynamicModule;
 /** `Reflect.getMetadata` returns `any`; the caller names the shape Nest's decorators write. */
 const read = <T>(key: string, target: object): T | undefined => Reflect.getMetadata(key, target);
 
+const isModuleRef = (value: unknown): value is ModuleRef =>
+  typeof value === 'function' || (typeof value === 'object' && value !== null && 'module' in value);
+
 /** What one module declares: its controllers and the modules it imports. */
 function declaredBy(ref: ModuleRef): { controllers: Type<unknown>[]; imports: ModuleRef[] } {
   const moduleClass = 'module' in ref ? ref.module : ref;
   // A dynamic module's `imports` may also hold promises and forward references, which the
   // generator's modules never use.
-  const dynamicImports =
-    'module' in ref
-      ? // oxlint-disable-next-line typescript/consistent-type-assertions -- only plain and dynamic modules are listed in imports here; see the comment above
-        ((ref.imports ?? []) as ModuleRef[])
-      : [];
+  const dynamicImports = 'module' in ref ? (ref.imports ?? []).filter(isModuleRef) : [];
   return {
     controllers: [
       ...(read<Type<unknown>[]>('controllers', moduleClass) ?? []),

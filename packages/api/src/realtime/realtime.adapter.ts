@@ -9,7 +9,6 @@ import type { IoServer, IoServerOptions } from './socket-types.js';
 export class RealtimeIoAdapter extends IoAdapter {
   public override createIOServer(port: number, options?: IoServerOptions): IoServer {
     const fixed = { transports: ['websocket'], parser, perMessageDeflate: true };
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- spreading the optional `options` makes every key optional, which the adapter's ServerOptions rejects under exactOptionalPropertyTypes (confirmed by compiling without the cast)
-    return super.createIOServer(port, { ...options, ...fixed } as IoServerOptions);
+    return super.createIOServer(port, Object.assign({}, options, fixed));
   }
 }

@@ -11,7 +11,8 @@ The NestJS server on Fastify. It serves the HTTP API, pushes realtime events ove
 Run from the repo root. Only when the environment isn't ready: [setup](../../docs/workflow/setup.md).
 
 - `pnpm dev:api`: runs the source through `ttsc/register` in watch mode (no build first). Needs the database up (`pnpm db:up`, `pnpm db:migrate`) and `packages/api/.env`.
-- `pnpm --filter @chat/api build`, then `start:prod`: the production build and the built output. `build:dev` and `build:clean` also exist. Every `tsc` script passes `--checkers 2`; keep it on new ones. `ttsc` is only the runtime loader (`ttsc/register`).
+- `node_ts` is `node` with `.env`, source maps and `ttsc/register`. `start:dev`, `start:debug`, `db:migrate` and `db:seed` call it. Put extra node flags straight after it (`pnpm node_ts --inspect src/main.ts`): pnpm passes a `--` through to node, which then takes the next flag as the entry file.
+- `pnpm --filter @chat/api build`, then `start:prod`: the production build and the built output. `build` runs `build:prod`; `build:dev` and `build:clean` also exist. Every `tsc` script passes `--checkers 2`; keep it on new ones. `ttsc` is only the runtime loader (`ttsc/register`).
 - `test:watch`, `test:cov`, `test:debug`, `lint:fix` and `format:check` are package scripts. Imports are relative only: there are no tsconfig path aliases, and an alias import fails with TS2307 ([ADR 0010](../../docs/adr/0010-api-uses-relative-imports-no-path-aliases.md)).
 - `pnpm build:contracts`, then `pnpm --filter @chat/api test`: needs Docker running. The tests start their own Postgres.
 - `pnpm db:generate`: writes a migration after a change to [schema.ts](src/db/schema.ts).

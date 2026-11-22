@@ -10,7 +10,7 @@ The Zod schemas and types that api and web share: HTTP bodies, error codes and r
 
 Run from the repo root. Only when the environment isn't ready: [setup](../../docs/workflow/setup.md).
 
-- `pnpm build:contracts`: rebuilds `dist` through `ttsc` (`--checkers 2`). Run it after a change so api and web see it. `build:dev`, `build:clean`, `test:cov` and `lint:fix` also exist.
+- `pnpm build:contracts`: rebuilds `dist` through `tsc` (`--checkers 2`). Run it after a change so api and web see it. `build:dev`, `build:clean`, `test:cov` and `lint:fix` also exist.
 - `pnpm --filter @chat/contracts test`: needs nothing. No database, no Docker.
 - `pnpm docs:generate`: rewrites the Generated Docs. When to run it: [definition of done](../../docs/workflow/definition-of-done.md).
 

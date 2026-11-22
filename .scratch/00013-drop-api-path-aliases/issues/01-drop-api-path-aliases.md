@@ -26,19 +26,21 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] No `@ttsc/paths` anywhere in the repo, and `contracts` has no `ttsc` dependency; the lockfile changes only for those two
-- [ ] `api` and `contracts` `build`, `build:dev` and `typecheck` run `tsc` with `--checkers 2`; `build:clean` works without `ttsc`
-- [ ] `api` `start:dev`, `start:debug`, `db:migrate` and `db:seed` still run the source through `ttsc/register`
-- [ ] With the ttsc cache cleared, `api` `typecheck`, `build:dev` and `db:migrate` finish without creating a `go-build` or plugin cache
-- [ ] `api` `build`, then `start:prod` against the local database after `db:migrate`: the health endpoint reports the database up, and one authenticated request succeeds
-- [ ] A throwaway `@db/...` import in `api` makes `typecheck` fail with TS2307 (reverted afterwards)
-- [ ] `contracts` `build` still emits the `.d.ts` files that `api` and `web` consume
-- [ ] The new ADR exists and links to spec 00012; both package `AGENTS.md` files and the setup guide describe `tsc` and `ttsc` by role and relative imports only
+- [x] No `@ttsc/paths` anywhere in the repo, and `contracts` has no `ttsc` dependency; the lockfile changes only for those two
+- [x] `api` and `contracts` `build`, `build:dev` and `typecheck` run `tsc` with `--checkers 2`; `build:clean` works without `ttsc`
+- [x] `api` `start:dev`, `start:debug`, `db:migrate` and `db:seed` still run the source through `ttsc/register`
+- [x] With the ttsc cache cleared, `api` `typecheck`, `build:dev` and `db:migrate` finish without creating a `go-build` or plugin cache
+- [x] `api` `build`, then `start:prod` against the local database after `db:migrate`: the health endpoint reports the database up, and one authenticated request succeeds
+- [x] A throwaway `@db/...` import in `api` makes `typecheck` fail with TS2307 (reverted afterwards)
+- [x] `contracts` `build` still emits the `.d.ts` files that `api` and `web` consume
+- [x] The new ADR exists and links to spec 00012; both package `AGENTS.md` files and the setup guide describe `tsc` and `ttsc` by role and relative imports only
 
 **Verification:** The checks in the definition of done (`pnpm typecheck`, `pnpm lint`, `pnpm test` with Docker, `pnpm docs:check`). Record in the PR's verification section the one-off results: cold-cache times and cache sizes for `typecheck`, `build:dev` and `db:migrate`, the `start:prod` health and auth responses, and the TS2307 output. No new committed tests and no browser check (`web` is not touched).
 
 **Out of scope:** `web`'s `@/*` alias; a Dockerfile or CI; Rush Stack; a lint rule or committed check banning aliases; replacing `ttsc/register`; editing spec 00012 or its Tickets; changing the `--checkers 2` or `GOMAXPROCS=2` caps; any app, API or UI behaviour change. If `tsc` rejects a flag or option a script passes, escalate rather than keep `ttsc` for that script.
 
 ## Comments
+
+Resolved. Verified with `pnpm typecheck`, `pnpm lint`, `pnpm test` (Docker) and `pnpm docs:check`, plus the one-off checks in the PR (fresh-cache typecheck, build:dev and db:migrate; start:prod health and auth; TS2307 on a throwaway `@db/...` import). Assumptions: none. The machine runs Node 24.18.1 while the repo wants >=26 (engine warning only). `docs/architecture/adr-index.md` was regenerated for the new ADR.

@@ -102,9 +102,6 @@ importers:
       '@testcontainers/postgresql':
         specifier: ^12.2.1
         version: 12.2.1
-      '@ttsc/paths':
-        specifier: ^0.37.2
-        version: 0.37.2
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.5
@@ -142,9 +139,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: ~5.0.5
         version: 5.0.5(vitest@5.0.5)
-      ttsc:
-        specifier: ^0.37.2
-        version: 0.37.2(typescript@7.0.2)
       typescript:
         specifier: ~7.0.2
         version: 7.0.2
@@ -1873,9 +1867,6 @@ packages:
     resolution: {integrity: sha512-i7Hdx3PDxD0QLg0KJFzRdmtUgO34p47DT+nFr3tT/jiBn5LKB+MsmSlvw50wLXta7QehDBsN722WXpH3D1618A==}
     cpu: [x64]
     os: [linux]
-
-  '@ttsc/paths@0.37.2':
-    resolution: {integrity: sha512-JE9dBghxqrlAbuzyI34DF/bdRFsB7OwgXRXsmKiB9Cd4dSy26fkvPhL6M6TXDwVx0xfJdFINQ7KNxD1lvbzU0g==}
 
   '@ttsc/win32-arm64@0.37.2':
     resolution: {integrity: sha512-WwapMPw8qJ9IERp6jQXUFbaRNNpG/lOXerO0FkVgQDldkvN1bo8fpSlb+wqO5okc6Ut9G7d5HuIVgh4m4J+RcA==}
@@ -6024,8 +6015,6 @@ snapshots:
 
   '@ttsc/linux-x64@0.37.2':
     optional: true
-
-  '@ttsc/paths@0.37.2': {}
 
   '@ttsc/win32-arm64@0.37.2':
     optional: true

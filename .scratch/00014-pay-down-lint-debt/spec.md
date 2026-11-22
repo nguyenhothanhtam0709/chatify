@@ -1,6 +1,6 @@
 # Spec: Pay down the lint debt in `fix-lint.md`
 
-Status: ready-for-agent
+Status: resolved
 
 ## Problem Statement
 

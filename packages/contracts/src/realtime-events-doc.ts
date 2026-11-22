@@ -6,8 +6,8 @@ const SOURCE = 'packages/contracts/src/realtime.ts';
 
 type JsonSchema = z.core.JSONSchema.JSONSchema;
 
-/** `true` and `false` are schemas too; both render as `unknown`, like an empty schema. */
-const asSchema = (node: z.core.JSONSchema._JSONSchema): JsonSchema =>
+/** `true` and `false` are schemas too; this turns them into `{}`, which renders as `unknown`. */
+const booleanToEmptySchema = (node: JsonSchema | boolean): JsonSchema =>
   typeof node === 'boolean' ? {} : node;
 
 const literal = (value: unknown): string =>
@@ -18,7 +18,7 @@ function renderObject(schema: JsonSchema, indent: string): string {
   if (entries.length === 0) return '{}';
   const inner = `${indent}  `;
   const lines = entries.map(([key, node]) => {
-    const value = asSchema(node);
+    const value = booleanToEmptySchema(node);
     const optional = schema.required?.includes(key) ? '' : '?';
     const type = renderType(value, inner);
     const comment = value.format && value.type === 'string' ? ` // ${value.format}` : '';
@@ -32,10 +32,11 @@ function renderObject(schema: JsonSchema, indent: string): string {
 function renderType(schema: JsonSchema, indent: string): string {
   if (schema.enum) return schema.enum.map(literal).join(' | ');
   if (schema.const !== undefined) return literal(schema.const);
-  if (schema.anyOf) return schema.anyOf.map((s) => renderType(s, indent)).join(' | ');
+  if (schema.anyOf)
+    return schema.anyOf.map((s) => renderType(booleanToEmptySchema(s), indent)).join(' | ');
   const { items } = schema;
   if (schema.type === 'array' && items && !Array.isArray(items)) {
-    return `${renderType(asSchema(items), indent)}[]`;
+    return `${renderType(booleanToEmptySchema(items), indent)}[]`;
   }
   if (schema.type === 'object') return renderObject(schema, indent);
   if (schema.type === 'integer') return 'number';

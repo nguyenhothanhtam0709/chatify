@@ -67,13 +67,10 @@ export async function seedDatabase(pool: Pool): Promise<boolean> {
       if (found === undefined) throw new Error(`The seed insert returned no row for ${username}`);
       return found;
     };
-    const id: Ids = {
-      alice: idOf('alice'),
-      bob: idOf('bob'),
-      carol: idOf('carol'),
-      dave: idOf('dave'),
-      erin: idOf('erin'),
-    };
+    const found: Partial<Ids> = {};
+    for (const username of SEED_USERNAMES) found[username] = idOf(username);
+    if (!isComplete(found)) throw new Error('The seed collected no id for some seeded Username');
+    const id = found;
 
     await seedDirect(tx, id.alice, id.bob);
     await seedGroup(tx, id);
@@ -118,6 +115,10 @@ async function seedDirect(tx: Tx, a: string, b: string): Promise<void> {
 }
 
 type Ids = Record<SeedUsername, string>;
+
+/** True once every seeded Username has an id. */
+const isComplete = (ids: Partial<Ids>): ids is Ids =>
+  SEED_USERNAMES.every((username) => ids[username] !== undefined);
 
 interface SystemMessageInput {
   conversationId: string;

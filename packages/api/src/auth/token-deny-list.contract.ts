@@ -11,6 +11,7 @@ export interface TokenDenyListUnderTest {
   /** Makes the entry for `jti` already expired. */
   expire: (jti: string) => Promise<void>;
 }
+
 export function describeTokenDenyListContract(
   adapterName: string,
   create: () => Promise<TokenDenyListUnderTest>,

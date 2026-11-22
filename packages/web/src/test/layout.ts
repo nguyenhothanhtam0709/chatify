@@ -8,10 +8,6 @@ export const VIEWPORT_HEIGHT = 300;
  * ITEM_HEIGHT tall, stacked from the top of the content, offset by the viewport's scrollTop.
  */
 export function stubLayout() {
-  const original: HTMLElement['getBoundingClientRect'] = Reflect.get(
-    HTMLElement.prototype,
-    'getBoundingClientRect',
-  );
   const rect = (top: number, height: number) =>
     ({
       top,
@@ -36,7 +32,8 @@ export function stubLayout() {
       );
       return rect(items.indexOf(this) * ITEM_HEIGHT - viewport.scrollTop, ITEM_HEIGHT);
     }
-    return original.call(this);
+    // The spy sits on HTMLElement.prototype; Element.prototype still holds the real method.
+    return Element.prototype.getBoundingClientRect.call(this);
   });
   // jsdom has no scrollTo; the scroller uses it to follow the bottom.
   HTMLElement.prototype.scrollTo = function (this: HTMLElement, options?: unknown) {

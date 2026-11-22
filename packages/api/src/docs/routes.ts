@@ -13,12 +13,21 @@ const read = <T>(key: string, target: object): T | undefined => Reflect.getMetad
 const isModuleRef = (value: unknown): value is ModuleRef =>
   typeof value === 'function' || (typeof value === 'object' && value !== null && 'module' in value);
 
+const requireModuleRef = (value: unknown): ModuleRef => {
+  if (!isModuleRef(value)) {
+    throw new Error(
+      'The route generator cannot follow an import that is not a module class or a dynamic module',
+    );
+  }
+  return value;
+};
+
 /** What one module declares: its controllers and the modules it imports. */
 function declaredBy(ref: ModuleRef): { controllers: Type<unknown>[]; imports: ModuleRef[] } {
   const moduleClass = 'module' in ref ? ref.module : ref;
   // A dynamic module's `imports` may also hold promises and forward references, which the
-  // generator's modules never use.
-  const dynamicImports = 'module' in ref ? (ref.imports ?? []).filter(isModuleRef) : [];
+  // generator does not follow; fail loudly rather than skip a module's controllers.
+  const dynamicImports = 'module' in ref ? (ref.imports ?? []).map(requireModuleRef) : [];
   return {
     controllers: [
       ...(read<Type<unknown>[]>('controllers', moduleClass) ?? []),

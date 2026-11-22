@@ -10,14 +10,14 @@
     }
   },
   "scripts": {
-    "build": "ttsc -p tsconfig.build.prod.json --checkers 2",
-    "build:dev": "ttsc -p tsconfig.build.json --checkers 2",
-    "build:clean": "ttsc clean -p tsconfig.build.json && rm -rf dist *.tsbuildinfo",
+    "build": "tsc -p tsconfig.build.prod.json --checkers 2",
+    "build:dev": "tsc -p tsconfig.build.json --checkers 2",
+    "build:clean": "rm -rf dist *.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:cov": "vitest run --coverage",
-    "typecheck": "ttsc --noEmit --checkers 2",
+    "typecheck": "tsc --noEmit --checkers 2",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "lint": "GOMAXPROCS=2 oxlint --type-aware --threads=2 -c ../../.oxlintrc.json src",
     "lint:fix": "GOMAXPROCS=2 oxlint --type-aware --threads=2 --fix -c ../../.oxlintrc.json src"
@@ -27,7 +27,6 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "~5.0.5",
-    "ttsc": "^0.37.2",
     "typescript": "~7.0.2",
     "vitest": "^5.0.5"
   }

@@ -92,7 +92,7 @@ pnpm --filter @chat/<package> test                       # one package
 
 ```sh
 pnpm lint            # builds contracts, then type-aware oxlint per package, then Prettier check
-pnpm typecheck       # builds contracts, then ttsc in api and contracts, tsc in web
+pnpm typecheck       # builds contracts, then tsc in api, contracts and web
 pnpm docs:generate   # rewrites the Generated Docs in docs/architecture/
 pnpm docs:check      # Generated Docs match the code, links resolve, docs declare a kind, resolved Specs have no open Ticket
 ```

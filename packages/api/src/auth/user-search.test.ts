@@ -48,8 +48,6 @@ async function usernames(app: NestFastifyApplication, token: string, q: string):
   expect(res.statusCode).toBe(200);
   return SearchUsersResponseSchema.parse(res.json()).users.map((u) => u.username);
 }
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('GET /users/search', () => {
   it('requires authentication', async () => {
     await withApp({}, async (app) => {

@@ -57,8 +57,6 @@ afterEach(() => {
   closeAllSockets();
   closeAllRawSockets();
 });
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('socket handshake', () => {
   it('accepts a valid access token in the auth payload', async () => {
     await withApp({}, async (app) => {
@@ -162,8 +160,6 @@ function sendDirect(
     payload: { recipientId: to.id, clientMessageId: randomUUID(), body },
   });
 }
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('real-time push', () => {
   it('pushes a first Direct Message to the recipient, who also gets the new Conversation', async () => {
     await withApp({}, async (app) => {
@@ -359,8 +355,6 @@ describe('real-time push', () => {
       expect(alice.id).toBeDefined();
     });
   });
-
-  // oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
   it('logs connect, disconnect with reason, auth failure and each push, without payloads', async () => {
     await withApp({}, async (app, logs) => {
       const alice = await signUp(app, 'Alice');
@@ -414,8 +408,6 @@ describe('real-time push', () => {
     });
   });
 });
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('session revocation over the socket', () => {
   const logOut = (app: NestFastifyApplication, who: Person): Promise<LightMyRequestResponse> =>
     app.inject({ method: 'POST', url: '/api/v1/auth/logout', headers: bearer(who) });

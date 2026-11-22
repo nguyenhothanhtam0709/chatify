@@ -107,8 +107,6 @@ async function unreadCount(
   if (!summary) throw new Error(`Conversation ${conversationId} is not in the list`);
   return summary.unreadCount;
 }
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('marking a Conversation as read', () => {
   it('moves the Member’s Read Marker forward only, clamped to the last Message, and returns it', async () => {
     await withApp({}, async (app) => {
@@ -200,8 +198,6 @@ describe('marking a Conversation as read', () => {
     },
   );
 });
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('conversation.read', () => {
   it('reaches every socket of the reader and no socket of any other User, only when the marker moved', async () => {
     await withApp({}, async (app, logs) => {

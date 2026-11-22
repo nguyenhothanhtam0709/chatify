@@ -40,8 +40,6 @@ const get = (
     url: `/api/v1${url}`,
     headers: { authorization: `Bearer ${token}` },
   });
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('seedDatabase', () => {
   it('lets every seeded User log in with the shared password', async () => {
     await withPool(seedDatabase);
@@ -60,11 +58,8 @@ describe('seedDatabase', () => {
     });
     expect(counts).toEqual({ users: 5, conversations: 2 });
   });
-
-  // oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
   it('gives the Group a Former Member and history windows that follow the membership periods', async () => {
     await withPool(seedDatabase);
-    // oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
     await withApp({}, async (app) => {
       const alice = await loginAs(app, 'alice');
       const carol = await loginAs(app, 'carol');

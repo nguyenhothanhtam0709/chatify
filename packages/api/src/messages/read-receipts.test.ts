@@ -96,8 +96,6 @@ const receipts = (client: TestSocket): unknown[] =>
   client.received.filter(([name]) => name === 'conversation.receipt').map(([, payload]) => payload);
 
 afterEach(() => closeAllSockets());
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('readUpToSequence on a Direct Conversation', () => {
   it("is the other User's Read Marker while both Users share read receipts", async () => {
     await withApp({}, async (app) => {
@@ -149,8 +147,6 @@ describe('readUpToSequence on a Direct Conversation', () => {
     });
   });
 });
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('conversation.receipt', () => {
   it("reaches every socket of the other User when a Member's marker moves, and not the reader", async () => {
     await withApp({}, async (app, logs) => {

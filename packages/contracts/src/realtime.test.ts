@@ -22,8 +22,6 @@ const message = {
   body: 'hi',
   createdAt: '2030-01-01T00:00:00.000Z',
 };
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('realtime event contracts', () => {
   it('names the server-push events', () => {
     expect(RealtimeEvent).toEqual({

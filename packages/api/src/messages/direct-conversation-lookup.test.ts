@@ -57,8 +57,6 @@ const errorCode = (res: {
   | 'CANNOT_MESSAGE_SELF'
   | 'RATE_LIMITED'
   | 'INTERNAL_ERROR' => ErrorResponseSchema.parse(res.json()).error.code;
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('GET /direct-conversations/:userId', () => {
   it('requires authentication', async () => {
     await withApp({}, async (app) => {

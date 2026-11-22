@@ -17,4 +17,4 @@ source: docs/adr/*.md
 - [0007: The API is split into feature modules and injects the database through `@nestjs/drizzle`](../adr/0007-api-feature-modules-and-nestjs-drizzle.md): Every controller and provider lives in its feature's module, and providers receive the database through `@nestjs/drizzle`.
 - [0008: Documents are classed by how they are maintained](../adr/0008-documents-are-classed-by-how-they-are-maintained.md): Agents only know what is written down, and nothing said which doc wins when a doc and the code disagree, or which docs may be hand-edited.
 - [0009: Client signals are HTTP writes with a socket push, durable or ephemeral](../adr/0009-client-signals-are-http-writes-with-socket-push.md): ADR [0001](../adr/0001-websocket-is-server-push-only.md) makes the socket server-push only.
-- [0010: The api uses relative imports; `tsc` compiles and `ttsc` only loads](../adr/0010-api-uses-relative-imports-no-path-aliases.md): The `api` has no tsconfig path aliases.
+- [0010: The API uses relative imports; `tsc` compiles and `ttsc` only loads](../adr/0010-api-uses-relative-imports-no-path-aliases.md): The API has no tsconfig path aliases.

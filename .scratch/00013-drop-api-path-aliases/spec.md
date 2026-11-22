@@ -1,6 +1,6 @@
 # Spec: Drop api path aliases; `tsc` compiles, `ttsc` only loads
 
-Status: ready-for-agent
+Status: resolved
 
 ## Problem Statement
 

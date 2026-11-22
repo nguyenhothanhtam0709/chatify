@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { withApp } from '../../test/app-harness.js';
 import { LEVEL } from '../../test/log-capture.js';
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('request logging', () => {
   it('logs exactly one line per request with method, route, status, duration, request ID and IP', async () => {
     await withApp({}, async (app, logs) => {

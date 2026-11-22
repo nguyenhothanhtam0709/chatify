@@ -693,7 +693,12 @@
       }
     },
     {
-      "files": ["packages/api/src/main.ts", "packages/api/src/**/*-cli.ts"],
+      "files": [
+        "packages/api/src/main.ts",
+        "packages/api/src/**/*-cli.ts",
+        "packages/api/drizzle.config.ts",
+        "packages/api/test/global-setup.ts"
+      ],
       "rules": {
         "no-restricted-properties": "off"
       }
@@ -721,7 +726,14 @@
       "files": ["**/*.test.{ts,tsx}", "packages/web/src/test/**", "packages/api/test/**"],
       "rules": {
         "typescript/no-non-null-assertion": "off",
-        "typescript/consistent-type-assertions": "off"
+        "typescript/consistent-type-assertions": "off",
+        "max-lines-per-function": "off"
+      }
+    },
+    {
+      "files": ["**/*.contract.ts"],
+      "rules": {
+        "max-lines-per-function": "off"
       }
     }
   ]

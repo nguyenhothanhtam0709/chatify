@@ -5,8 +5,6 @@ import { withDatabaseMigratedUpTo } from '../../test/migration-database.js';
 const alice = '00000000-0000-7000-8000-000000000001';
 const bob = '00000000-0000-7000-8000-000000000002';
 const conversation = '00000000-0000-7000-8000-0000000000c1';
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('migrations', () => {
   it('0010 gives every existing Message the kind text', async () => {
     await withDatabaseMigratedUpTo('0009_jittery_black_knight', async ({ pool, migrateRest }) => {

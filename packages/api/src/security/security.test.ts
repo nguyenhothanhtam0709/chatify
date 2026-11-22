@@ -31,8 +31,6 @@ describe('security headers', () => {
     });
   });
 });
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('CORS', () => {
   it('allows the configured SPA origin, with credentials', async () => {
     await withApp({ config: { SPA_ORIGIN: SPA } }, async (app) => {

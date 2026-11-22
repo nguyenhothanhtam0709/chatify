@@ -119,8 +119,6 @@ async function timeline(
 }
 
 afterEach(closeAllSockets);
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('stored system messages', () => {
   it('stores "added" in history at its place in the sequence, for Members and the added User', async () => {
     await withApp({}, async (app) => {

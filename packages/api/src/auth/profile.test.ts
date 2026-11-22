@@ -52,8 +52,6 @@ async function currentUser(
   });
   return MeResponseSchema.parse(res.json()).user;
 }
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('PATCH /users/me (Nickname)', () => {
   it('sets a Nickname, trimmed, and returns the updated User', async () => {
     await withApp({}, async (app) => {
@@ -153,8 +151,6 @@ describe('PATCH /users/me (Nickname)', () => {
     });
   });
 });
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('PATCH /users/me (share read receipts)', () => {
   it('is on for a newly registered User', async () => {
     await withApp({}, async (app) => {

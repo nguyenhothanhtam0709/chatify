@@ -146,8 +146,6 @@ async function raceInOrder(
     await pool.end();
   }
 }
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('Group rules are re-checked under the Conversation lock', () => {
   it('a Closed Group never regains a Member: the Owner leaving beats a queued add', async () => {
     await withApp({}, async (app) => {

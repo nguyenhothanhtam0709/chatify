@@ -11,13 +11,10 @@ export interface TokenDenyListUnderTest {
   /** Makes the entry for `jti` already expired. */
   expire: (jti: string) => Promise<void>;
 }
-
-// oxlint-disable-next-line max-lines-per-function -- a contract suite shared by adapters keeps its cases in one block
 export function describeTokenDenyListContract(
   adapterName: string,
   create: () => Promise<TokenDenyListUnderTest>,
 ): void {
-  // oxlint-disable-next-line max-lines-per-function -- a contract suite shared by adapters keeps its cases in one block
   describe(`TokenDenyList contract: ${adapterName}`, () => {
     async function setup(): Promise<
       TokenDenyListUnderTest & { inSeconds: (seconds: number) => Date }

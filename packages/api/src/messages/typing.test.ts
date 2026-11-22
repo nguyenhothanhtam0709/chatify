@@ -74,8 +74,6 @@ const typingEvents = (client: TestSocket): unknown[] =>
   client.received.filter(([name]) => name === 'typing.updated').map(([, payload]) => payload);
 
 afterEach(() => closeAllSockets());
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /conversations/:id/typing in a Direct Conversation', () => {
   it('answers 204 and pushes typing.updated to every socket of the other User, not the typist', async () => {
     await withApp({}, async (app) => {
@@ -298,8 +296,6 @@ const leaveGroup = (
   groupId: string,
 ): Promise<LightMyRequestResponse> =>
   app.inject({ method: 'POST', url: `/api/v1/groups/${groupId}/leave`, headers: bearer(as) });
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /conversations/:id/typing in a Group', () => {
   it('pushes typing.updated to every socket of the other Members and to none of the typist', async () => {
     await withApp({}, async (app) => {

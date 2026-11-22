@@ -3,6 +3,16 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=26",
+      "onFail": "error"
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -10,8 +20,9 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.prod.json --checkers 2",
+    "build": "pnpm build:prod",
     "build:dev": "tsc -p tsconfig.build.json --checkers 2",
+    "build:prod": "tsc -p tsconfig.build.prod.json --checkers 2",
     "build:clean": "rm -rf dist *.tsbuildinfo",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -20,7 +31,7 @@
     "typecheck": "tsc --noEmit --checkers 2",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "lint": "GOMAXPROCS=2 oxlint --type-aware --threads=2 -c ../../.oxlintrc.json src",
-    "lint:fix": "GOMAXPROCS=2 oxlint --type-aware --threads=2 --fix -c ../../.oxlintrc.json src"
+    "lint:fix": "pnpm lint --fix"
   },
   "dependencies": {
     "zod": "^4.6.7"

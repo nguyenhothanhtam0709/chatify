@@ -27,8 +27,6 @@ function login(
     payload: { identifier, password },
   });
 }
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('POST /auth/login', () => {
   it('signs a User in by Username and returns an access token and the User', async () => {
     await withApp({}, async (app) => {

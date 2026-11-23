@@ -14,17 +14,19 @@ See the Spec's Implementation Decisions for the reasoning.
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `max-lines-per-function` is off for test files and for shared contract suites, and still on (warn, 50) for production source
-- [ ] The drizzle-kit config and the `api` Vitest global setup may read `process.env` without a disable, and other `api` and `contracts` files still may not
-- [ ] None of the 52 bypasses above has a disable comment or a `fix-lint.md` line any more
-- [ ] `fix-lint.md` keeps its root location and table format, and lists exactly the 10 remaining bypasses, with line numbers that match their comments
-- [ ] Every `oxlint-disable` comment under `packages/` has exactly one `fix-lint.md` line, and the reverse
-- [ ] `pnpm lint` passes with no new warnings or errors
+- [x] `max-lines-per-function` is off for test files and for shared contract suites, and still on (warn, 50) for production source
+- [x] The drizzle-kit config and the `api` Vitest global setup may read `process.env` without a disable, and other `api` and `contracts` files still may not
+- [x] None of the 52 bypasses above has a disable comment or a `fix-lint.md` line any more
+- [x] `fix-lint.md` keeps its root location and table format, and lists exactly the 10 remaining bypasses, with line numbers that match their comments
+- [x] Every `oxlint-disable` comment under `packages/` has exactly one `fix-lint.md` line, and the reverse
+- [x] `pnpm lint` passes with no new warnings or errors
 
 **Verification:** Run `pnpm lint`. Search `packages/` for `oxlint-disable` and compare it with `fix-lint.md` one to one. Run `pnpm test` to confirm removing the comments changed nothing. To show the override is scoped, temporarily make a production function longer than 50 lines and check the warning still fires, then revert.
 
 **Out of scope:** Splitting test suites; any override for production source; changing rule limits; the 10 remaining bypasses (Ticket 02); editing `docs/conventions/general.md`.
 
 ## Comments
+
+Resolved. Verified with `pnpm lint`, `pnpm typecheck`, `pnpm test`, and a one-to-one check of `oxlint-disable` comments against `fix-lint.md`. The 50-line warning still fires in production source (temporarily removed the `conversation-queries.ts` disable, then restored it). No assumptions, no follow-ups.

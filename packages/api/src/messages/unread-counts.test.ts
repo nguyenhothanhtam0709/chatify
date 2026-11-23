@@ -85,8 +85,6 @@ async function unreadCount(
   if (!summary) throw new Error(`Conversation ${conversationId} is not in the list`);
   return summary.unreadCount;
 }
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('Unread Counts in the Conversation list', () => {
   it('counts the first Message of a new Direct Conversation for the recipient only, and a reply clears the replier’s', async () => {
     await withApp({}, async (app) => {

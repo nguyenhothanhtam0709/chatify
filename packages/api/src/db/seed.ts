@@ -61,11 +61,16 @@ export async function seedDatabase(pool: Pool): Promise<boolean> {
         })),
       )
       .returning({ id: users.id, username: users.username });
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- the insert above adds one row per SEED_USERNAMES entry, so every key is present
-    const id = Object.fromEntries(rows.map((r) => [r.username, r.id])) as Record<
-      SeedUsername,
-      string
-    >;
+    const idByUsername = new Map(rows.map((r) => [r.username, r.id]));
+    const idOf = (username: SeedUsername): string => {
+      const found = idByUsername.get(username);
+      if (found === undefined) throw new Error(`The seed insert returned no row for ${username}`);
+      return found;
+    };
+    const found: Partial<Ids> = {};
+    for (const username of SEED_USERNAMES) found[username] = idOf(username);
+    if (!isComplete(found)) throw new Error('The seed collected no id for some seeded Username');
+    const id = found;
 
     await seedDirect(tx, id.alice, id.bob);
     await seedGroup(tx, id);
@@ -110,6 +115,10 @@ async function seedDirect(tx: Tx, a: string, b: string): Promise<void> {
 }
 
 type Ids = Record<SeedUsername, string>;
+
+/** True once every seeded Username has an id. */
+const isComplete = (ids: Partial<Ids>): ids is Ids =>
+  SEED_USERNAMES.every((username) => ids[username] !== undefined);
 
 interface SystemMessageInput {
   conversationId: string;

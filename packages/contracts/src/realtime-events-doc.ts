@@ -4,16 +4,11 @@ import { RealtimeEvent, RealtimeEventSchemas } from './realtime.js';
 const GENERATOR = 'packages/contracts/src/realtime-events-doc.ts';
 const SOURCE = 'packages/contracts/src/realtime.ts';
 
-interface JsonSchema {
-  type?: string | string[];
-  format?: string;
-  enum?: unknown[];
-  const?: unknown;
-  properties?: Record<string, JsonSchema>;
-  required?: string[];
-  items?: JsonSchema;
-  anyOf?: JsonSchema[];
-}
+type JsonSchema = z.core.JSONSchema.JSONSchema;
+
+/** `true` and `false` are schemas too; this turns them into `{}`, which renders as `unknown`. */
+const booleanToEmptySchema = (node: JsonSchema | boolean): JsonSchema =>
+  typeof node === 'boolean' ? {} : node;
 
 const literal = (value: unknown): string =>
   typeof value === 'string' ? `'${value}'` : String(value);
@@ -22,7 +17,8 @@ function renderObject(schema: JsonSchema, indent: string): string {
   const entries = Object.entries(schema.properties ?? {});
   if (entries.length === 0) return '{}';
   const inner = `${indent}  `;
-  const lines = entries.map(([key, value]) => {
+  const lines = entries.map(([key, node]) => {
+    const value = booleanToEmptySchema(node);
     const optional = schema.required?.includes(key) ? '' : '?';
     const type = renderType(value, inner);
     const comment = value.format && value.type === 'string' ? ` // ${value.format}` : '';
@@ -36,18 +32,21 @@ function renderObject(schema: JsonSchema, indent: string): string {
 function renderType(schema: JsonSchema, indent: string): string {
   if (schema.enum) return schema.enum.map(literal).join(' | ');
   if (schema.const !== undefined) return literal(schema.const);
-  if (schema.anyOf) return schema.anyOf.map((s) => renderType(s, indent)).join(' | ');
-  if (schema.type === 'array' && schema.items) return `${renderType(schema.items, indent)}[]`;
+  if (schema.anyOf)
+    return schema.anyOf.map((s) => renderType(booleanToEmptySchema(s), indent)).join(' | ');
+  const { items } = schema;
+  if (schema.type === 'array' && items && !Array.isArray(items)) {
+    return `${renderType(booleanToEmptySchema(items), indent)}[]`;
+  }
   if (schema.type === 'object') return renderObject(schema, indent);
   if (schema.type === 'integer') return 'number';
-  return Array.isArray(schema.type) ? schema.type.join(' | ') : (schema.type ?? 'unknown');
+  return [schema.type ?? 'unknown'].flat().join(' | ');
 }
 
 /** Markdown listing every server-to-client realtime event and its payload. */
 export function renderRealtimeEvents(): string {
   const sections = Object.values(RealtimeEvent).map((name) => {
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- zod's JSON Schema type is looser than the subset JsonSchema reads, and every event schema fits it
-    const schema = z.toJSONSchema(RealtimeEventSchemas[name], { io: 'output' }) as JsonSchema;
+    const schema: JsonSchema = z.toJSONSchema(RealtimeEventSchemas[name], { io: 'output' });
     return [`## \`${name}\``, '', '```ts', renderType(schema, ''), '```', ''].join('\n');
   });
 

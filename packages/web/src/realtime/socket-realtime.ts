@@ -52,7 +52,7 @@ export function createSocketRealtime({
         console.warn(`Dropped invalid realtime event "${name}"`, parsed.error.issues);
         return;
       }
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- `name` and `parsed.data` come from the same schema entry, but TypeScript cannot correlate them into the union
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- `name` and `parsed.data` come from the same schema entry, but TypeScript cannot correlate them into the union (without the cast: TS2322, `type: RealtimeEventName` fits no single member of RealtimeEvent)
       const event = { type: name, ...parsed.data } as RealtimeEvent;
       listeners.forEach((listener) => listener(event));
     });

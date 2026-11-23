@@ -75,8 +75,6 @@ const bothNext = (event: string, a: TestSocket, b: TestSocket): Promise<[unknown
   Promise.all([a.next(event), b.next(event)]);
 
 afterEach(closeAllSockets);
-
-// oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
 describe('Group rooms', () => {
   it('puts the sockets of every Member, on connect, in the Group room and nobody else', async () => {
     await withApp({}, async (app) => {
@@ -200,8 +198,6 @@ describe('Group rooms', () => {
       expect(await inRoom(app, group.id)).toEqual([]);
     });
   });
-
-  // oxlint-disable-next-line max-lines-per-function -- a test suite or case keeps its setup and assertions in one block; splitting it would scatter them
   describe('leak windows', () => {
     type Rooms = { groupRoomsOf(userId: string): Promise<string[]> };
 

@@ -141,3 +141,15 @@ Strict output doesn't stop the server sending a field: the API never parses its 
 ## Other web clients with the malformed 2xx pattern
 
 Ticket 00009-04 made the mutation clients (`login`, `register`, `updateProfile`, `createGroup`, `changeMembers`, `leaveGroup`) `safeParse` a 2xx body. These still `parse` it and can reject with a `ZodError`: `getGroup` (`groups.ts`), `conversations.ts` (list, get, messages), `messages.ts` (send direct and group), `users.ts` (search) and `health.ts`. `refreshAccessToken` and `fetchCurrentUser` (`auth.ts`) have the pattern too, but a `try/catch` makes them return undefined.
+
+## Case-insensitive comparison depends on ASCII-only Usernames and Emails
+
+- **Seen:** while grilling spec 00015. Login, User search and the `lower()` unique indexes compare JS `toLowerCase()` with Postgres `lower()`. The two agree only because `UsernameSchema` is `[A-Za-z0-9_]` and Zod 4.6.7's `z.email()` rejects non-ASCII addresses.
+- **Not done:** no bug today, and outside spec 00015.
+- **Idea:** if either schema is widened, compare on one side only, or use a `citext` column or a case-insensitive collation.
+
+## Zero-width-only Message bodies pass validation
+
+- **Seen:** while grilling spec 00015. `"\u200B"` is not `\s`, so `MessageBodySchema` accepts it as not blank, and it gives an invisible Message and Preview.
+- **Not done:** a validation question, not a Preview one.
+- **Idea:** decide whether "not blank" should also reject zero-width and format characters (Unicode `Cf`).

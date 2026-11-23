@@ -2,7 +2,7 @@
   "name": "chat",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.18.0",
+  "packageManager": "pnpm@12.23.0",
   "engines": {
     "node": ">=26"
   },

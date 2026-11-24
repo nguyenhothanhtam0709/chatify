@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/empty';
 import { useReconnected, useRealtimeEvents } from '@/realtime/realtime-context';
 import { Skeleton } from '@/components/ui/skeleton';
+import { initials } from '@/lib/initials';
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 
 type ListState =
@@ -40,10 +41,12 @@ interface PushedMessage {
   reading: boolean;
 }
 
+const SKELETON_ROW_COUNT = 3;
+
 function ListSkeleton() {
   return (
     <div role="status" aria-label="Loading conversations" className="grid gap-2 p-2">
-      {[0, 1, 2].map((i) => (
+      {Array.from({ length: SKELETON_ROW_COUNT }, (_, i) => i).map((i) => (
         <div key={i} className="flex items-center gap-2">
           <Skeleton className="size-9 rounded-full" />
           <div className="grid flex-1 gap-1">
@@ -245,7 +248,7 @@ export function ConversationList({
             onClick={() => onSelect(conversation)}
           >
             <Avatar className="size-9">
-              <AvatarFallback>{conversation.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarFallback>{initials(conversation.name)}</AvatarFallback>
             </Avatar>
             <div className="grid min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-2">

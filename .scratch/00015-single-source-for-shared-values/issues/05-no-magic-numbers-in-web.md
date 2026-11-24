@@ -12,14 +12,16 @@ See the Spec's Part 3.
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `no-magic-numbers` is on for web source, with the allowances and exemptions above
-- [ ] `pnpm lint` passes with no new disable comment in web source
-- [ ] Behaviour is unchanged: the existing web tests pass
+- [x] `no-magic-numbers` is on for web source, with the allowances and exemptions above
+- [x] `pnpm lint` passes with no new disable comment in web source
+- [x] Behaviour is unchanged: the existing web tests pass
 
 **Verification:** Run `pnpm lint` and the web tests. To show the rule is live, temporarily add a bare `42` to a web component, check that lint fails, then revert.
 
 **Out of scope:** api source (Ticket 06); `switch-exhaustiveness-check` for web.
 
 ## Comments
+
+Resolved. `no-magic-numbers` (ignore 0, 1, -1) is on for `packages/web/src`, off for tests, `src/test` and `components/ui` (already ignored). 17 sites fixed with named constants (HTTP statuses, durations, counts); `initials()` helper in `lib/initials.ts` replaces three `slice(0, 2)` copies. Verified: `pnpm lint`, `pnpm typecheck`, `pnpm docs:check`, web tests (248 pass); the rule flagged all 17 sites before the fixes. No contracts constant exists for HTTP statuses, so they are local. Assumption: statuses stay local per file.

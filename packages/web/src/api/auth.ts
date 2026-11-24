@@ -98,6 +98,8 @@ function hasNumericExp(value: unknown): value is { exp: number } {
   );
 }
 
+const MS_PER_SECOND = 1000;
+
 /**
  * Milliseconds until the access token expires, read from its `exp` claim (never verified here).
  * A token without a numeric `exp` counts as expired, like one that cannot be parsed.
@@ -107,7 +109,7 @@ export function msUntilExpiry(accessToken: string): number {
     const payload = accessToken.split('.')[1] ?? '';
     const claims: unknown = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
     if (!hasNumericExp(claims)) return 0;
-    return claims.exp * 1000 - Date.now();
+    return claims.exp * MS_PER_SECOND - Date.now();
   } catch {
     return 0;
   }

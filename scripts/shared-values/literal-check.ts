@@ -1,5 +1,9 @@
 // Fails when a value contracts owns is written as a quoted string in api or web source.
 // The values are read from the built contracts on every run, so a new value is checked with no edit here.
+// Today's hits sit in literal-baseline.json (file + value). A hit outside it fails, and so does a
+// baseline entry that no longer matches, so the baseline only shrinks.
+// `node scripts/shared-values/literal-check.ts --write-baseline` rewrites the baseline from the code.
+import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { readSources, type SourceFile } from './source-files.ts';
 
@@ -8,7 +12,15 @@ export interface SharedValue {
   source: string;
 }
 
+export interface Hit extends SharedValue {
+  path: string;
+  line: number;
+}
+
 export const ROOTS = ['packages/api/src', 'packages/web/src'];
+// shadcn components, generated and already lint-ignored; "group" there is a CSS name.
+const SKIPPED = /^packages\/web\/src\/components\/ui\//;
+const COMMENT_LINE = /^\s*(\/\/|\/\*|\*)/;
 
 export const sharedValuesOf = (contracts: Record<string, unknown>): SharedValue[] => {
   const sets: [string, readonly unknown[]][] = [
@@ -26,30 +38,58 @@ export const sharedValuesOf = (contracts: Record<string, unknown>): SharedValue[
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-export const findLiterals = (files: SourceFile[], values: SharedValue[]): string[] => {
+export const findLiterals = (files: SourceFile[], values: SharedValue[]): Hit[] => {
   const patterns = values.map((shared) => ({
     ...shared,
     quoted: new RegExp(`(['"\`])${escapeRegExp(shared.value)}\\1`),
   }));
-  return files.flatMap(({ path, content }) =>
-    content.split('\n').flatMap((line, index) =>
-      patterns
-        .filter(({ quoted }) => quoted.test(line))
-        .map(
-          ({ value, source }) =>
-            `${path}:${index + 1}: "${value}" is a value of ${source} in contracts; import it`,
-        ),
-    ),
-  );
+  return files
+    .filter(({ path }) => !SKIPPED.test(path))
+    .flatMap(({ path, content }) =>
+      content.split('\n').flatMap((text, index) =>
+        COMMENT_LINE.test(text)
+          ? []
+          : patterns
+              .filter(({ quoted }) => quoted.test(text))
+              .map(({ value, source }) => ({ path, value, source, line: index + 1 })),
+      ),
+    );
+};
+
+const keyOf = ({ path, value }: { path: string; value: string }) => `${path} ${value}`;
+
+export const baselineOf = (hits: Hit[]): string[] => [...new Set(hits.map(keyOf))].sort();
+
+export const checkAgainstBaseline = (hits: Hit[], baseline: string[]): string[] => {
+  const known = new Set(baseline);
+  const found = new Set(hits.map(keyOf));
+  return [
+    ...hits
+      .filter((hit) => !known.has(keyOf(hit)))
+      .map(
+        ({ path, line, value, source }) =>
+          `${path}:${line}: "${value}" is a value of ${source} in contracts; import it`,
+      ),
+    ...baseline
+      .filter((key) => !found.has(key))
+      .map((key) => `literal-baseline.json: "${key}" is no longer in the code; remove it`),
+  ];
 };
 
 if (import.meta.main) {
   const root = fileURLToPath(new URL('../../', import.meta.url));
+  const baselineFile = new URL('./literal-baseline.json', import.meta.url);
   const built = new URL('../../packages/contracts/dist/index.js', import.meta.url).href;
   const contracts = (await import(built)) as Record<string, unknown>;
-  const problems = findLiterals(readSources(root, ROOTS), sharedValuesOf(contracts));
-  if (problems.length > 0) {
-    console.error(problems.join('\n'));
-    process.exit(1);
+  const hits = findLiterals(readSources(root, ROOTS), sharedValuesOf(contracts));
+  if (process.argv.includes('--write-baseline')) {
+    writeFileSync(baselineFile, `${JSON.stringify(baselineOf(hits), null, 2)}\n`);
+  } else {
+    const baseline = JSON.parse(readFileSync(baselineFile, 'utf8')) as string[];
+    const problems = checkAgainstBaseline(hits, baseline);
+    if (problems.length > 0) {
+      console.error(problems.join('\n'));
+      process.exit(1);
+    }
   }
 }

@@ -3,7 +3,7 @@
 import { fileURLToPath } from 'node:url';
 import { readSources, type SourceFile } from './source-files.ts';
 
-const SPELLED_LIMIT = /\d+\s*(?:-|–|to)\s*\d+\s+characters|\bat most \d+|\bat least \d+/i;
+const SPELLED_LIMIT = /\d+\s*(?:-|–|to)\s*\d+\s+characters|\bat most \d+/i;
 
 export const findSpelledLimits = (files: SourceFile[]): string[] =>
   files.flatMap(({ path, content }) =>

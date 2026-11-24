@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import {
   AddGroupMemberRequestSchema,
   CreateGroupRequestSchema,
@@ -20,7 +29,7 @@ export class GroupsController {
 
   /** The caller becomes the Owner and a Member; `memberIds` are the other initial Members. */
   @Post()
-  @HttpCode(201)
+  @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard)
   public create(
     @Auth() auth: AuthContext,
@@ -31,7 +40,7 @@ export class GroupsController {
 
   /** Owner only; the User is a Member at once. */
   @Post(':id/members')
-  @HttpCode(201)
+  @HttpCode(HttpStatus.CREATED)
   @UseGuards(AuthGuard)
   public addMember(
     @Auth() auth: AuthContext,
@@ -54,7 +63,7 @@ export class GroupsController {
 
   /** Any Member may leave; ownership passes on and the last Member to leave closes the Group. */
   @Post(':id/leave')
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard)
   public leave(
     @Auth() auth: AuthContext,

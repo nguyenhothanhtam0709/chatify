@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpStatus,
   Param,
   Post,
   Put,
@@ -39,7 +40,8 @@ import { MessagesService } from './messages.service.js';
 const ConversationIdPipe = new ZodValidationPipe(z.uuid());
 
 /** `201` for a new Message, `200` when the client message ID had been sent before. */
-const statusFor = (created: boolean): 201 | 200 => (created ? 201 : 200);
+const statusFor = (created: boolean): HttpStatus.CREATED | HttpStatus.OK =>
+  created ? HttpStatus.CREATED : HttpStatus.OK;
 
 @Controller()
 export class MessagesController {
@@ -108,7 +110,7 @@ export class MessagesController {
 
   /** Forward-only and idempotent: returns the caller's Read Marker after the request. */
   @Put('conversations/:id/read')
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   @UseGuards(AuthGuard)
   public markRead(
     @Auth() auth: AuthContext,
@@ -120,7 +122,7 @@ export class MessagesController {
 
   /** Ephemeral (ADR-0009): relayed to the other Members, never stored. */
   @Post('conversations/:id/typing')
-  @HttpCode(204)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(AuthGuard, TypingThrottlerGuard)
   public async typing(
     @Auth() auth: AuthContext,

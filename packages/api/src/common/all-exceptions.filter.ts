@@ -39,7 +39,11 @@ function codeForStatus(status: number): ErrorCode {
 /** Shape of Fastify's own errors (e.g. malformed JSON): they carry a 4xx `statusCode`. */
 function fastifyClientStatus(exception: unknown): number | undefined {
   const status = readProperty(exception, 'statusCode');
-  return typeof status === 'number' && status >= 400 && status < 500 ? status : undefined;
+  return typeof status === 'number' &&
+    status >= HttpStatus.BAD_REQUEST &&
+    status < HttpStatus.INTERNAL_SERVER_ERROR
+    ? status
+    : undefined;
 }
 
 /** Every error leaves the API as `{ error: { code, message, details? } }`. */

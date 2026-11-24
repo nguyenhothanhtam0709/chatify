@@ -731,6 +731,28 @@
       }
     },
     {
+      "files": ["packages/api/src/**/*.ts"],
+      "rules": {
+        "no-magic-numbers": [
+          "error",
+          {
+            "ignore": [0, 1, -1]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "**/*.test.{ts,tsx}",
+        "**/*.contract.ts",
+        "packages/api/test/**",
+        "packages/api/src/config/config.ts"
+      ],
+      "rules": {
+        "no-magic-numbers": "off"
+      }
+    },
+    {
       "files": ["**/*.contract.ts"],
       "rules": {
         "max-lines-per-function": "off"

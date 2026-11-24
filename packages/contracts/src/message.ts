@@ -229,7 +229,11 @@ export const ConversationSummarySchema = z.object({
       /** Where it sits in the Conversation: a pushed Message at or below this is already counted. */
       sequence: z.number().int().positive(),
       /** The last Message's body as `previewOf` builds it. */
-      preview: z.string().max(LAST_MESSAGE_PREVIEW_MAX),
+      preview: z
+        .string()
+        .refine((value) => Array.from(value).length <= LAST_MESSAGE_PREVIEW_MAX, {
+          message: `must be at most ${LAST_MESSAGE_PREVIEW_MAX} characters`,
+        }),
       createdAt: z.iso.datetime(),
     })
     .nullable(),

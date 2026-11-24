@@ -7,6 +7,7 @@ import {
   ErrorResponseSchema,
   GROUP_MEMBERS_MAX,
   GROUP_NAME_MAX,
+  GROUP_NAME_MIN,
   type CreateGroupRequest,
   type GetConversationResponse,
   type Group,
@@ -48,7 +49,7 @@ export async function createGroup(
   if (code === ErrorCode.VALIDATION_FAILED) {
     return {
       ok: false,
-      error: `That Group name is not allowed. Use 1-${GROUP_NAME_MAX} plain characters.`,
+      error: `That Group name is not allowed. Use ${GROUP_NAME_MIN}-${GROUP_NAME_MAX} plain characters.`,
     };
   }
   return { ok: false, error: GENERIC_ERROR };

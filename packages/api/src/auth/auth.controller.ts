@@ -13,13 +13,15 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { RealtimeGateway } from '../realtime/realtime.gateway.js';
 import { ZodValidationPipe } from '../common/zod-validation.pipe.js';
 import { Auth, AuthGuard, type AuthContext } from './auth.guard.js';
-import { ONE_HOUR_MS, ONE_MINUTE_MS } from '../common/time.js';
+import {
+  LOGIN_IP_LIMIT,
+  LOGIN_TTL_MS,
+  REGISTER_LIMIT,
+  REGISTER_TTL_MS,
+} from '../throttling/rate-limits.js';
 import { AuthService, type IssuedSession } from './auth.service.js';
 
 export const REFRESH_COOKIE = 'refresh_token';
-
-const FIFTEEN_MINUTES = 15;
-const FIFTEEN_MINUTES_MS = FIFTEEN_MINUTES * ONE_MINUTE_MS;
 
 /** Always sent with these attributes; the cookie is only ever readable by the refresh route. */
 function setRefreshCookie(reply: FastifyReply, session: IssuedSession): void {
@@ -39,19 +41,19 @@ export class AuthController {
     private readonly realtime: RealtimeGateway,
   ) {}
 
-  /** 5 registrations per hour per IP. */
+  /** Registrations are limited per IP. */
   @Post('register')
-  @Throttle({ default: { limit: 5, ttl: ONE_HOUR_MS } })
+  @Throttle({ default: { limit: REGISTER_LIMIT, ttl: REGISTER_TTL_MS } })
   public register(
     @Body(new ZodValidationPipe(RegisterRequestSchema)) body: RegisterRequest,
   ): Promise<RegisterResponse> {
     return this.auth.register(body);
   }
 
-  /** 10 attempts per 15 minutes per IP here, plus 5 per identifier (see ThrottlingModule). */
+  /** Login attempts are limited per IP here, plus per identifier (see ThrottlingModule). */
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 10, ttl: FIFTEEN_MINUTES_MS } })
+  @Throttle({ default: { limit: LOGIN_IP_LIMIT, ttl: LOGIN_TTL_MS } })
   public async login(
     @Body(new ZodValidationPipe(LoginRequestSchema)) body: LoginRequest,
     @Res({ passthrough: true }) reply: FastifyReply,

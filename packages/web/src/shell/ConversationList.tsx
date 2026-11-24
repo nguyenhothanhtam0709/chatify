@@ -46,7 +46,7 @@ const SKELETON_ROW_COUNT = 3;
 function ListSkeleton() {
   return (
     <div role="status" aria-label="Loading conversations" className="grid gap-2 p-2">
-      {Array.from({ length: SKELETON_ROW_COUNT }, (_, i) => i).map((i) => (
+      {Array.from({ length: SKELETON_ROW_COUNT }, (_, i) => (
         <div key={i} className="flex items-center gap-2">
           <Skeleton className="size-9 rounded-full" />
           <div className="grid flex-1 gap-1">

@@ -107,6 +107,18 @@ describe('ConversationSummarySchema', () => {
     ).toBe(valid);
   });
 
+  it('accepts the preview previewOf builds from 101 emoji', () => {
+    const lastMessage = {
+      senderId: id,
+      sequence: 1,
+      preview: previewOf('😀'.repeat(101)),
+      createdAt: '2020-03-04T10:00:00.000Z',
+    };
+    expect(
+      ConversationSummarySchema.safeParse({ ...summary, unreadCount: 0, lastMessage }).success,
+    ).toBe(true);
+  });
+
   it('carries an Unread Count from 0 up to the cap of 100', () => {
     expect(UNREAD_COUNT_MAX).toBe(100);
     for (const unreadCount of [0, 1, 100]) {

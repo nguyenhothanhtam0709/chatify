@@ -53,6 +53,15 @@ test('comments and the shadcn folder are not checked', () => {
   assert.deepEqual(findLiterals(files, values), []);
 });
 
+test('a value in a trailing comment is not a hit, the same value in code is', () => {
+  const content = 'const a = 1; // was "direct"\nconst b = "direct"; // why';
+  const hits = findLiterals([file('packages/web/src/a.ts', content)], values);
+  assert.deepEqual(
+    hits.map(({ line }) => line),
+    [2],
+  );
+});
+
 test('an HTML input type and a pg property named text are exempt, a Message kind beside them is not', () => {
   const files = [
     file('packages/web/src/a.tsx', '<Input type="text" />'),

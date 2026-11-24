@@ -16,6 +16,14 @@ export const isSource = (path: string, roots: string[]): boolean =>
   SOURCE_FILE.test(path) &&
   !TEST_FILE.test(path);
 
+const COMMENT_LINE = /^\s*(\/\/|\/\*|\*)/;
+const BLOCK_COMMENT = /\/\*.*?\*\//g;
+const TRAILING_COMMENT = /(^|\s)\/\/.*$/;
+
+// The code of one source line: empty for a comment line, and without an inline or trailing comment otherwise.
+export const codeOfLine = (line: string): string =>
+  COMMENT_LINE.test(line) ? '' : line.replace(BLOCK_COMMENT, '').replace(TRAILING_COMMENT, '');
+
 export const readSources = (root: string, roots: string[]): SourceFile[] =>
   execFileSync('git', ['ls-files', ...roots], { cwd: root, encoding: 'utf8' })
     .trim()

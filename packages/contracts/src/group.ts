@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { GroupSchema } from './message.js';
 import { nameText } from './user.js';
 
+export const GROUP_NAME_MIN = 1;
 export const GROUP_NAME_MAX = 100;
 
 /** At most 256 Members including the Owner. */
@@ -11,9 +12,9 @@ export const GROUP_MEMBERS_MAX = 256;
 export const GroupNameSchema = nameText(true).refine(
   (value) => {
     const length = Array.from(value).length;
-    return length >= 1 && length <= GROUP_NAME_MAX;
+    return length >= GROUP_NAME_MIN && length <= GROUP_NAME_MAX;
   },
-  { message: `must be 1-${GROUP_NAME_MAX} characters` },
+  { message: `must be ${GROUP_NAME_MIN}-${GROUP_NAME_MAX} characters` },
 );
 
 /**

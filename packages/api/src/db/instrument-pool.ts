@@ -1,7 +1,7 @@
 import type { Pool } from 'pg';
 import type { Logger } from 'pino';
 import { readProperty } from '../common/read-property.js';
-import { roundMs } from '../common/time.js';
+import { roundMs } from '../logging/round-ms.js';
 
 function sqlText(first: unknown): string {
   if (typeof first === 'string') return first;

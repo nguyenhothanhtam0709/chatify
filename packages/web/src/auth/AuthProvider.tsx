@@ -25,14 +25,15 @@ import { AuthContext, type AuthState } from './auth-context';
 
 const REFRESH_LEAD_MS = 60_000;
 const REFRESH_SKIP_THRESHOLD_MS = 120_000;
-const HALF_DIVISOR = 2;
+/** A short-lived token is refreshed once this share of its remaining time has passed. */
+const SHORT_TOKEN_REFRESH_SHARE = 0.5;
 
 /** Refresh a minute before expiry; for very short-lived tokens, halfway through. */
 function refreshDelay(accessToken: string): number {
   const remaining = msUntilExpiry(accessToken);
   return remaining > REFRESH_SKIP_THRESHOLD_MS
     ? remaining - REFRESH_LEAD_MS
-    : Math.max(remaining / HALF_DIVISOR, 0);
+    : Math.max(remaining * SHORT_TOKEN_REFRESH_SHARE, 0);
 }
 
 /**

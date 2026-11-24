@@ -116,7 +116,8 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 <FieldError>{errors.username}</FieldError>
               ) : (
                 <FieldDescription>
-                  {USERNAME_MIN}-{USERNAME_MAX} letters, digits or underscores. This is how others find you.
+                  {USERNAME_MIN}-{USERNAME_MAX} letters, digits or underscores. This is how others
+                  find you.
                 </FieldDescription>
               )}
             </Field>
@@ -136,7 +137,9 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
               {errors.password ? (
                 <FieldError>{errors.password}</FieldError>
               ) : (
-                <FieldDescription>Must be {PASSWORD_MIN}-{PASSWORD_MAX} characters long.</FieldDescription>
+                <FieldDescription>
+                  Must be {PASSWORD_MIN}-{PASSWORD_MAX} characters long.
+                </FieldDescription>
               )}
             </Field>
             <Field data-invalid={invalid('nickname')}>

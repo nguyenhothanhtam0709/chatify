@@ -34,7 +34,10 @@ export async function updateProfile(
   }
   const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
   if (code === ErrorCode.VALIDATION_FAILED) {
-    return { ok: false, error: `Nickname must be 1-${NICKNAME_MAX} characters, without control characters.` };
+    return {
+      ok: false,
+      error: `Nickname must be 1-${NICKNAME_MAX} characters, without control characters.`,
+    };
   }
   return { ok: false, error: 'Something went wrong. Try again.' };
 }

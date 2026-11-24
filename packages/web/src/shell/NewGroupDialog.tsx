@@ -1,4 +1,9 @@
-import { GROUP_NAME_MAX, GroupNameSchema, type Group, type UserSearchResult } from '@chat/contracts';
+import {
+  GROUP_NAME_MAX,
+  GroupNameSchema,
+  type Group,
+  type UserSearchResult,
+} from '@chat/contracts';
 import { X } from 'lucide-react';
 import { useId, useState, type FormEvent } from 'react';
 import { useAuth } from '@/auth/auth-context';

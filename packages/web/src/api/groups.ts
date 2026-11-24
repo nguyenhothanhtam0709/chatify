@@ -45,7 +45,10 @@ export async function createGroup(
     return { ok: false, error: 'One of the chosen people no longer exists.' };
   }
   if (code === ErrorCode.VALIDATION_FAILED) {
-    return { ok: false, error: `That Group name is not allowed. Use 1-${GROUP_NAME_MAX} plain characters.` };
+    return {
+      ok: false,
+      error: `That Group name is not allowed. Use 1-${GROUP_NAME_MAX} plain characters.`,
+    };
   }
   return { ok: false, error: GENERIC_ERROR };
 }

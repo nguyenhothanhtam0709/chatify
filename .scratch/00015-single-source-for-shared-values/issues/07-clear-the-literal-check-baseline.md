@@ -8,8 +8,8 @@
 
 **Status:** resolved
 
-- [ ] `scripts/shared-values/literal-baseline.json` is empty (`[]`) or removed, with every remaining exemption explained in the script
-- [ ] `pnpm lint`, `pnpm typecheck` and `pnpm test` pass with the behaviour unchanged
+- [x] `scripts/shared-values/literal-baseline.json` is empty (`[]`) or removed, with every remaining exemption explained in the script
+- [x] `pnpm lint`, `pnpm typecheck` and `pnpm test` pass with the behaviour unchanged
 
 **Verification:** The existing tests; the literal check itself.
 

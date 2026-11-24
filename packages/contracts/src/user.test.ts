@@ -1,17 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import {
   EmailSchema,
+  NICKNAME_MAX,
   NicknameSchema,
+  PASSWORD_MAX,
+  PASSWORD_MIN,
   PasswordSchema,
   RegisterRequestSchema,
   MeResponseSchema,
   RegisterResponseSchema,
   UpdateProfileRequestSchema,
+  USERNAME_MAX,
+  USERNAME_MIN,
   UsernameSchema,
 } from './user.js';
 
 describe('UsernameSchema', () => {
-  it.each(['abc', 'Alice', 'a_b_c', 'user_123', 'A'.repeat(32), '___', '123'])(
+  it.each(['abc', 'Alice', 'a_b_c', 'user_123', 'A'.repeat(USERNAME_MAX), '___', '123'])(
     'accepts %j exactly as typed',
     (value) => {
       expect(UsernameSchema.parse(value)).toBe(value);
@@ -19,9 +24,9 @@ describe('UsernameSchema', () => {
   );
 
   it.each([
-    ['too short', 'ab'],
+    ['too short', 'a'.repeat(USERNAME_MIN - 1)],
     ['empty', ''],
-    ['too long', 'a'.repeat(33)],
+    ['too long', 'a'.repeat(USERNAME_MAX + 1)],
     ['space', 'al ice'],
     ['hyphen', 'al-ice'],
     ['dot', 'al.ice'],
@@ -75,16 +80,16 @@ describe('EmailSchema', () => {
 });
 
 describe('PasswordSchema', () => {
-  it('accepts 8 and 128 characters, untrimmed', () => {
-    expect(PasswordSchema.parse('12345678')).toBe('12345678');
-    expect(PasswordSchema.parse('x'.repeat(128))).toHaveLength(128);
+  it('accepts the minimum and maximum length, untrimmed', () => {
+    expect(PasswordSchema.parse('x'.repeat(PASSWORD_MIN))).toHaveLength(PASSWORD_MIN);
+    expect(PasswordSchema.parse('x'.repeat(PASSWORD_MAX))).toHaveLength(PASSWORD_MAX);
     expect(PasswordSchema.parse('  pass word  ')).toBe('  pass word  ');
   });
 
   it('counts characters, not UTF-16 units', () => {
-    expect(PasswordSchema.safeParse('😀'.repeat(8)).success).toBe(true);
-    expect(PasswordSchema.safeParse('😀'.repeat(128)).success).toBe(true);
-    expect(PasswordSchema.safeParse('😀'.repeat(129)).success).toBe(false);
+    expect(PasswordSchema.safeParse('😀'.repeat(PASSWORD_MIN)).success).toBe(true);
+    expect(PasswordSchema.safeParse('😀'.repeat(PASSWORD_MAX)).success).toBe(true);
+    expect(PasswordSchema.safeParse('😀'.repeat(PASSWORD_MAX + 1)).success).toBe(false);
   });
 
   it('normalizes to NFC so the same visible password always hashes the same', () => {
@@ -92,9 +97,9 @@ describe('PasswordSchema', () => {
   });
 
   it.each([
-    ['too short', '1234567'],
+    ['too short', 'x'.repeat(PASSWORD_MIN - 1)],
     ['empty', ''],
-    ['too long', 'x'.repeat(129)],
+    ['too long', 'x'.repeat(PASSWORD_MAX + 1)],
     ['NUL', 'pass\u0000word'],
     ['newline', 'pass\nword'],
     ['C1 control', 'pass\u0085word'],
@@ -104,16 +109,16 @@ describe('PasswordSchema', () => {
 });
 
 describe('NicknameSchema', () => {
-  it('accepts 1 to 50 characters and preserves inner spacing and case', () => {
+  it('accepts 1 to the maximum number of characters and preserves inner spacing and case', () => {
     expect(NicknameSchema.parse('A')).toBe('A');
     expect(NicknameSchema.parse('Ada  Lovelace')).toBe('Ada  Lovelace');
-    expect(NicknameSchema.parse('x'.repeat(50))).toHaveLength(50);
+    expect(NicknameSchema.parse('x'.repeat(NICKNAME_MAX))).toHaveLength(NICKNAME_MAX);
     expect(NicknameSchema.parse('Zoë 😀')).toBe('Zoë 😀');
   });
 
   it('trims surrounding whitespace before checking length', () => {
     expect(NicknameSchema.parse('  Ada  ')).toBe('Ada');
-    expect(NicknameSchema.parse(`  ${'x'.repeat(50)}  `)).toHaveLength(50);
+    expect(NicknameSchema.parse(`  ${'x'.repeat(NICKNAME_MAX)}  `)).toHaveLength(NICKNAME_MAX);
   });
 
   it('normalizes to NFC', () => {
@@ -121,14 +126,14 @@ describe('NicknameSchema', () => {
   });
 
   it('counts characters, not UTF-16 units', () => {
-    expect(NicknameSchema.safeParse('😀'.repeat(50)).success).toBe(true);
-    expect(NicknameSchema.safeParse('😀'.repeat(51)).success).toBe(false);
+    expect(NicknameSchema.safeParse('😀'.repeat(NICKNAME_MAX)).success).toBe(true);
+    expect(NicknameSchema.safeParse('😀'.repeat(NICKNAME_MAX + 1)).success).toBe(false);
   });
 
   it.each([
     ['empty', ''],
     ['whitespace only', '   '],
-    ['too long after trim', 'x'.repeat(51)],
+    ['too long after trim', 'x'.repeat(NICKNAME_MAX + 1)],
     ['NUL', 'Ad\u0000a'],
     ['inner newline', 'Ad\na'],
     ['inner tab', 'Ad\ta'],

@@ -1,5 +1,5 @@
 import type { ConversationSummary, Message } from '@chat/contracts';
-import { LAST_MESSAGE_PREVIEW_MAX, UNREAD_COUNT_MAX } from '@chat/contracts';
+import { UNREAD_COUNT_MAX, previewOf } from '@chat/contracts';
 import { MessageSquare } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAuth } from '@/auth/auth-context';
@@ -29,10 +29,6 @@ function activityLabel(iso: string): string {
   const date = new Date(iso);
   return (date.toDateString() === new Date().toDateString() ? SAME_DAY : OTHER_DAY).format(date);
 }
-
-/** Whitespace collapsed, at most 100 characters: the same preview the server builds. */
-const previewOf = (body: string): string =>
-  Array.from(body.trim().replace(/\s+/g, ' ')).slice(0, LAST_MESSAGE_PREVIEW_MAX).join('');
 
 /** The Unread Count as the badge shows it; the server stops counting at the cap. */
 const unreadLabel = (count: number): string =>

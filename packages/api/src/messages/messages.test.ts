@@ -597,6 +597,20 @@ describe('GET /conversations', () => {
     });
   });
 
+  it('trims leading and trailing newlines from the preview', async () => {
+    await withApp({}, async (app) => {
+      const alice = await signUp(app, 'Alice');
+      const bob = await signUp(app, 'Bob');
+      await sendDirect(app, alice, { recipientId: bob.id, body: '\nhello\n' });
+
+      const { conversations } = ListConversationsResponseSchema.parse(
+        (await listConversations(app, bob)).json(),
+      );
+
+      expect(conversations[0]!.lastMessage?.preview).toBe('hello');
+    });
+  });
+
   it('is empty for a User with no Conversations', async () => {
     await withApp({}, async (app) => {
       const alice = await signUp(app, 'Alice');

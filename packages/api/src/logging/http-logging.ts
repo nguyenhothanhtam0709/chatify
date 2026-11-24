@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Logger } from 'pino';
-import { roundMs } from '../common/time.js';
+import { roundMs } from './round-ms.js';
 import { runWithRequestContext, type RequestContext } from './request-context.js';
 
 /**

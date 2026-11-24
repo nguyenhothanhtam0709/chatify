@@ -1,11 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import {
-  baselineOf,
-  checkAgainstBaseline,
-  findLiterals,
-  sharedValuesOf,
-} from './literal-check.ts';
+import { baselineOf, checkAgainstBaseline, findLiterals, sharedValuesOf } from './literal-check.ts';
 import { isSource } from './source-files.ts';
 
 const contracts = {

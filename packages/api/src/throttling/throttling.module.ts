@@ -9,8 +9,13 @@ import {
 import type { FastifyRequest } from 'fastify';
 import { readProperty } from '../common/read-property.js';
 import type { Config } from '../config/config.js';
+import { ONE_MINUTE_MS } from '../common/time.js';
 import { AppThrottlerGuard } from './app-throttler.guard.js';
 
+// Windows of 10 s, 2 s and 15 min.
+const SEND_TTL_MS = 10_000;
+const TYPING_TTL_MS = 2000;
+const LOGIN_IDENTIFIER_TTL_MS = 900_000;
 const SEARCH_URL = '/api/v1/users/search';
 const SEND_URLS = ['/api/v1/direct-messages', '/api/v1/conversations/:id/messages'];
 const TYPING_URL = '/api/v1/conversations/:id/typing';
@@ -47,7 +52,7 @@ const genericThrottler = (config: ConfigService<Config, true>): ThrottlerOptions
 const searchThrottler: ThrottlerOptions = {
   name: 'search',
   limit: 30,
-  ttl: 60 * 1000,
+  ttl: ONE_MINUTE_MS,
   skipIf: skipWhen((req) => !isAuthenticated(req) || req.routeOptions?.url !== SEARCH_URL),
   getTracker: userTracker,
 };
@@ -56,7 +61,7 @@ const searchThrottler: ThrottlerOptions = {
 const sendThrottler: ThrottlerOptions = {
   name: 'send',
   limit: 30,
-  ttl: 10 * 1000,
+  ttl: SEND_TTL_MS,
   skipIf: skipWhen((req) => !isAuthenticated(req) || !isSendRoute(req)),
   getTracker: userTracker,
 };
@@ -66,7 +71,7 @@ const sendThrottler: ThrottlerOptions = {
 const typingThrottler: ThrottlerOptions = {
   name: 'typing',
   limit: 2,
-  ttl: 2 * 1000,
+  ttl: TYPING_TTL_MS,
   skipIf: skipWhen((req) => !isAuthenticated(req) || !isTypingRoute(req)),
   getTracker: (req): string =>
     `${userTracker(req)}:${String(readProperty(readProperty(req, 'params'), 'id')).toLowerCase()}`,
@@ -86,7 +91,7 @@ const typingIpThrottler = (config: ConfigService<Config, true>): ThrottlerOption
 const identifierThrottler: ThrottlerOptions = {
   name: 'identifier',
   limit: 5,
-  ttl: 15 * 60 * 1000,
+  ttl: LOGIN_IDENTIFIER_TTL_MS,
   skipIf: (context): boolean => request(context).routeOptions?.url !== '/api/v1/auth/login',
   getTracker: (req): string => {
     const identifier = readProperty(readProperty(req, 'body'), 'identifier');

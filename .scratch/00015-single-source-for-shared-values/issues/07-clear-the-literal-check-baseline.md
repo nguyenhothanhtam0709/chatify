@@ -6,7 +6,7 @@
 
 **Blocked by:** 04
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 - [ ] `scripts/shared-values/literal-baseline.json` is empty (`[]`) or removed, with every remaining exemption explained in the script
 - [ ] `pnpm lint`, `pnpm typecheck` and `pnpm test` pass with the behaviour unchanged
@@ -16,3 +16,5 @@
 **Out of scope:** New contracts constants; other enum-like sets.
 
 ## Comments
+
+Triaged by the human on 2026-11-24: run in this feature.

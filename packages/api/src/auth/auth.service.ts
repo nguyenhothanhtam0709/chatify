@@ -1,11 +1,17 @@
 import { randomBytes } from 'node:crypto';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ErrorCode, type RegisterResponse, type SearchUsersResponse } from '@chat/contracts';
+import {
+  ErrorCode,
+  USER_SEARCH_LIMIT,
+  type RegisterResponse,
+  type SearchUsersResponse,
+} from '@chat/contracts';
 import * as argon2 from 'argon2';
 import { and, eq, gt, ne, or, sql, type SQL } from 'drizzle-orm';
 import { DomainException } from '../common/all-exceptions.filter.js';
 import { readProperty } from '../common/read-property.js';
+import { MS_PER_SECOND, SECONDS_PER_DAY } from '../common/time.js';
 import type { Config } from '../config/config.js';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import type { Database } from '../db/database.module.js';
@@ -24,6 +30,7 @@ export interface NewUser {
 }
 
 const UNIQUE_VIOLATION = '23505';
+const DUMMY_HASH_SEED_BYTES = 16;
 
 export interface IssuedSession {
   accessToken: string;
@@ -59,8 +66,11 @@ export class AuthService {
     @Inject(TOKEN_DENY_LIST) private readonly denyList: TokenDenyList,
     config: ConfigService<Config, true>,
   ) {
-    this.refreshTtlSeconds = config.get('REFRESH_TOKEN_TTL_DAYS', { infer: true }) * 24 * 60 * 60;
-    this.dummyHash = argon2.hash(randomBytes(16).toString('hex'), { type: argon2.argon2id });
+    this.refreshTtlSeconds =
+      config.get('REFRESH_TOKEN_TTL_DAYS', { infer: true }) * SECONDS_PER_DAY;
+    this.dummyHash = argon2.hash(randomBytes(DUMMY_HASH_SEED_BYTES).toString('hex'), {
+      type: argon2.argon2id,
+    });
   }
 
   /** The database computes "now plus the refresh TTL"; only the duration is passed in. */
@@ -158,7 +168,7 @@ export class AuthService {
 
   /** Ends the session now: its access token is denied until it would expire anyway. */
   public async logout(auth: AuthContext): Promise<void> {
-    await this.denyList.add(auth.jti, new Date(auth.expiresAt * 1000));
+    await this.denyList.add(auth.jti, new Date(auth.expiresAt * MS_PER_SECOND));
     await this.db.delete(sessions).where(eq(sessions.id, auth.sessionId));
     await this.denyList.sweepExpired();
   }
@@ -186,7 +196,7 @@ export class AuthService {
 
   /**
    * Users whose Username starts with `q` (case-insensitive; `%`, `_` and `\` are literal),
-   * the exact match first, at most 20, never the searcher. Public fields only.
+   * the exact match first, at most `USER_SEARCH_LIMIT`, never the searcher. Public fields only.
    */
   public async searchUsers(searcherId: string, q: string): Promise<SearchUsersResponse['users']> {
     const needle = q.toLowerCase();
@@ -198,7 +208,7 @@ export class AuthService {
         and(sql`lower(${users.username}) like ${prefix} escape '\\'`, ne(users.id, searcherId)),
       )
       .orderBy(sql`(lower(${users.username}) = ${needle}) desc`, sql`lower(${users.username})`)
-      .limit(20);
+      .limit(USER_SEARCH_LIMIT);
   }
 
   /** Changes the Nickname and/or the share read receipts setting; pushes nothing. */

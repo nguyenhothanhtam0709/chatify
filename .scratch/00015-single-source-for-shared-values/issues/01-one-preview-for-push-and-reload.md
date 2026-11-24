@@ -20,13 +20,13 @@ See the Spec's Part 1 for the reasoning.
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] After a Message with body `"\nhello\n"` is sent, `GET /conversations` returns the Preview `hello`
-- [ ] Contracts export `previewOf`, and both the API and the web Conversation list use it; neither has its own copy of the rule
-- [ ] No SQL in the API trims, collapses or cuts a Message body to build the Preview
-- [ ] A System Message still never becomes a Conversation's Preview, and the existing tests for that pass
-- [ ] The glossary has a **Preview** entry, and the contracts, general and API conventions have the lines listed above
+- [x] After a Message with body `"\nhello\n"` is sent, `GET /conversations` returns the Preview `hello`
+- [x] Contracts export `previewOf`, and both the API and the web Conversation list use it; neither has its own copy of the rule
+- [x] No SQL in the API trims, collapses or cuts a Message body to build the Preview
+- [x] A System Message still never becomes a Conversation's Preview, and the existing tests for that pass
+- [x] The glossary has a **Preview** entry, and the contracts, general and API conventions have the lines listed above
 
 **Verification:** Test first. Add an API behaviour test for the `"\nhello\n"` body to the existing Preview tests in the API messages suite, and watch it fail before the fix. Add a table-driven `it.each` contracts test for `previewOf` covering:
 
@@ -40,3 +40,5 @@ No new web test: the existing realtime push test for the Preview must stay green
 **Out of scope:** How System Messages are filtered from the Preview (the `owner_changed` entry in Laters); rejecting zero-width-only bodies; any change to the `ConversationSummary` wire shape; limit constants (Ticket 02).
 
 ## Comments
+
+Resolved. Verified with `pnpm lint`, `pnpm typecheck`, `pnpm docs:check` and the contracts, api and web package tests (new API test for the "\nhello\n" body failed first; new `previewOf` `it.each` table in contracts). Assumptions: none. Read outside the brief: `docs/workflow/setup.md` (grep only) for the Node version.

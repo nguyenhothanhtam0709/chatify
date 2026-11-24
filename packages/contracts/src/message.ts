@@ -201,6 +201,14 @@ export type GetConversationResponse = z.infer<typeof GetConversationResponseSche
 
 export const LAST_MESSAGE_PREVIEW_MAX = 100;
 
+/**
+ * The Conversation list's Preview of a Message body: trimmed, each run of whitespace collapsed
+ * to one space, cut to the first `LAST_MESSAGE_PREVIEW_MAX` code points. Whitespace is what
+ * `MessageBodySchema`'s "not blank" check counts as whitespace. api and web both use this.
+ */
+export const previewOf = (body: string): string =>
+  Array.from(body.trim().replace(/\s+/g, ' ')).slice(0, LAST_MESSAGE_PREVIEW_MAX).join('');
+
 /** The Unread Count stops counting here; the SPA shows it as "99+". */
 export const UNREAD_COUNT_MAX = 100;
 
@@ -220,7 +228,7 @@ export const ConversationSummarySchema = z.object({
       senderId: z.uuid(),
       /** Where it sits in the Conversation: a pushed Message at or below this is already counted. */
       sequence: z.number().int().positive(),
-      /** Whitespace collapsed, at most 100 characters. */
+      /** The last Message's body as `previewOf` builds it. */
       preview: z.string().max(LAST_MESSAGE_PREVIEW_MAX),
       createdAt: z.iso.datetime(),
     })

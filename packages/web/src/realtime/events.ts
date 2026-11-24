@@ -1,31 +1,15 @@
-import type {
-  ConversationCreatedEvent,
-  ConversationReadEvent,
-  ConversationReceiptEvent,
-  GroupMemberAddedEvent,
-  GroupMemberRemovedEvent,
-  GroupMemberLeftEvent,
-  GroupOwnerChangedEvent,
-  GroupClosedEvent,
-  GroupMembershipEndedEvent,
-  MessageCreatedEvent,
-  TypingUpdatedEvent,
-} from '@chat/contracts';
+import type { RealtimeEventSchemas } from '@chat/contracts';
 
-/** An already-decoded, contracts-validated server push. */
-export type RealtimeEvent =
-  | ({ type: 'message.created' } & MessageCreatedEvent)
-  | ({ type: 'conversation.created' } & ConversationCreatedEvent)
-  | ({ type: 'conversation.read' } & ConversationReadEvent)
-  | ({ type: 'conversation.receipt' } & ConversationReceiptEvent)
-  | ({ type: 'group.member_added' } & GroupMemberAddedEvent)
-  | ({ type: 'group.member_removed' } & GroupMemberRemovedEvent)
-  | ({ type: 'group.member_left' } & GroupMemberLeftEvent)
-  | ({ type: 'group.owner_changed' } & GroupOwnerChangedEvent)
-  | ({ type: 'group.closed' } & GroupClosedEvent)
-  | ({ type: 'group.membership_ended' } & GroupMembershipEndedEvent)
-  | ({ type: 'typing.updated' } & TypingUpdatedEvent)
-  | { type: 'session.revoked' };
+type Schemas = typeof RealtimeEventSchemas;
+
+/** An event with no fields (`z.object({})` infers `Record<string, never>`) adds nothing to `{ type }`. */
+type Payload<Name extends keyof Schemas> =
+  Schemas[Name]['_output'] extends Record<string, never> ? unknown : Schemas[Name]['_output'];
+
+/** An already-decoded, contracts-validated server push. Derived from `RealtimeEventSchemas`. */
+export type RealtimeEvent = {
+  [Name in keyof Schemas]: { type: Name } & Payload<Name>;
+}[keyof Schemas];
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 

@@ -8,7 +8,7 @@ Rules for `packages/contracts`, on top of the [general conventions](general.md).
 
 ## Package shape
 
-- Contracts are Zod schemas only: no Nest, React or database code. One file per area, all re-exported from `index.ts`. Helper modules (`code-point.ts`, `realtime-events-doc.ts`) are not re-exported.
+- Contracts are Zod schemas, plus pure helpers that api and web must compute identically (such as `previewOf`); no Nest, React or database code. One file per area, all re-exported from `index.ts`. Helper modules (`code-point.ts`, `realtime-events-doc.ts`) are not re-exported.
 - api and web import contracts from `dist`. After changing contracts, run `pnpm build:contracts`. The root `test`, `typecheck` and `dev:*` scripts already run it.
 
 ## Schemas and types
@@ -41,6 +41,7 @@ const UserSearchResultSchema = z.strictObject({ id: z.uuid(), username: z.string
 - Export an enum-like set once as an `as const` value and wrap it in `z.enum`, so the database and API share it. Name maps (code to wire value) are objects. Plain sets are arrays. An inline `z.enum([...])` is fine for values only one schema uses.
 - `ErrorCode` keys are SCREAMING_SNAKE. A new error means a new key in `ErrorCode`.
 - Each realtime event has its name in `RealtimeEvent`, one `...EventSchema`, and an entry in `RealtimeEventSchemas`.
+- A subset of a shared set is derived, never re-typed: `Extract<ErrorCode, …>`. A map over a whole set uses `satisfies Record<…, …>`, so a new value fails to compile until it is handled.
 
 ## User text
 
@@ -59,4 +60,4 @@ A breaking change updates api and web in the same PR. Adding optional input fiel
 
 ## Tests
 
-Each area's tests sit next to it as `<area>.test.ts`, use vitest, and are table-driven with `it.each`. Test the boundaries: min and max, NFC, control characters.
+Each area's tests sit next to it as `<area>.test.ts`, use vitest, and are table-driven with `it.each`. Test the boundaries: min and max, NFC, control characters, leading and trailing whitespace (including newline and NBSP), and characters outside the BMP at a length limit.

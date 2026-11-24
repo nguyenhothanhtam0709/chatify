@@ -1,6 +1,7 @@
 import { eq, inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
+import { ConversationKindSchema, MessageKindSchema, type ConversationKind } from '@chat/contracts';
 import { hashPassword } from '../auth/password-hash.js';
 import { exactlyOne } from './exactly-one.js';
 import { nextSequence, type Tx } from '../messages/message-rows.js';
@@ -78,7 +79,7 @@ export async function seedDatabase(pool: Pool): Promise<boolean> {
   });
 }
 
-async function newConversation(tx: Tx, kind: 'direct' | 'group'): Promise<string> {
+async function newConversation(tx: Tx, kind: ConversationKind): Promise<string> {
   return exactlyOne(
     await tx.insert(conversations).values({ kind }).returning({ id: conversations.id }),
     'the new Conversation',
@@ -99,7 +100,7 @@ async function addText(
 /** Same rows a first Direct Message creates: normalized pair, two Members, periods from 0. */
 async function seedDirect(tx: Tx, a: string, b: string): Promise<void> {
   const [low, high] = a < b ? [a, b] : [b, a];
-  const conversationId = await newConversation(tx, 'direct');
+  const conversationId = await newConversation(tx, ConversationKindSchema.enum.direct);
   await tx.insert(directConversations).values({ conversationId, lowUserId: low, highUserId: high });
   await tx.insert(conversationMembers).values([
     { conversationId, userId: low },
@@ -124,7 +125,7 @@ interface SystemMessageInput {
   conversationId: string;
   actorId: string;
   subjectId: string;
-  kind: 'member_added' | 'member_removed';
+  kind: typeof MessageKindSchema.enum.member_added | typeof MessageKindSchema.enum.member_removed;
 }
 
 /** A System Message takes a sequence position; its subject lives in `system_messages`. */
@@ -150,7 +151,7 @@ async function addSystemMessage(
  * period starts just before her member_added System Message, so she cannot read what came before).
  */
 async function seedGroup(tx: Tx, id: Ids): Promise<void> {
-  const conversationId = await newConversation(tx, 'group');
+  const conversationId = await newConversation(tx, ConversationKindSchema.enum.group);
   await tx.insert(groups).values({ conversationId, name: 'Weekend plans', ownerId: id.alice });
   const initial = [id.alice, id.bob, id.dave];
   await tx
@@ -168,7 +169,7 @@ async function seedGroup(tx: Tx, id: Ids): Promise<void> {
     conversationId,
     actorId: id.alice,
     subjectId: id.dave,
-    kind: 'member_removed',
+    kind: MessageKindSchema.enum.member_removed,
   });
   await tx.delete(conversationMembers).where(eq(conversationMembers.userId, id.dave));
   await tx
@@ -183,7 +184,7 @@ async function seedGroup(tx: Tx, id: Ids): Promise<void> {
     conversationId,
     actorId: id.alice,
     subjectId: id.carol,
-    kind: 'member_added',
+    kind: MessageKindSchema.enum.member_added,
   });
   await tx
     .insert(membershipPeriods)

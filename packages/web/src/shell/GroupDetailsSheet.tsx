@@ -1,4 +1,4 @@
-import type { Group, User, UserSearchResult } from '@chat/contracts';
+import { RealtimeEvent, type Group, type User, type UserSearchResult } from '@chat/contracts';
 import { EllipsisVertical, LogOut, UserMinus } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/auth/auth-context';
@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/sheet';
 import { useRealtimeEvents } from '@/realtime/realtime-context';
 import { displayName } from './conversation-target';
+import { initials } from '@/lib/initials';
 import { UserSearchCombobox } from './NewConversationDialog';
 
 /**
@@ -72,7 +73,7 @@ export function GroupDetailsSheet({
   useRealtimeEvents(
     useCallback(
       (event) => {
-        if (event.type === 'group.membership_ended') {
+        if (event.type === RealtimeEvent.GROUP_MEMBERSHIP_ENDED) {
           if (event.conversationId !== groupId) return;
           setGroup(
             (current) =>
@@ -80,15 +81,15 @@ export function GroupDetailsSheet({
           );
           return;
         }
-        if (event.type === 'group.owner_changed') {
+        if (event.type === RealtimeEvent.GROUP_OWNER_CHANGED) {
           if (event.conversationId !== groupId) return;
           setGroup((current) => current && { ...current, ownerId: event.ownerId });
           return;
         }
         if (
-          event.type !== 'group.member_added' &&
-          event.type !== 'group.member_removed' &&
-          event.type !== 'group.member_left'
+          event.type !== RealtimeEvent.GROUP_MEMBER_ADDED &&
+          event.type !== RealtimeEvent.GROUP_MEMBER_REMOVED &&
+          event.type !== RealtimeEvent.GROUP_MEMBER_LEFT
         ) {
           return;
         }
@@ -99,7 +100,7 @@ export function GroupDetailsSheet({
           const others = current.members.filter((m) => m.id !== member.id);
           return {
             ...current,
-            members: event.type === 'group.member_added' ? [...others, member] : others,
+            members: event.type === RealtimeEvent.GROUP_MEMBER_ADDED ? [...others, member] : others,
           };
         });
       },
@@ -161,7 +162,7 @@ export function GroupDetailsSheet({
               {group.members.map((member) => (
                 <li key={member.id} className="flex items-center gap-2 rounded-md py-1">
                   <Avatar className="size-8">
-                    <AvatarFallback>{displayName(member).slice(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{initials(displayName(member))}</AvatarFallback>
                   </Avatar>
                   <span className="min-w-0 flex-1 truncate">{displayName(member)}</span>
                   {member.id === group.ownerId && <Badge variant="secondary">Owner</Badge>}

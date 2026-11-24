@@ -50,6 +50,10 @@ _Avoid_: Admin, creator, moderator
 A User who left or was removed from a Group and can still read the Messages sent while they were a Member.
 _Avoid_: Ex-member, removed user
 
+**Preview**:
+The text the Conversation list shows for a Conversation's last Message: the body with leading and trailing whitespace removed and each run of whitespace collapsed to one space, cut to the first 100 characters. Whitespace means what the "not blank" check on a Message body counts as whitespace. A System Message never becomes the Preview.
+_Avoid_: Snippet, excerpt, summary
+
 ## Messaging
 
 **Message**:

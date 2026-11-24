@@ -723,11 +723,45 @@
       }
     },
     {
-      "files": ["**/*.test.{ts,tsx}", "packages/web/src/test/**", "packages/api/test/**"],
+      "files": ["packages/web/src/**/*.{ts,tsx}"],
       "rules": {
+        "no-magic-numbers": [
+          "error",
+          {
+            "ignore": [0, 1, -1]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["packages/api/src/**/*.ts"],
+      "rules": {
+        "no-magic-numbers": [
+          "error",
+          {
+            "ignore": [0, 1, -1]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "**/*.test.{ts,tsx}",
+        "**/*.contract.ts",
+        "packages/web/src/test/**",
+        "packages/api/test/**"
+      ],
+      "rules": {
+        "no-magic-numbers": "off",
         "typescript/no-non-null-assertion": "off",
         "typescript/consistent-type-assertions": "off",
         "max-lines-per-function": "off"
+      }
+    },
+    {
+      "files": ["packages/api/src/config/config.ts"],
+      "rules": {
+        "no-magic-numbers": "off"
       }
     },
     {

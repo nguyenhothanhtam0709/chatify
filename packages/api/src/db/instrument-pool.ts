@@ -1,6 +1,7 @@
 import type { Pool } from 'pg';
 import type { Logger } from 'pino';
 import { readProperty } from '../common/read-property.js';
+import { roundMs } from '../logging/round-ms.js';
 
 function sqlText(first: unknown): string {
   if (typeof first === 'string') return first;
@@ -21,7 +22,7 @@ export function instrumentPool(pool: Pool, logger: Logger, slowQueryMs: number):
     const start = performance.now();
     const sql = sqlText(args[0]);
     const report = (): void => {
-      const durationMs = Math.round((performance.now() - start) * 1000) / 1000;
+      const durationMs = roundMs(performance.now() - start);
       const slow = durationMs > slowQueryMs;
       logger[slow ? 'warn' : 'debug']({ sql, durationMs }, slow ? 'slow db query' : 'db query');
     };

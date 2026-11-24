@@ -9,6 +9,7 @@ import {
   MarkReadResponseSchema,
   UNREAD_COUNT_MAX,
   MessageBodySchema,
+  previewOf,
   SendDirectMessageRequestSchema,
   SendMessageRequestSchema,
 } from './message.js';
@@ -104,6 +105,18 @@ describe('ConversationSummarySchema', () => {
     expect(
       ConversationSummarySchema.safeParse({ ...summary, unreadCount: 0, lastMessage }).success,
     ).toBe(valid);
+  });
+
+  it('accepts the preview previewOf builds from 101 emoji', () => {
+    const lastMessage = {
+      senderId: id,
+      sequence: 1,
+      preview: previewOf('😀'.repeat(101)),
+      createdAt: '2020-03-04T10:00:00.000Z',
+    };
+    expect(
+      ConversationSummarySchema.safeParse({ ...summary, unreadCount: 0, lastMessage }).success,
+    ).toBe(true);
   });
 
   it('carries an Unread Count from 0 up to the cap of 100', () => {
@@ -213,5 +226,20 @@ describe('TypingRequestSchema', () => {
 
   it.each([{}, { state: 'idle' }, { state: '' }, { state: 1 }])('rejects %j', (body) => {
     expect(TypingRequestSchema.safeParse(body).success).toBe(false);
+  });
+});
+
+describe('previewOf', () => {
+  it.each([
+    ['leading and trailing newline', '\nhello\n', 'hello'],
+    ['leading and trailing tab', '\thello\t', 'hello'],
+    ['leading and trailing NBSP', '\u00a0hello\u00a0', 'hello'],
+    ['mixed whitespace in the middle', 'a \n\t\u00a0 b\r\n\r\nc', 'a b c'],
+    ['exactly 100 code points', 'a'.repeat(100), 'a'.repeat(100)],
+    ['101 code points', 'a'.repeat(101), 'a'.repeat(100)],
+    ['emoji straddling the boundary is kept whole', 'a'.repeat(99) + '😀😀', 'a'.repeat(99) + '😀'],
+    ['100 emoji', '😀'.repeat(101), '😀'.repeat(100)],
+  ])('%s', (_name, body, expected) => {
+    expect(previewOf(body)).toBe(expected);
   });
 });

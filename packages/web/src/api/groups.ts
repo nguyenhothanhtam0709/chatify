@@ -1,9 +1,13 @@
 import {
+  ConversationKindSchema,
   CreateGroupResponseSchema,
   GetConversationResponseSchema,
   GroupMembershipResponseSchema,
   ErrorCode,
   ErrorResponseSchema,
+  GROUP_MEMBERS_MAX,
+  GROUP_NAME_MAX,
+  GROUP_NAME_MIN,
   type CreateGroupRequest,
   type GetConversationResponse,
   type Group,
@@ -37,13 +41,16 @@ export async function createGroup(
   }
   const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
   if (code === ErrorCode.GROUP_FULL) {
-    return { ok: false, error: 'A Group can have at most 256 Members.' };
+    return { ok: false, error: `A Group can have at most ${GROUP_MEMBERS_MAX} Members.` };
   }
   if (code === ErrorCode.USER_NOT_FOUND) {
     return { ok: false, error: 'One of the chosen people no longer exists.' };
   }
   if (code === ErrorCode.VALIDATION_FAILED) {
-    return { ok: false, error: 'That Group name is not allowed. Use 1-100 plain characters.' };
+    return {
+      ok: false,
+      error: `That Group name is not allowed. Use ${GROUP_NAME_MIN}-${GROUP_NAME_MAX} plain characters.`,
+    };
   }
   return { ok: false, error: GENERIC_ERROR };
 }
@@ -52,7 +59,10 @@ export type GroupResult<G extends Group = Group> =
   { ok: true; group: G } | { ok: false; error: string };
 
 /** A Group as `GET /conversations/:id` tells it to the caller (adds `isMember`). */
-export type GroupDetail = Extract<GetConversationResponse['conversation'], { kind: 'group' }>;
+export type GroupDetail = Extract<
+  GetConversationResponse['conversation'],
+  { kind: typeof ConversationKindSchema.enum.group }
+>;
 
 const UNREACHABLE = 'Could not reach the server. Try again.';
 
@@ -73,7 +83,7 @@ export async function getGroup(
   }
   if (!res.ok) return { ok: false, error: GENERIC_ERROR };
   const { conversation } = GetConversationResponseSchema.parse(await res.json());
-  return conversation.kind === 'group'
+  return conversation.kind === ConversationKindSchema.enum.group
     ? { ok: true, group: conversation }
     : { ok: false, error: GENERIC_ERROR };
 }
@@ -109,7 +119,7 @@ async function changeMembers(
   if (code === ErrorCode.ALREADY_A_MEMBER)
     return { ok: false, error: 'They are already a Member.' };
   if (code === ErrorCode.GROUP_FULL) {
-    return { ok: false, error: 'A Group can have at most 256 Members.' };
+    return { ok: false, error: `A Group can have at most ${GROUP_MEMBERS_MAX} Members.` };
   }
   if (code === ErrorCode.USER_NOT_FOUND)
     return { ok: false, error: 'That person no longer exists.' };

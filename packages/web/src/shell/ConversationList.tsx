@@ -1,5 +1,5 @@
 import type { ConversationSummary, Message } from '@chat/contracts';
-import { LAST_MESSAGE_PREVIEW_MAX, UNREAD_COUNT_MAX } from '@chat/contracts';
+import { MessageKindSchema, RealtimeEvent, UNREAD_COUNT_MAX, previewOf } from '@chat/contracts';
 import { MessageSquare } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAuth } from '@/auth/auth-context';
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/empty';
 import { useReconnected, useRealtimeEvents } from '@/realtime/realtime-context';
 import { Skeleton } from '@/components/ui/skeleton';
+import { initials } from '@/lib/initials';
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 
 type ListState =
@@ -30,10 +31,6 @@ function activityLabel(iso: string): string {
   return (date.toDateString() === new Date().toDateString() ? SAME_DAY : OTHER_DAY).format(date);
 }
 
-/** Whitespace collapsed, at most 100 characters: the same preview the server builds. */
-const previewOf = (body: string): string =>
-  Array.from(body.trim().replace(/\s+/g, ' ')).slice(0, LAST_MESSAGE_PREVIEW_MAX).join('');
-
 /** The Unread Count as the badge shows it; the server stops counting at the cap. */
 const unreadLabel = (count: number): string =>
   count >= UNREAD_COUNT_MAX ? `${UNREAD_COUNT_MAX - 1}+` : String(count);
@@ -44,10 +41,12 @@ interface PushedMessage {
   reading: boolean;
 }
 
+const SKELETON_ROW_COUNT = 3;
+
 function ListSkeleton() {
   return (
     <div role="status" aria-label="Loading conversations" className="grid gap-2 p-2">
-      {[0, 1, 2].map((i) => (
+      {Array.from({ length: SKELETON_ROW_COUNT }, (_, i) => (
         <div key={i} className="flex items-center gap-2">
           <Skeleton className="size-9 rounded-full" />
           <div className="grid flex-1 gap-1">
@@ -109,7 +108,7 @@ export function ConversationList({
   const applyMessage = useCallback(
     (list: ConversationSummary[], { message, reading }: PushedMessage): ConversationSummary[] => {
       // Membership notes do not touch the preview or the order (spec: only Messages do).
-      if (message.kind !== 'text') return list;
+      if (message.kind !== MessageKindSchema.enum.text) return list;
       const id = message.conversationId;
       const known = list.find((c) => c.id === id);
       if (!known) {
@@ -175,7 +174,7 @@ export function ConversationList({
     useCallback(
       (event) => {
         const list = current.current;
-        if (event.type === 'conversation.created') {
+        if (event.type === RealtimeEvent.CONVERSATION_CREATED) {
           const { conversation } = event;
           // A response in flight may predate it; one asked for now cannot.
           if (inFlight.current) reload();
@@ -184,12 +183,15 @@ export function ConversationList({
           show([conversation, ...list.filter((c) => c.id !== conversation.id)]);
           return;
         }
-        if (event.type === 'group.closed' || event.type === 'group.membership_ended') {
+        if (
+          event.type === RealtimeEvent.GROUP_CLOSED ||
+          event.type === RealtimeEvent.GROUP_MEMBERSHIP_ENDED
+        ) {
           // Both flip the entry to read-only; the server knows the rest.
           reload();
           return;
         }
-        if (event.type === 'conversation.read') {
+        if (event.type === RealtimeEvent.CONVERSATION_READ) {
           const { conversationId, upToSequence } = event;
           const awaited = awaitedRead.current;
           if (awaited?.conversationId === conversationId && upToSequence >= awaited.sequence) {
@@ -208,7 +210,7 @@ export function ConversationList({
           show(list.map((c) => (c === known ? { ...c, unreadCount: 0 } : c)));
           return;
         }
-        if (event.type !== 'message.created') return;
+        if (event.type !== RealtimeEvent.MESSAGE_CREATED) return;
         const { message } = event;
         const push = { message, reading: message.conversationId === readingId };
         inFlight.current?.push(push);
@@ -249,7 +251,7 @@ export function ConversationList({
             onClick={() => onSelect(conversation)}
           >
             <Avatar className="size-9">
-              <AvatarFallback>{conversation.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarFallback>{initials(conversation.name)}</AvatarFallback>
             </Avatar>
             <div className="grid min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-2">

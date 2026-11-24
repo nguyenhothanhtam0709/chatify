@@ -1,4 +1,5 @@
 import {
+  ConversationKindSchema,
   ErrorCode,
   ErrorResponseSchema,
   GetConversationResponseSchema,
@@ -12,6 +13,12 @@ import {
   type Message,
   type TypingState,
 } from '@chat/contracts';
+import {
+  HTTP_BAD_REQUEST,
+  HTTP_NOT_FOUND,
+  HTTP_SERVER_ERROR,
+  HTTP_TOO_MANY_REQUESTS,
+} from './http-status';
 
 export type ListConversationsResult =
   { ok: true; conversations: ConversationSummary[] } | { ok: false; error: string };
@@ -87,8 +94,8 @@ async function getByUrl<T>(
   if (!res.ok) {
     const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
     const gone =
-      (res.status === 404 && code === notFoundCode) ||
-      (res.status === 400 && code === ErrorCode.VALIDATION_FAILED);
+      (res.status === HTTP_NOT_FOUND && code === notFoundCode) ||
+      (res.status === HTTP_BAD_REQUEST && code === ErrorCode.VALIDATION_FAILED);
     return gone
       ? { ok: false, error: goneError, notFound: true }
       : { ok: false, error: 'Something went wrong. Try again.' };
@@ -154,7 +161,10 @@ export async function readReceipt(
   const { conversation } = GetConversationResponseSchema.parse(res.payload);
   return {
     ok: true,
-    readUpToSequence: conversation.kind === 'direct' ? conversation.readUpToSequence : undefined,
+    readUpToSequence:
+      conversation.kind === ConversationKindSchema.enum.direct
+        ? conversation.readUpToSequence
+        : undefined,
   };
 }
 
@@ -213,7 +223,7 @@ export async function markRead(
     return { ok: false, error: 'Could not reach the server. Try again.', retryable: true };
   }
   if (!res.ok) {
-    const retryable = res.status >= 500 || res.status === 429;
+    const retryable = res.status >= HTTP_SERVER_ERROR || res.status === HTTP_TOO_MANY_REQUESTS;
     return {
       ok: false,
       error: 'Something went wrong. Try again.',

@@ -5,6 +5,7 @@ import { SignJWT, importPKCS8, importSPKI, jwtVerify, type CryptoKey } from 'jos
 import { v7 as uuidv7 } from 'uuid';
 import { z } from 'zod';
 import { CLOCK, type Clock } from '../clock/clock.js';
+import { MS_PER_SECOND } from '../common/time.js';
 import type { Config } from '../config/config.js';
 
 const AccessClaimsSchema = z.object({
@@ -18,6 +19,7 @@ const AccessClaimsSchema = z.object({
 export type AccessClaims = z.infer<typeof AccessClaimsSchema>;
 
 const ALG = 'EdDSA';
+const REFRESH_TOKEN_BYTES = 32;
 
 /**
  * Issues and verifies EdDSA (Ed25519) access tokens, and generates and hashes refresh tokens.
@@ -45,7 +47,7 @@ export class TokenService {
 
   /** Signs with the injectable clock, so tests control `iat` and `exp`. */
   public async signAccessToken(userId: string, sessionId: string): Promise<string> {
-    const iat = Math.floor(this.clock.now().getTime() / 1000);
+    const iat = Math.floor(this.clock.now().getTime() / MS_PER_SECOND);
     return new SignJWT({ sid: sessionId })
       .setProtectedHeader({ alg: ALG, typ: 'JWT' })
       .setSubject(userId)
@@ -72,7 +74,7 @@ export class TokenService {
 
   /** An opaque 256-bit random value. */
   public newRefreshToken(): string {
-    return randomBytes(32).toString('base64url');
+    return randomBytes(REFRESH_TOKEN_BYTES).toString('base64url');
   }
 
   /** Refresh tokens are high-entropy, so a fast hash is enough to keep them unusable if leaked. */

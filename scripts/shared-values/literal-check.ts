@@ -21,6 +21,12 @@ export const ROOTS = ['packages/api/src', 'packages/web/src'];
 // shadcn components, generated and already lint-ignored; "group" there is a CSS name.
 const SKIPPED = /^packages\/web\/src\/components\/ui\//;
 const COMMENT_LINE = /^\s*(\/\/|\/\*|\*)/;
+// Lines where a contracts value is spelled for an unrelated reason, so it cannot import from contracts.
+// Each exemption is a line shape, not a file, so a real re-declaration in the same file is still caught.
+const EXEMPT_LINES: { pattern: RegExp; why: string }[] = [
+  { pattern: /\btype="text"/, why: 'the HTML input type, not a Message kind' },
+  { pattern: /readProperty\([^)]*'text'\)/, why: 'a property named text on a pg wire message' },
+];
 
 export const sharedValuesOf = (contracts: Record<string, unknown>): SharedValue[] => {
   const sets: [string, readonly unknown[]][] = [
@@ -49,7 +55,7 @@ export const findLiterals = (files: SourceFile[], values: SharedValue[]): Hit[] 
       content
         .split('\n')
         .flatMap((text, index) =>
-          COMMENT_LINE.test(text)
+          COMMENT_LINE.test(text) || EXEMPT_LINES.some(({ pattern }) => pattern.test(text))
             ? []
             : patterns
                 .filter(({ quoted }) => quoted.test(text))

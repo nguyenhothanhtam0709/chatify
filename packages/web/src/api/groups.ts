@@ -1,4 +1,5 @@
 import {
+  ConversationKindSchema,
   CreateGroupResponseSchema,
   GetConversationResponseSchema,
   GroupMembershipResponseSchema,
@@ -57,7 +58,10 @@ export type GroupResult<G extends Group = Group> =
   { ok: true; group: G } | { ok: false; error: string };
 
 /** A Group as `GET /conversations/:id` tells it to the caller (adds `isMember`). */
-export type GroupDetail = Extract<GetConversationResponse['conversation'], { kind: 'group' }>;
+export type GroupDetail = Extract<
+  GetConversationResponse['conversation'],
+  { kind: typeof ConversationKindSchema.enum.group }
+>;
 
 const UNREACHABLE = 'Could not reach the server. Try again.';
 
@@ -78,7 +82,7 @@ export async function getGroup(
   }
   if (!res.ok) return { ok: false, error: GENERIC_ERROR };
   const { conversation } = GetConversationResponseSchema.parse(await res.json());
-  return conversation.kind === 'group'
+  return conversation.kind === ConversationKindSchema.enum.group
     ? { ok: true, group: conversation }
     : { ok: false, error: GENERIC_ERROR };
 }

@@ -1,8 +1,10 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import {
+  ConversationKindSchema,
   ErrorCode,
   GROUP_MEMBERS_MAX,
+  MessageKindSchema,
   RealtimeEvent,
   type ConversationMember,
   type CreateGroupRequest,
@@ -63,6 +65,8 @@ type LeaveOutcome =
  * Conversation, take a commit-order slot, check every rule under the lock, change membership,
  * write the System Message and the period, commit; then, in commit order, change rooms and push.
  */
+const GROUP = ConversationKindSchema.enum.group;
+
 @Injectable()
 export class GroupsService {
   // oxlint-disable-next-line max-params -- NestJS constructor injection takes one parameter per dependency
@@ -95,10 +99,7 @@ export class GroupsService {
 
     const id = await this.db.transaction(async (tx) => {
       const created = exactlyOne(
-        await tx
-          .insert(conversations)
-          .values({ kind: 'group' })
-          .returning({ id: conversations.id }),
+        await tx.insert(conversations).values({ kind: GROUP }).returning({ id: conversations.id }),
         'the new Conversation',
       );
       await tx.insert(groups).values({ conversationId: created.id, name, ownerId });
@@ -122,7 +123,7 @@ export class GroupsService {
       const [conversation] = await this.queries.summaries(ownerId, id);
       this.realtime.push(RealtimeEvent.CONVERSATION_CREATED, memberIds, { conversation }, id);
     });
-    return { conversation: { id, kind: 'group', name, ownerId, members, closed: false } };
+    return { conversation: { id, kind: GROUP, name, ownerId, members, closed: false } };
   }
 
   /**
@@ -338,7 +339,7 @@ async function applyAdd(
     conversationId: groupId,
     actorId: callerId,
     subject: member,
-    kind: 'member_added',
+    kind: MessageKindSchema.enum.member_added,
   });
   // Messages up to now stay out of reach; the new period starts just before its own System
   // Message, and so does the Read Marker (nothing from before joining is unread).
@@ -372,7 +373,7 @@ async function applyRemove(
     conversationId: groupId,
     actorId: callerId,
     subject: member,
-    kind: 'member_removed',
+    kind: MessageKindSchema.enum.member_removed,
   });
   await endPeriod(tx, groupId, userId, systemMessage.sequence);
   return { removed: systemMessage, member };
@@ -395,7 +396,7 @@ async function applyLeave(
     conversationId: groupId,
     actorId: callerId,
     subject: leaver,
-    kind: 'member_left',
+    kind: MessageKindSchema.enum.member_left,
   });
   await endPeriod(tx, groupId, callerId, systemMessage.sequence);
   const successor = await successorOwner(tx, groupId);
@@ -412,7 +413,7 @@ async function applyLeave(
       conversationId: groupId,
       actorId: callerId,
       subject: newOwner,
-      kind: 'owner_changed',
+      kind: MessageKindSchema.enum.owner_changed,
     });
     outcome = {
       kind: 'open',

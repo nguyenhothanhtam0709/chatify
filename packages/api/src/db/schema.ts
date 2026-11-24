@@ -1,4 +1,4 @@
-import { CONVERSATION_KINDS, MESSAGE_KINDS } from '@chat/contracts';
+import { CONVERSATION_KINDS, MESSAGE_KINDS, MessageKindSchema } from '@chat/contracts';
 import { sql, type SQL } from 'drizzle-orm';
 import {
   boolean,
@@ -17,6 +17,9 @@ import {
 /** `'a', 'b'` for a SQL `in (...)` list, from the shared definition in contracts. */
 const sqlList = (values: readonly string[]): SQL<unknown> =>
   sql.raw(values.map((v) => `'${v}'`).join(', '));
+
+/** The `text` Message kind as a quoted SQL literal; a drizzle `check` cannot take a bound parameter. */
+const TEXT_KIND = sqlList([MessageKindSchema.enum.text]);
 
 /**
  * A registered person. Username and email are stored exactly as typed; the unique indexes
@@ -208,7 +211,7 @@ export const messages = pgTable(
     clientMessageId: uuid('client_message_id')
       .notNull()
       .default(sql`gen_random_uuid()`),
-    kind: text('kind', { enum: MESSAGE_KINDS }).notNull().default('text'),
+    kind: text('kind', { enum: MESSAGE_KINDS }).notNull().default(MessageKindSchema.enum.text),
     body: text('body').notNull().default(''),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -216,7 +219,7 @@ export const messages = pgTable(
     uniqueIndex('messages_conversation_sequence_unique').on(t.conversationId, t.sequence),
     uniqueIndex('messages_sender_client_message_id_unique').on(t.senderId, t.clientMessageId),
     check('messages_kind_check', sql`${t.kind} in (${sqlList(MESSAGE_KINDS)})`),
-    check('messages_system_message_body_check', sql`${t.kind} = 'text' or ${t.body} = ''`),
+    check('messages_system_message_body_check', sql`${t.kind} = ${TEXT_KIND} or ${t.body} = ''`),
     // The target of the composite foreign key from `system_messages`.
     uniqueIndex('messages_id_kind_unique').on(t.id, t.kind),
   ],
@@ -246,6 +249,6 @@ export const systemMessages = pgTable(
       columns: [t.messageId, t.kind],
       foreignColumns: [messages.id, messages.kind],
     }).onDelete('cascade'),
-    check('system_messages_kind_check', sql`${t.kind} <> 'text'`),
+    check('system_messages_kind_check', sql`${t.kind} <> ${TEXT_KIND}`),
   ],
 );

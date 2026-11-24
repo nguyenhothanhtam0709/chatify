@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
+  ConversationKindSchema,
+  MessageKindSchema,
   UNREAD_COUNT_MAX,
   previewOf,
   type ConversationMember,
@@ -24,7 +26,7 @@ function lastVisibleSequenceOf(userId: string): SQL {
     select max(vm.sequence) from messages vm
     join membership_periods vp on vp.conversation_id = vm.conversation_id
     where vm.conversation_id = ${conversations.id} and vp.user_id = ${userId}
-      and vm.kind = 'text'
+      and vm.kind = ${MessageKindSchema.enum.text}
       and vm.sequence > vp.start_sequence and vm.sequence <= vp.end_sequence
   )`;
 }
@@ -38,7 +40,7 @@ function unreadCountOf(userId: string): SQL<number> {
       join conversation_members ucm
         on ucm.conversation_id = um.conversation_id and ucm.user_id = ${userId}
       where um.conversation_id = ${conversations.id}
-        and um.kind = 'text' and um.sender_id <> ${userId}
+        and um.kind = ${MessageKindSchema.enum.text} and um.sender_id <> ${userId}
         and um.sequence > ucm.read_marker
       limit ${UNREAD_COUNT_MAX}
     ) unread
@@ -89,7 +91,10 @@ function toSummary(
   }
   return {
     id: row.id,
-    kind: row.groupName === null ? ('direct' as const) : ('group' as const),
+    kind:
+      row.groupName === null
+        ? ConversationKindSchema.enum.direct
+        : ConversationKindSchema.enum.group,
     name,
     // A Former Member of a Group sees no Members (who joined later is not theirs to know).
     members: row.groupName !== null && !row.isMember ? [] : all,

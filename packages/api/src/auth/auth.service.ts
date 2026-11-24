@@ -11,6 +11,7 @@ import * as argon2 from 'argon2';
 import { and, eq, gt, ne, or, sql, type SQL } from 'drizzle-orm';
 import { DomainException } from '../common/all-exceptions.filter.js';
 import { readProperty } from '../common/read-property.js';
+import { MS_PER_SECOND, SECONDS_PER_DAY } from '../common/time.js';
 import type { Config } from '../config/config.js';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import type { Database } from '../db/database.module.js';
@@ -29,6 +30,7 @@ export interface NewUser {
 }
 
 const UNIQUE_VIOLATION = '23505';
+const DUMMY_HASH_SEED_BYTES = 16;
 
 export interface IssuedSession {
   accessToken: string;
@@ -64,8 +66,11 @@ export class AuthService {
     @Inject(TOKEN_DENY_LIST) private readonly denyList: TokenDenyList,
     config: ConfigService<Config, true>,
   ) {
-    this.refreshTtlSeconds = config.get('REFRESH_TOKEN_TTL_DAYS', { infer: true }) * 24 * 60 * 60;
-    this.dummyHash = argon2.hash(randomBytes(16).toString('hex'), { type: argon2.argon2id });
+    this.refreshTtlSeconds =
+      config.get('REFRESH_TOKEN_TTL_DAYS', { infer: true }) * SECONDS_PER_DAY;
+    this.dummyHash = argon2.hash(randomBytes(DUMMY_HASH_SEED_BYTES).toString('hex'), {
+      type: argon2.argon2id,
+    });
   }
 
   /** The database computes "now plus the refresh TTL"; only the duration is passed in. */
@@ -163,7 +168,7 @@ export class AuthService {
 
   /** Ends the session now: its access token is denied until it would expire anyway. */
   public async logout(auth: AuthContext): Promise<void> {
-    await this.denyList.add(auth.jti, new Date(auth.expiresAt * 1000));
+    await this.denyList.add(auth.jti, new Date(auth.expiresAt * MS_PER_SECOND));
     await this.db.delete(sessions).where(eq(sessions.id, auth.sessionId));
     await this.denyList.sweepExpired();
   }

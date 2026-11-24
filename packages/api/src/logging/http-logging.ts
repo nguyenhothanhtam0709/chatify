@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Logger } from 'pino';
+import { roundMs } from '../common/time.js';
 import { runWithRequestContext, type RequestContext } from './request-context.js';
 
 /**
@@ -24,7 +25,7 @@ export function installHttpLogging(fastify: FastifyInstance, logger: Logger): vo
           method: request.method,
           route: request.routeOptions?.url,
           status: reply.statusCode,
-          durationMs: Math.round(reply.elapsedTime * 1000) / 1000,
+          durationMs: roundMs(reply.elapsedTime),
           ip: request.ip,
         },
         'request completed',

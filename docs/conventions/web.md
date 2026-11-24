@@ -18,6 +18,7 @@ Rules for `packages/web`, on top of the [general conventions](general.md).
 - Build UI from `@/components/ui/*` (shadcn, style `base-nova`, lucide icons). Add components only with the shadcn CLI and never hand-edit the generated files (lint ignores them). The CLI also adds the `cn` npm package, so a Ticket that adds a component needs it in Allowed packages.
 - Style only with Tailwind classes in `className`. No `style={{}}` outside ui components. Only ui components use `cn()`.
 - Before sending a form, `safeParse` its input with the contracts schema.
+- A limit shown to the user is interpolated from its contracts constant, never typed as a number. The composer checks its text with `MessageBodySchema` in `ConversationView.tsx`; follow that pattern for checking user input against contracts.
 
 ## Data fetching
 

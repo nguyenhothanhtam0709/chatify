@@ -4,6 +4,8 @@ import {
   GroupMembershipResponseSchema,
   ErrorCode,
   ErrorResponseSchema,
+  GROUP_MEMBERS_MAX,
+  GROUP_NAME_MAX,
   type CreateGroupRequest,
   type GetConversationResponse,
   type Group,
@@ -37,13 +39,13 @@ export async function createGroup(
   }
   const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
   if (code === ErrorCode.GROUP_FULL) {
-    return { ok: false, error: 'A Group can have at most 256 Members.' };
+    return { ok: false, error: `A Group can have at most ${GROUP_MEMBERS_MAX} Members.` };
   }
   if (code === ErrorCode.USER_NOT_FOUND) {
     return { ok: false, error: 'One of the chosen people no longer exists.' };
   }
   if (code === ErrorCode.VALIDATION_FAILED) {
-    return { ok: false, error: 'That Group name is not allowed. Use 1-100 plain characters.' };
+    return { ok: false, error: `That Group name is not allowed. Use 1-${GROUP_NAME_MAX} plain characters.` };
   }
   return { ok: false, error: GENERIC_ERROR };
 }
@@ -109,7 +111,7 @@ async function changeMembers(
   if (code === ErrorCode.ALREADY_A_MEMBER)
     return { ok: false, error: 'They are already a Member.' };
   if (code === ErrorCode.GROUP_FULL) {
-    return { ok: false, error: 'A Group can have at most 256 Members.' };
+    return { ok: false, error: `A Group can have at most ${GROUP_MEMBERS_MAX} Members.` };
   }
   if (code === ErrorCode.USER_NOT_FOUND)
     return { ok: false, error: 'That person no longer exists.' };

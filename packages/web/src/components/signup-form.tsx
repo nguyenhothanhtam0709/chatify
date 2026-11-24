@@ -1,4 +1,10 @@
-import { RegisterRequestSchema } from '@chat/contracts';
+import {
+  PASSWORD_MAX,
+  PASSWORD_MIN,
+  RegisterRequestSchema,
+  USERNAME_MAX,
+  USERNAME_MIN,
+} from '@chat/contracts';
 import { useState, type FormEvent } from 'react';
 import { register, type RegisterField, type RegisterResult } from '@/api/register';
 import { Button } from '@/components/ui/button';
@@ -110,7 +116,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 <FieldError>{errors.username}</FieldError>
               ) : (
                 <FieldDescription>
-                  3-32 letters, digits or underscores. This is how others find you.
+                  {USERNAME_MIN}-{USERNAME_MAX} letters, digits or underscores. This is how others find you.
                 </FieldDescription>
               )}
             </Field>
@@ -130,7 +136,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
               {errors.password ? (
                 <FieldError>{errors.password}</FieldError>
               ) : (
-                <FieldDescription>Must be 8-128 characters long.</FieldDescription>
+                <FieldDescription>Must be {PASSWORD_MIN}-{PASSWORD_MAX} characters long.</FieldDescription>
               )}
             </Field>
             <Field data-invalid={invalid('nickname')}>

@@ -29,33 +29,41 @@ export const nameText = (trim: boolean): z.ZodPipe<z.ZodString, z.ZodTransform<s
     .refine((value) => !hasChar(value, isControl), 'must not contain control characters')
     .refine((value) => !hasChar(value, isBidiOverride), 'must not contain bidirectional overrides');
 
-/** 3-32 letters, digits or underscores; case is preserved, uniqueness is case-insensitive. */
+export const USERNAME_MIN = 3;
+export const USERNAME_MAX = 32;
+
+/** Letters, digits or underscores; case is preserved, uniqueness is case-insensitive. */
 export const UsernameSchema = nameText(false).refine(
-  (value) => /^[A-Za-z0-9_]{3,32}$/.test(value),
+  (value) => new RegExp(`^[A-Za-z0-9_]{${USERNAME_MIN},${USERNAME_MAX}}$`).test(value),
   {
-    message: 'must be 3-32 characters: letters, digits or underscore',
+    message: `must be ${USERNAME_MIN}-${USERNAME_MAX} characters: letters, digits or underscore`,
   },
 );
 
 /** Valid email format, at most 254 characters; stored as typed, compared case-insensitively. */
 export const EmailSchema = plainText.pipe(z.email().max(254));
 
-/** 8-128 characters (counted as characters, not UTF-16 units); never trimmed. */
+export const PASSWORD_MIN = 8;
+export const PASSWORD_MAX = 128;
+
+/** Counted as characters, not UTF-16 units; never trimmed. */
 export const PasswordSchema = plainText.refine(
   (value) => {
     const length = codePointLength(value);
-    return length >= 8 && length <= 128;
+    return length >= PASSWORD_MIN && length <= PASSWORD_MAX;
   },
-  { message: 'must be 8-128 characters' },
+  { message: `must be ${PASSWORD_MIN}-${PASSWORD_MAX} characters` },
 );
 
-/** Optional display name: trimmed, 1-50 characters, no control or bidi-override characters. */
+export const NICKNAME_MAX = 50;
+
+/** Optional display name: trimmed, 1-`NICKNAME_MAX` characters, no control or bidi-override characters. */
 export const NicknameSchema = nameText(true).refine(
   (value) => {
     const length = codePointLength(value);
-    return length >= 1 && length <= 50;
+    return length >= 1 && length <= NICKNAME_MAX;
   },
-  { message: 'must be 1-50 characters' },
+  { message: `must be 1-${NICKNAME_MAX} characters` },
 );
 
 /**
@@ -129,6 +137,9 @@ export const MeResponseSchema = z.object({ user: UserSchema });
 
 export type MeResponse = z.infer<typeof MeResponseSchema>;
 
+/** Most Users a search returns. */
+export const USER_SEARCH_LIMIT = 20;
+
 /** `GET /users/search?q=`: 2-32 characters, matched as a Username prefix (never rewritten). */
 export const SearchUsersQuerySchema = z.object({
   q: plainText.refine(
@@ -156,7 +167,7 @@ export const UserSearchResultSchema = z.strictObject({
 export type UserSearchResult = z.infer<typeof UserSearchResultSchema>;
 
 export const SearchUsersResponseSchema = z.object({
-  users: z.array(UserSearchResultSchema).max(20),
+  users: z.array(UserSearchResultSchema).max(USER_SEARCH_LIMIT),
 });
 
 export type SearchUsersResponse = z.infer<typeof SearchUsersResponseSchema>;

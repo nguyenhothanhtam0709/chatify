@@ -1,7 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ErrorCode, type RegisterResponse, type SearchUsersResponse } from '@chat/contracts';
+import {
+  ErrorCode,
+  USER_SEARCH_LIMIT,
+  type RegisterResponse,
+  type SearchUsersResponse,
+} from '@chat/contracts';
 import * as argon2 from 'argon2';
 import { and, eq, gt, ne, or, sql, type SQL } from 'drizzle-orm';
 import { DomainException } from '../common/all-exceptions.filter.js';
@@ -186,7 +191,7 @@ export class AuthService {
 
   /**
    * Users whose Username starts with `q` (case-insensitive; `%`, `_` and `\` are literal),
-   * the exact match first, at most 20, never the searcher. Public fields only.
+   * the exact match first, at most `USER_SEARCH_LIMIT`, never the searcher. Public fields only.
    */
   public async searchUsers(searcherId: string, q: string): Promise<SearchUsersResponse['users']> {
     const needle = q.toLowerCase();
@@ -198,7 +203,7 @@ export class AuthService {
         and(sql`lower(${users.username}) like ${prefix} escape '\\'`, ne(users.id, searcherId)),
       )
       .orderBy(sql`(lower(${users.username}) = ${needle}) desc`, sql`lower(${users.username})`)
-      .limit(20);
+      .limit(USER_SEARCH_LIMIT);
   }
 
   /** Changes the Nickname and/or the share read receipts setting; pushes nothing. */

@@ -9,13 +9,18 @@ import {
 import type { FastifyRequest } from 'fastify';
 import { readProperty } from '../common/read-property.js';
 import type { Config } from '../config/config.js';
-import { ONE_MINUTE_MS } from '../common/time.js';
 import { AppThrottlerGuard } from './app-throttler.guard.js';
+import {
+  LOGIN_IDENTIFIER_LIMIT,
+  LOGIN_TTL_MS,
+  SEARCH_LIMIT,
+  SEARCH_TTL_MS,
+  SEND_LIMIT,
+  SEND_TTL_MS,
+  TYPING_LIMIT,
+  TYPING_TTL_MS,
+} from './rate-limits.js';
 
-// Windows of 10 s, 2 s and 15 min.
-const SEND_TTL_MS = 10_000;
-const TYPING_TTL_MS = 2000;
-const LOGIN_IDENTIFIER_TTL_MS = 900_000;
 const SEARCH_URL = '/api/v1/users/search';
 const SEND_URLS = ['/api/v1/direct-messages', '/api/v1/conversations/:id/messages'];
 const TYPING_URL = '/api/v1/conversations/:id/typing';
@@ -47,30 +52,29 @@ const genericThrottler = (config: ConfigService<Config, true>): ThrottlerOptions
   skipIf: skipWhen((req) => isAuthenticated(req) || isTypingRoute(req)),
 });
 
-// User search only: 30 per minute per User, counted by the route-level guard
+// User search only: per User, counted by the route-level guard
 // once the caller is authenticated.
 const searchThrottler: ThrottlerOptions = {
   name: 'search',
-  limit: 30,
-  ttl: ONE_MINUTE_MS,
+  limit: SEARCH_LIMIT,
+  ttl: SEARCH_TTL_MS,
   skipIf: skipWhen((req) => !isAuthenticated(req) || req.routeOptions?.url !== SEARCH_URL),
   getTracker: userTracker,
 };
 
-// Message sends only (direct and to a Conversation): 30 per 10 s per User.
+// Message sends only (direct and to a Conversation): per User.
 const sendThrottler: ThrottlerOptions = {
   name: 'send',
-  limit: 30,
+  limit: SEND_LIMIT,
   ttl: SEND_TTL_MS,
   skipIf: skipWhen((req) => !isAuthenticated(req) || !isSendRoute(req)),
   getTracker: userTracker,
 };
 
-// Typing Indicator signals only: 2 per 2 s per User and Conversation (a refresh plus
-// a `stopped`).
+// Typing Indicator signals only: per User and Conversation.
 const typingThrottler: ThrottlerOptions = {
   name: 'typing',
-  limit: 2,
+  limit: TYPING_LIMIT,
   ttl: TYPING_TTL_MS,
   skipIf: skipWhen((req) => !isAuthenticated(req) || !isTypingRoute(req)),
   getTracker: (req): string =>
@@ -86,12 +90,11 @@ const typingIpThrottler = (config: ConfigService<Config, true>): ThrottlerOption
   skipIf: skipWhen((req) => isAuthenticated(req) || !isTypingRoute(req)),
 });
 
-// Login only: 5 attempts per 15 minutes per identifier (the per-IP limit is on
-// the route itself).
+// Login only: per identifier (the per-IP limit is on the route itself).
 const identifierThrottler: ThrottlerOptions = {
   name: 'identifier',
-  limit: 5,
-  ttl: LOGIN_IDENTIFIER_TTL_MS,
+  limit: LOGIN_IDENTIFIER_LIMIT,
+  ttl: LOGIN_TTL_MS,
   skipIf: (context): boolean => request(context).routeOptions?.url !== '/api/v1/auth/login',
   getTracker: (req): string => {
     const identifier = readProperty(readProperty(req, 'body'), 'identifier');

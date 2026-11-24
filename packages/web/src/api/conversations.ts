@@ -13,11 +13,12 @@ import {
   type Message,
   type TypingState,
 } from '@chat/contracts';
-
-const HTTP_BAD_REQUEST = 400;
-const HTTP_NOT_FOUND = 404;
-const HTTP_TOO_MANY_REQUESTS = 429;
-const HTTP_SERVER_ERROR = 500;
+import {
+  HTTP_BAD_REQUEST,
+  HTTP_NOT_FOUND,
+  HTTP_SERVER_ERROR,
+  HTTP_TOO_MANY_REQUESTS,
+} from './http-status';
 
 export type ListConversationsResult =
   { ok: true; conversations: ConversationSummary[] } | { ok: false; error: string };

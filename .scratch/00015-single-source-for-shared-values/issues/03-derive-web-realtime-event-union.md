@@ -12,14 +12,16 @@ See the Spec's Part 2.
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The web realtime event type contains no hand-typed event name; it is derived from `RealtimeEventSchemas`
-- [ ] Adding an event to `RealtimeEventSchemas` adds it to the web type with no web edit
-- [ ] The contracts conventions have the `Extract` / `satisfies Record` rule
+- [x] The web realtime event type contains no hand-typed event name; it is derived from `RealtimeEventSchemas`
+- [x] Adding an event to `RealtimeEventSchemas` adds it to the web type with no web edit
+- [x] The contracts conventions have the `Extract` / `satisfies Record` rule
 
 **Verification:** `pnpm typecheck` is the test. The existing web realtime tests must pass unchanged. To show the type is derived, temporarily add a dummy event to `RealtimeEventSchemas`, check that it appears in the web type (for example, a narrowing on its name compiles), then revert.
 
 **Out of scope:** Changing any event's payload or name; `switch-exhaustiveness-check` for web (left off on purpose, see the Spec's Part 3).
 
 ## Comments
+
+Resolved. Verified with `pnpm typecheck`, `pnpm lint`, `pnpm docs:check` and `pnpm --filter @chat/web test` (248 pass, unchanged). Derivation shown by temporarily adding a dummy event to `RealtimeEventSchemas`: a web narrowing on its name compiled, then reverted. The empty payload of `session.revoked` (`Record<string, never>`) maps to `unknown`, so that event stays `{ type }`. The `as RealtimeEvent` cast in `socket-realtime.ts` stays (TypeScript cannot correlate `name` with `parsed.data`). Full `pnpm test` was not run (API tests need Docker). Assumptions: none.

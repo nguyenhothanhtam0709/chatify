@@ -5,7 +5,7 @@
 // `node scripts/shared-values/literal-check.ts --write-baseline` rewrites the baseline from the code.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { readSources, type SourceFile } from './source-files.ts';
+import { codeOfLine, readSources, type SourceFile } from './source-files.ts';
 
 export interface SharedValue {
   value: string;
@@ -20,7 +20,6 @@ export interface Hit extends SharedValue {
 export const ROOTS = ['packages/api/src', 'packages/web/src'];
 // shadcn components, generated and already lint-ignored; "group" there is a CSS name.
 const SKIPPED = /^packages\/web\/src\/components\/ui\//;
-const COMMENT_LINE = /^\s*(\/\/|\/\*|\*)/;
 // Lines where a contracts value is spelled for an unrelated reason, so it cannot import from contracts.
 // Each exemption is a line shape, not a file, so a real re-declaration in the same file is still caught.
 const EXEMPT_LINES: { pattern: RegExp; why: string }[] = [
@@ -54,13 +53,14 @@ export const findLiterals = (files: SourceFile[], values: SharedValue[]): Hit[] 
     .flatMap(({ path, content }) =>
       content
         .split('\n')
-        .flatMap((text, index) =>
-          COMMENT_LINE.test(text) || EXEMPT_LINES.some(({ pattern }) => pattern.test(text))
+        .flatMap((line, index) => {
+          const text = codeOfLine(line);
+          return EXEMPT_LINES.some(({ pattern }) => pattern.test(text))
             ? []
             : patterns
                 .filter(({ quoted }) => quoted.test(text))
-                .map(({ value, source }) => ({ path, value, source, line: index + 1 })),
-        ),
+                .map(({ value, source }) => ({ path, value, source, line: index + 1 }));
+        }),
     );
 };
 
@@ -97,7 +97,7 @@ if (import.meta.main) {
     const problems = checkAgainstBaseline(hits, baseline);
     if (problems.length > 0) {
       console.error(problems.join('\n'));
-      process.exit(1);
+      process.exitCode = 1;
     }
   }
 }

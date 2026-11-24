@@ -1,7 +1,7 @@
 // Fails when web source spells a limit out as a number in a string, such as "1-50 characters".
 // The number belongs in contracts; the string is built from it.
 import { fileURLToPath } from 'node:url';
-import { readSources, type SourceFile } from './source-files.ts';
+import { codeOfLine, readSources, type SourceFile } from './source-files.ts';
 
 const SPELLED_LIMIT = /\d+\s*(?:-|–|to)\s*\d+\s+characters|\bat most \d+/i;
 
@@ -10,7 +10,7 @@ export const findSpelledLimits = (files: SourceFile[]): string[] =>
     content
       .split('\n')
       .flatMap((line, index) =>
-        SPELLED_LIMIT.test(line)
+        SPELLED_LIMIT.test(codeOfLine(line))
           ? [`${path}:${index + 1}: a limit is spelled out as a number; build it from contracts`]
           : [],
       ),
@@ -21,6 +21,6 @@ if (import.meta.main) {
   const problems = findSpelledLimits(readSources(root, ['packages/web/src']));
   if (problems.length > 0) {
     console.error(problems.join('\n'));
-    process.exit(1);
+    process.exitCode = 1;
   }
 }

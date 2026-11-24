@@ -18,6 +18,11 @@ test('"at most <n>" is reported', () => {
   assert.equal(findSpelledLimits([file('"A Group has at most 256 Members"')]).length, 1);
 });
 
+test('a limit mentioned in a comment is not reported', () => {
+  const content = '// keep 1-50 characters\n/* at most 5 */\nconst a = 1; // at most 9\n * 2 to 3 characters';
+  assert.deepEqual(findSpelledLimits([file(content)]), []);
+});
+
 test('"at least <n>" is not one of the patterns', () => {
   assert.deepEqual(findSpelledLimits([file('"Type at least 2 characters"')]), []);
 });

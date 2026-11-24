@@ -15,7 +15,7 @@ See the Spec's Part 2.
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Contracts export the six constants above, and the Nickname, Username and Password schemas use them
 - [x] No web string spells out a limit as a number; each one reads the constant, and the rendered text is unchanged
@@ -27,3 +27,5 @@ See the Spec's Part 2.
 **Out of scope:** Changing any limit's value; the lint rule and scripts that enforce this (Tickets 04-06); the realtime event union (Ticket 03).
 
 ## Comments
+
+Resolved. Verified with `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm docs:check` after merging Feature Branch tip a62fbb8. Contracts tests now use the constants at the boundaries; web and API tests unchanged. No follow-ups.

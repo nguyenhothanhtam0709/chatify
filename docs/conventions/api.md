@@ -23,6 +23,7 @@ Rules for `packages/api`, on top of the [general conventions](general.md).
 
 - Services get the database with `@InjectDrizzle() private readonly db: Database`. Only CLIs and tests call `drizzle(pool)` (ADR 0007).
 - Run multi-step writes in `db.transaction`. Re-check rules that depend on membership under the Conversation lock.
+- Don't transform user text in SQL (`trim`, `regexp_replace`, `lower`, `left`). Postgres and JS disagree on whitespace and case; do it in TS.
 - Shared access rules are `require*` helpers that take a `Reader`. Shared queries live in `*-queries.ts` and row mapping in `message-rows.ts`. A query only one service uses may stay private in that service.
 
 ## Errors

@@ -8,7 +8,7 @@ Rules for `packages/contracts`, on top of the [general conventions](general.md).
 
 ## Package shape
 
-- Contracts are Zod schemas only: no Nest, React or database code. One file per area, all re-exported from `index.ts`. Helper modules (`code-point.ts`, `realtime-events-doc.ts`) are not re-exported.
+- Contracts are Zod schemas, plus pure helpers that api and web must compute identically (such as `previewOf`); no Nest, React or database code. One file per area, all re-exported from `index.ts`. Helper modules (`code-point.ts`, `realtime-events-doc.ts`) are not re-exported.
 - api and web import contracts from `dist`. After changing contracts, run `pnpm build:contracts`. The root `test`, `typecheck` and `dev:*` scripts already run it.
 
 ## Schemas and types
@@ -60,4 +60,4 @@ A breaking change updates api and web in the same PR. Adding optional input fiel
 
 ## Tests
 
-Each area's tests sit next to it as `<area>.test.ts`, use vitest, and are table-driven with `it.each`. Test the boundaries: min and max, NFC, control characters.
+Each area's tests sit next to it as `<area>.test.ts`, use vitest, and are table-driven with `it.each`. Test the boundaries: min and max, NFC, control characters, leading and trailing whitespace (including newline and NBSP), and characters outside the BMP at a length limit.

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
-  LAST_MESSAGE_PREVIEW_MAX,
   UNREAD_COUNT_MAX,
+  previewOf,
   type ConversationMember,
   type ConversationSummary,
 } from '@chat/contracts';
@@ -53,7 +53,7 @@ interface SummaryRow {
   groupName: string | null;
   senderId: string | null;
   sequence: number | null;
-  preview: string | null;
+  body: string | null;
   createdAt: Date | null;
 }
 
@@ -61,7 +61,7 @@ function lastMessageOf(row: SummaryRow): ConversationSummary['lastMessage'] {
   if (
     row.senderId === null ||
     row.sequence === null ||
-    row.preview === null ||
+    row.body === null ||
     row.createdAt === null
   ) {
     return null;
@@ -69,7 +69,7 @@ function lastMessageOf(row: SummaryRow): ConversationSummary['lastMessage'] {
   return {
     senderId: row.senderId,
     sequence: row.sequence,
-    preview: row.preview,
+    preview: previewOf(row.body),
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -130,9 +130,7 @@ export class ConversationQueries {
         groupName: groups.name,
         senderId: messages.senderId,
         sequence: messages.sequence,
-        preview: sql<
-          string | null
-        >`left(regexp_replace(trim(${messages.body}), '\\s+', ' ', 'g'), ${LAST_MESSAGE_PREVIEW_MAX})`,
+        body: messages.body,
         createdAt: messages.createdAt,
       })
       .from(conversations)

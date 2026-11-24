@@ -41,6 +41,7 @@ const UserSearchResultSchema = z.strictObject({ id: z.uuid(), username: z.string
 - Export an enum-like set once as an `as const` value and wrap it in `z.enum`, so the database and API share it. Name maps (code to wire value) are objects. Plain sets are arrays. An inline `z.enum([...])` is fine for values only one schema uses.
 - `ErrorCode` keys are SCREAMING_SNAKE. A new error means a new key in `ErrorCode`.
 - Each realtime event has its name in `RealtimeEvent`, one `...EventSchema`, and an entry in `RealtimeEventSchemas`.
+- A subset of a shared set is derived, never re-typed: `Extract<ErrorCode, …>`. A map over a whole set uses `satisfies Record<…, …>`, so a new value fails to compile until it is handled.
 
 ## User text
 

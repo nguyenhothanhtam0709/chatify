@@ -17,10 +17,10 @@ See the Spec's Part 2.
 
 **Status:** ready-for-agent
 
-- [ ] Contracts export the six constants above, and the Nickname, Username and Password schemas use them
-- [ ] No web string spells out a limit as a number; each one reads the constant, and the rendered text is unchanged
-- [ ] The User search limit reads `USER_SEARCH_LIMIT`
-- [ ] The web conventions and the definition of done have the lines listed above
+- [x] Contracts export the six constants above, and the Nickname, Username and Password schemas use them
+- [x] No web string spells out a limit as a number; each one reads the constant, and the rendered text is unchanged
+- [x] The User search limit reads `USER_SEARCH_LIMIT`
+- [x] The web conventions and the definition of done have the lines listed above
 
 **Verification:** Change the min and max boundary cases in the existing contracts tests for the Nickname, Username and Password schemas to use the constants. This is a refactor everywhere else, so the existing web and API behaviour tests must pass unchanged, with no assertion loosened.
 

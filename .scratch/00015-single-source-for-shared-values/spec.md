@@ -1,6 +1,6 @@
 # Spec: One source for values api and web share
 
-Status: ready-for-agent
+Status: resolved
 
 ## Problem Statement
 

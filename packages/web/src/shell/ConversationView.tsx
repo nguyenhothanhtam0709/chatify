@@ -1,6 +1,9 @@
 import {
+  ConversationKindSchema,
   MESSAGE_BODY_MAX,
   MessageBodySchema,
+  MessageKindSchema,
+  RealtimeEvent,
   type Message as ChatMessage,
   type SystemMessageKind,
   type TypingState,
@@ -89,7 +92,7 @@ const SYSTEM_MESSAGE_VERBS: Record<SystemMessageKind, string> = {
 
 /** The systemMessage's text, or undefined for a Message a Member wrote. */
 const systemMessageText = (m: ChatMessage): string | undefined =>
-  m.kind === 'text' || !m.subject
+  m.kind === MessageKindSchema.enum.text || !m.subject
     ? undefined
     : `${displayName(m.subject)} ${SYSTEM_MESSAGE_VERBS[m.kind]}`;
 
@@ -379,14 +382,15 @@ export function ConversationView({
   }, [messages, loadOlder]);
 
   const [info, setInfo] = useState<GroupInfo | undefined>(
-    target.kind === 'group'
+    target.kind === ConversationKindSchema.enum.group
       ? { memberCount: target.memberCount, closed: target.closed, isMember: target.isMember }
       : undefined,
   );
-  const isGroup = target.kind === 'group';
-  const listedCount = target.kind === 'group' ? target.memberCount : 0;
-  const listedClosed = target.kind === 'group' ? target.closed : false;
-  const listedIsMember = target.kind === 'group' ? target.isMember : false;
+  const isGroup = target.kind === ConversationKindSchema.enum.group;
+  const listedCount = target.kind === ConversationKindSchema.enum.group ? target.memberCount : 0;
+  const listedClosed = target.kind === ConversationKindSchema.enum.group ? target.closed : false;
+  const listedIsMember =
+    target.kind === ConversationKindSchema.enum.group ? target.isMember : false;
   // Set once the Group's own endpoint has answered: its answers are fresher than any list
   // snapshot, whose request may have been made before a Member change and answered after it.
   const answered = useRef(false);
@@ -425,7 +429,7 @@ export function ConversationView({
   // The other User's Read Marker in a Direct Conversation, known only while both share read
   // receipts: from the Conversation on open (and on reconnect, for a missed push), then from
   // `conversation.receipt`. It only moves forward. Only the newest request counts.
-  const isDirect = target.kind === 'direct';
+  const isDirect = target.kind === ConversationKindSchema.enum.direct;
   const [otherMarker, setOtherMarker] = useState<number | undefined>(undefined);
   const receiptRequests = useRef(0);
   const sharing = user.shareReadReceipts;
@@ -455,7 +459,7 @@ export function ConversationView({
     useCallback(
       (event) => {
         if (
-          event.type !== 'conversation.receipt' ||
+          event.type !== RealtimeEvent.CONVERSATION_RECEIPT ||
           event.conversationId !== conversationId ||
           !sharing
         ) {
@@ -555,13 +559,13 @@ export function ConversationView({
   useRealtimeEvents(
     useCallback(
       (event) => {
-        if (event.type === 'group.closed') {
+        if (event.type === RealtimeEvent.GROUP_CLOSED) {
           if (event.conversationId !== conversationId) return;
           setInfo((current) => current && { ...current, closed: true, isMember: false });
           refreshGroup();
           return;
         }
-        if (event.type === 'group.membership_ended') {
+        if (event.type === RealtimeEvent.GROUP_MEMBERSHIP_ENDED) {
           // This User's membership ended elsewhere (removed, or left on another tab).
           if (event.conversationId !== conversationId) return;
           setInfo((current) => current && { ...current, isMember: false });
@@ -569,16 +573,16 @@ export function ConversationView({
           return;
         }
         if (
-          event.type !== 'group.member_added' &&
-          event.type !== 'group.member_removed' &&
-          event.type !== 'group.member_left'
+          event.type !== RealtimeEvent.GROUP_MEMBER_ADDED &&
+          event.type !== RealtimeEvent.GROUP_MEMBER_REMOVED &&
+          event.type !== RealtimeEvent.GROUP_MEMBER_LEFT
         ) {
           return;
         }
         if (event.conversationId !== conversationId) return;
         // Being added (again) makes this User a Member. The count is not adjusted here: the
         // server's answer already includes everyone, so adding one would count them twice.
-        if (event.type === 'group.member_added' && event.member.id === user.id) {
+        if (event.type === RealtimeEvent.GROUP_MEMBER_ADDED && event.member.id === user.id) {
           setInfo((current) => current && { ...current, isMember: true });
         }
         refreshGroup();
@@ -590,10 +594,10 @@ export function ConversationView({
   useRealtimeEvents(
     useCallback(
       (event) => {
-        if (event.type !== 'typing.updated') return;
+        if (event.type !== RealtimeEvent.TYPING_UPDATED) return;
         const ours = conversationId
           ? event.conversationId === conversationId
-          : target.kind === 'direct' && event.user.id === target.peer.id;
+          : target.kind === ConversationKindSchema.enum.direct && event.user.id === target.peer.id;
         if (!ours || event.user.id === user.id) return;
         if (event.state === 'stopped') {
           dropTypist(event.user.id);
@@ -613,12 +617,13 @@ export function ConversationView({
   useRealtimeEvents(
     useCallback(
       (event) => {
-        if (event.type !== 'message.created') return;
+        if (event.type !== RealtimeEvent.MESSAGE_CREATED) return;
         const { message } = event;
         // A Message from the peer starts the Conversation this view was opened without.
         const ours = conversationId
           ? message.conversationId === conversationId
-          : target.kind === 'direct' && message.senderId === target.peer.id;
+          : target.kind === ConversationKindSchema.enum.direct &&
+            message.senderId === target.peer.id;
         if (!ours) return;
         if (!conversationId) {
           setConversationId(message.conversationId);
@@ -640,7 +645,7 @@ export function ConversationView({
     let result;
     if (conversationId) {
       result = await sendMessage(conversationId, { clientMessageId, body });
-    } else if (target.kind === 'direct') {
+    } else if (target.kind === ConversationKindSchema.enum.direct) {
       result = await sendDirectMessage({ recipientId: target.peer.id, clientMessageId, body });
     } else {
       throw new Error('A group has no Conversation ID to send to');
@@ -696,7 +701,8 @@ export function ConversationView({
 
   const closed = info?.closed ?? false;
   const memberCount = info?.memberCount ?? 0;
-  const canPost = target.kind !== 'group' || (!!info?.isMember && !closed);
+  const canPost =
+    target.kind !== ConversationKindSchema.enum.group || (!!info?.isMember && !closed);
 
   // "Seen" goes under the newest of the User's own Messages the other User has read.
   const seenId =
@@ -704,8 +710,12 @@ export function ConversationView({
       ? undefined
       : [...messages]
           .reverse()
-          .find((m) => m.kind === 'text' && m.senderId === user.id && m.sequence <= otherMarker)
-          ?.id;
+          .find(
+            (m) =>
+              m.kind === MessageKindSchema.enum.text &&
+              m.senderId === user.id &&
+              m.sequence <= otherMarker,
+          )?.id;
 
   const rows: Row[] = [
     ...messages.map((m) => {
@@ -734,7 +744,7 @@ export function ConversationView({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex h-12 items-center gap-2 border-b px-4">
-        {target.kind === 'group' ? (
+        {target.kind === ConversationKindSchema.enum.group ? (
           <>
             <h1 className="truncate text-base font-semibold">{target.name}</h1>
             {/* A Former Member sees no Members, so no count of them either. */}
@@ -791,7 +801,7 @@ export function ConversationView({
           {showEmptyState && (
             <p className="absolute inset-x-0 top-0 p-6 text-center text-sm text-muted-foreground">
               No messages yet.{' '}
-              {target.kind === 'group'
+              {target.kind === ConversationKindSchema.enum.group
                 ? 'Say hello to the Group.'
                 : `Say hello to ${displayName(target.peer)}.`}
             </p>

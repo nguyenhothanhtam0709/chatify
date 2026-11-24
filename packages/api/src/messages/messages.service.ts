@@ -1,5 +1,6 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import {
+  ConversationKindSchema,
   ErrorCode,
   RealtimeEvent,
   type Conversation,
@@ -436,7 +437,7 @@ export class MessagesService {
       return {
         conversation: {
           id: conversationId,
-          kind: 'direct',
+          kind: ConversationKindSchema.enum.direct,
           members,
           ...(receipt && { readUpToSequence: receipt.readMarker }),
         },
@@ -448,7 +449,7 @@ export class MessagesService {
       return {
         conversation: {
           id: conversationId,
-          kind: 'group',
+          kind: ConversationKindSchema.enum.group,
           name: group.name,
           members: [],
           closed,
@@ -459,7 +460,7 @@ export class MessagesService {
     return {
       conversation: {
         id: conversationId,
-        kind: 'group',
+        kind: ConversationKindSchema.enum.group,
         ...group,
         members,
         closed,
@@ -497,7 +498,7 @@ export class MessagesService {
   /** The Group as `userId` sees it now; 404 when the Conversation is not a Group. */
   public async getGroup(userId: string, groupId: string): Promise<GroupMembershipResponse> {
     const { conversation } = await this.get(userId, groupId);
-    if (conversation.kind !== 'group') throw conversationNotFound();
+    if (conversation.kind !== ConversationKindSchema.enum.group) throw conversationNotFound();
     return { conversation };
   }
 
@@ -523,7 +524,7 @@ export class MessagesService {
       ...sent,
       conversation: {
         id: sent.message.conversationId,
-        kind: 'direct',
+        kind: ConversationKindSchema.enum.direct,
         memberIds: members.map((m) => m.userId),
       },
     };
@@ -550,7 +551,10 @@ export class MessagesService {
     if (existing) return { id: existing.id, created: false };
 
     const created = exactlyOne(
-      await tx.insert(conversations).values({ kind: 'direct' }).returning({ id: conversations.id }),
+      await tx
+        .insert(conversations)
+        .values({ kind: ConversationKindSchema.enum.direct })
+        .returning({ id: conversations.id }),
       'the new Conversation',
     );
     const [won] = await tx

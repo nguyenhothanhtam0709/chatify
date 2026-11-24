@@ -1,3 +1,4 @@
+import { RealtimeEvent } from '@chat/contracts';
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { useAuth } from '@/auth/auth-context';
@@ -69,7 +70,7 @@ function SessionRevocationWatcher() {
 
 function WatchRevocation({ onRevoked }: { onRevoked: () => void }) {
   useRealtimeEvents((event) => {
-    if (event.type === 'session.revoked') onRevoked();
+    if (event.type === RealtimeEvent.SESSION_REVOKED) onRevoked();
   });
   return null;
 }

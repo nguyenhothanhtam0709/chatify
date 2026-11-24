@@ -1,5 +1,5 @@
 import type { ConversationSummary, Message } from '@chat/contracts';
-import { UNREAD_COUNT_MAX, previewOf } from '@chat/contracts';
+import { MessageKindSchema, RealtimeEvent, UNREAD_COUNT_MAX, previewOf } from '@chat/contracts';
 import { MessageSquare } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAuth } from '@/auth/auth-context';
@@ -108,7 +108,7 @@ export function ConversationList({
   const applyMessage = useCallback(
     (list: ConversationSummary[], { message, reading }: PushedMessage): ConversationSummary[] => {
       // Membership notes do not touch the preview or the order (spec: only Messages do).
-      if (message.kind !== 'text') return list;
+      if (message.kind !== MessageKindSchema.enum.text) return list;
       const id = message.conversationId;
       const known = list.find((c) => c.id === id);
       if (!known) {
@@ -174,7 +174,7 @@ export function ConversationList({
     useCallback(
       (event) => {
         const list = current.current;
-        if (event.type === 'conversation.created') {
+        if (event.type === RealtimeEvent.CONVERSATION_CREATED) {
           const { conversation } = event;
           // A response in flight may predate it; one asked for now cannot.
           if (inFlight.current) reload();
@@ -183,12 +183,15 @@ export function ConversationList({
           show([conversation, ...list.filter((c) => c.id !== conversation.id)]);
           return;
         }
-        if (event.type === 'group.closed' || event.type === 'group.membership_ended') {
+        if (
+          event.type === RealtimeEvent.GROUP_CLOSED ||
+          event.type === RealtimeEvent.GROUP_MEMBERSHIP_ENDED
+        ) {
           // Both flip the entry to read-only; the server knows the rest.
           reload();
           return;
         }
-        if (event.type === 'conversation.read') {
+        if (event.type === RealtimeEvent.CONVERSATION_READ) {
           const { conversationId, upToSequence } = event;
           const awaited = awaitedRead.current;
           if (awaited?.conversationId === conversationId && upToSequence >= awaited.sequence) {
@@ -207,7 +210,7 @@ export function ConversationList({
           show(list.map((c) => (c === known ? { ...c, unreadCount: 0 } : c)));
           return;
         }
-        if (event.type !== 'message.created') return;
+        if (event.type !== RealtimeEvent.MESSAGE_CREATED) return;
         const { message } = event;
         const push = { message, reading: message.conversationId === readingId };
         inFlight.current?.push(push);

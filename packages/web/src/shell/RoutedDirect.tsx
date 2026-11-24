@@ -1,4 +1,4 @@
-import type { User, UserSearchResult } from '@chat/contracts';
+import { ConversationKindSchema, type User, type UserSearchResult } from '@chat/contracts';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/auth/auth-context';
 import { ConversationView } from './ConversationView';
@@ -70,7 +70,7 @@ export function RoutedDirect({
     return (
       <ConversationView
         user={user}
-        target={{ kind: 'direct', peer: looked.peer }}
+        target={{ kind: ConversationKindSchema.enum.direct, peer: looked.peer }}
         onSent={(id) => {
           startOnce(id);
           onSent(id);

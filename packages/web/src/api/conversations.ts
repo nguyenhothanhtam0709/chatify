@@ -1,4 +1,5 @@
 import {
+  ConversationKindSchema,
   ErrorCode,
   ErrorResponseSchema,
   GetConversationResponseSchema,
@@ -159,7 +160,10 @@ export async function readReceipt(
   const { conversation } = GetConversationResponseSchema.parse(res.payload);
   return {
     ok: true,
-    readUpToSequence: conversation.kind === 'direct' ? conversation.readUpToSequence : undefined,
+    readUpToSequence:
+      conversation.kind === ConversationKindSchema.enum.direct
+        ? conversation.readUpToSequence
+        : undefined,
   };
 }
 

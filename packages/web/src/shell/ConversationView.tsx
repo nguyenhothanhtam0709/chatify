@@ -99,15 +99,14 @@ const systemMessageText = (m: ChatMessage): string | undefined =>
 /** Mark-read waits this long for the view to settle, so a burst of changes sends one call. */
 const MARK_READ_DEBOUNCE_MS = 300;
 
-const MARK_READ_RETRY_FIRST_MS = 1000;
-const MARK_READ_RETRY_SECOND_MS = 3000;
-const MARK_READ_RETRY_THIRD_MS = 9000;
+const MARK_READ_RETRY_BASE_MS = 1000;
+const MARK_READ_RETRY_BACKOFF = 3;
 
 /** A failed mark-read is tried again after these waits, then given up on until the next change. */
 const MARK_READ_RETRY_MS = [
-  MARK_READ_RETRY_FIRST_MS,
-  MARK_READ_RETRY_SECOND_MS,
-  MARK_READ_RETRY_THIRD_MS,
+  MARK_READ_RETRY_BASE_MS,
+  MARK_READ_RETRY_BASE_MS * MARK_READ_RETRY_BACKOFF,
+  MARK_READ_RETRY_BASE_MS * MARK_READ_RETRY_BACKOFF * MARK_READ_RETRY_BACKOFF,
 ];
 
 /** An indicator shows for this long after the last signal from that Member. */
@@ -116,13 +115,12 @@ const TYPING_EXPIRY_MS = 6000;
 /** While input continues, the composer repeats `typing` at most this often. */
 const TYPING_REPEAT_MS = 3000;
 
-const TWO_TYPING = 2;
-
 /** The text of the Typing Indicator for the Members typing now, or undefined for none. */
 function typingText(names: string[]): string | undefined {
-  if (names.length === 0) return undefined;
-  if (names.length === 1) return `${names[0]} is typing…`;
-  if (names.length === TWO_TYPING) return `${names[0]} and ${names[1]} are typing…`;
+  const [first, second, third] = names;
+  if (first === undefined) return undefined;
+  if (second === undefined) return `${first} is typing…`;
+  if (third === undefined) return `${first} and ${second} are typing…`;
   return 'Several people are typing…';
 }
 

@@ -51,16 +51,14 @@ export const findLiterals = (files: SourceFile[], values: SharedValue[]): Hit[] 
   return files
     .filter(({ path }) => !SKIPPED.test(path))
     .flatMap(({ path, content }) =>
-      content
-        .split('\n')
-        .flatMap((line, index) => {
-          const text = codeOfLine(line);
-          return EXEMPT_LINES.some(({ pattern }) => pattern.test(text))
-            ? []
-            : patterns
-                .filter(({ quoted }) => quoted.test(text))
-                .map(({ value, source }) => ({ path, value, source, line: index + 1 }));
-        }),
+      content.split('\n').flatMap((line, index) => {
+        const text = codeOfLine(line);
+        return EXEMPT_LINES.some(({ pattern }) => pattern.test(text))
+          ? []
+          : patterns
+              .filter(({ quoted }) => quoted.test(text))
+              .map(({ value, source }) => ({ path, value, source, line: index + 1 }));
+      }),
     );
 };
 

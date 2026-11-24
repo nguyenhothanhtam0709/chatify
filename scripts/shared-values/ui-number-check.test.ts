@@ -19,7 +19,8 @@ test('"at most <n>" is reported', () => {
 });
 
 test('a limit mentioned in a comment is not reported', () => {
-  const content = '// keep 1-50 characters\n/* at most 5 */\nconst a = 1; // at most 9\n * 2 to 3 characters';
+  const content =
+    '// keep 1-50 characters\n/* at most 5 */\nconst a = 1; // at most 9\n * 2 to 3 characters';
   assert.deepEqual(findSpelledLimits([file(content)]), []);
 });
 

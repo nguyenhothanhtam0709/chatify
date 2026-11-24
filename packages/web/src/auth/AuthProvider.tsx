@@ -23,10 +23,16 @@ import { updateProfile as patchProfile } from '@/api/profile';
 import { searchUsers } from '@/api/users';
 import { AuthContext, type AuthState } from './auth-context';
 
+const REFRESH_LEAD_MS = 60_000;
+const REFRESH_SKIP_THRESHOLD_MS = 120_000;
+const HALF_DIVISOR = 2;
+
 /** Refresh a minute before expiry; for very short-lived tokens, halfway through. */
 function refreshDelay(accessToken: string): number {
   const remaining = msUntilExpiry(accessToken);
-  return remaining > 120_000 ? remaining - 60_000 : Math.max(remaining / 2, 0);
+  return remaining > REFRESH_SKIP_THRESHOLD_MS
+    ? remaining - REFRESH_LEAD_MS
+    : Math.max(remaining / HALF_DIVISOR, 0);
 }
 
 /**

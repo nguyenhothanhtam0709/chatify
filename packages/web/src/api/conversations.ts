@@ -13,6 +13,11 @@ import {
   type TypingState,
 } from '@chat/contracts';
 
+const HTTP_BAD_REQUEST = 400;
+const HTTP_NOT_FOUND = 404;
+const HTTP_TOO_MANY_REQUESTS = 429;
+const HTTP_SERVER_ERROR = 500;
+
 export type ListConversationsResult =
   { ok: true; conversations: ConversationSummary[] } | { ok: false; error: string };
 
@@ -87,8 +92,8 @@ async function getByUrl<T>(
   if (!res.ok) {
     const code = ErrorResponseSchema.safeParse(payload).data?.error.code;
     const gone =
-      (res.status === 404 && code === notFoundCode) ||
-      (res.status === 400 && code === ErrorCode.VALIDATION_FAILED);
+      (res.status === HTTP_NOT_FOUND && code === notFoundCode) ||
+      (res.status === HTTP_BAD_REQUEST && code === ErrorCode.VALIDATION_FAILED);
     return gone
       ? { ok: false, error: goneError, notFound: true }
       : { ok: false, error: 'Something went wrong. Try again.' };
@@ -213,7 +218,7 @@ export async function markRead(
     return { ok: false, error: 'Could not reach the server. Try again.', retryable: true };
   }
   if (!res.ok) {
-    const retryable = res.status >= 500 || res.status === 429;
+    const retryable = res.status >= HTTP_SERVER_ERROR || res.status === HTTP_TOO_MANY_REQUESTS;
     return {
       ok: false,
       error: 'Something went wrong. Try again.',

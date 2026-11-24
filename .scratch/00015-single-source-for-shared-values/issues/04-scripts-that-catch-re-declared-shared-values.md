@@ -13,12 +13,12 @@ See the Spec's Part 3.
 
 **Blocked by:** 02, 03
 
-**Status:** needs-info
+**Status:** resolved
 
-- [ ] `pnpm lint` runs both checks and passes on the current code
-- [ ] A quoted `ErrorCode`, `RealtimeEvent`, Message kind or Conversation kind value in api or web source fails `pnpm lint` with its location
-- [ ] A web string such as `"1-50 characters"` or `"at most 256"` fails `pnpm lint` with its location
-- [ ] A value added to one of the four contracts sets is checked with no change to the script
+- [x] `pnpm lint` runs both checks and passes on the current code
+- [x] A quoted `ErrorCode`, `RealtimeEvent`, Message kind or Conversation kind value in api or web source fails `pnpm lint` with its location
+- [x] A web string such as `"1-50 characters"` or `"at most 256"` fails `pnpm lint` with its location
+- [x] A value added to one of the four contracts sets is checked with no change to the script
 
 **Verification:** Add a `node --test` script test for each check, run by `pnpm test:scripts`, with one passing and one failing fixture each. Prior art: the docs checker and hook tests under `scripts/`.
 
@@ -44,3 +44,7 @@ See the Spec's Part 3.
 4. Replace the grep with a type-aware lint rule.
 
 **Blocked:** the whole Ticket until the human picks an option. WIP committed; no script tests written yet.
+
+Human chose option 3 and dropping `at least`, 2026-11-24.
+
+Resolved. `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm docs:check` pass. Literal check: contracts values read each run; hits keyed by file + value in `scripts/shared-values/literal-baseline.json` (48 entries); a new hit or a stale entry fails; comment lines and `components/ui/` are skipped; `type="text"` hits stay in the baseline. Same file + value counts once, so a second use of a baselined value in the same file is not caught. `ErrorCode` was not re-declared in code: its hits were only in comments. UI number check: `<n>-<m> characters` and `at most <n>` only. Follow-up: Ticket 07 clears the baseline. No assumptions.

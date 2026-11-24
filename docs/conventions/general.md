@@ -21,6 +21,10 @@ Use `interface` for named object shapes and `type` for unions and aliases. Ambie
 
 Instead of `as`, narrow with a type guard, annotate the type, or give the library call a better type. Where a library or framework leaves no way, use `// oxlint-disable-next-line typescript/consistent-type-assertions -- <why the cast is safe>` on the line above. oxlint also honours the `eslint-disable-next-line` form, but write the `oxlint-` form. Any rule can be bypassed the same way, with its own name, and each bypass also gets a line in the root `fix-lint.md` (location, rule, reason). A disable with no reason fails review: no lint rule checks it, because that would need a new package.
 
+## Shared values
+
+A value that api and web both compute comes from one helper in contracts. Never re-implement it on the other side, and never write a comment claiming two implementations match: make them share the code instead.
+
 ## Errors
 
 - Every error that crosses the HTTP boundary is `{ error: { code, message, details? } }` with a stable `ErrorCode` from contracts. Clients and tests branch on the code, never on the message.

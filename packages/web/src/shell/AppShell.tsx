@@ -34,6 +34,7 @@ import { ConversationList } from './ConversationList';
 import { RoutedConversation } from './RoutedConversation';
 import { RoutedDirect } from './RoutedDirect';
 import { NewConversationDialog } from './NewConversationDialog';
+import { initials } from '@/lib/initials';
 import { NewGroupDialog } from './NewGroupDialog';
 import { ProfileDialog } from './ProfileDialog';
 
@@ -74,7 +75,7 @@ function UserMenu({ user }: { user: User }) {
         <DropdownMenu>
           <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
             <Avatar className="size-8">
-              <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarFallback>{initials(name)}</AvatarFallback>
             </Avatar>
             <span className="truncate font-medium">{name}</span>
             <ChevronsUpDown className="ml-auto size-4" />

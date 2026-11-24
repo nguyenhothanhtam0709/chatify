@@ -45,8 +45,10 @@ import {
   useMessageScrollerScrollable,
 } from '@/components/ui/message-scroller';
 
+const COUNTER_WINDOW = 500;
+
 /** Show the counter once the text is within this many characters of the limit. */
-const COUNTER_THRESHOLD = MESSAGE_BODY_MAX - 500;
+const COUNTER_THRESHOLD = MESSAGE_BODY_MAX - COUNTER_WINDOW;
 
 const dayKey = (iso: string): string => new Date(iso).toDateString();
 const dayLabel = (iso: string): string =>
@@ -94,8 +96,16 @@ const systemMessageText = (m: ChatMessage): string | undefined =>
 /** Mark-read waits this long for the view to settle, so a burst of changes sends one call. */
 const MARK_READ_DEBOUNCE_MS = 300;
 
+const MARK_READ_RETRY_FIRST_MS = 1000;
+const MARK_READ_RETRY_SECOND_MS = 3000;
+const MARK_READ_RETRY_THIRD_MS = 9000;
+
 /** A failed mark-read is tried again after these waits, then given up on until the next change. */
-const MARK_READ_RETRY_MS = [1000, 3000, 9000];
+const MARK_READ_RETRY_MS = [
+  MARK_READ_RETRY_FIRST_MS,
+  MARK_READ_RETRY_SECOND_MS,
+  MARK_READ_RETRY_THIRD_MS,
+];
 
 /** An indicator shows for this long after the last signal from that Member. */
 const TYPING_EXPIRY_MS = 6000;
@@ -103,11 +113,13 @@ const TYPING_EXPIRY_MS = 6000;
 /** While input continues, the composer repeats `typing` at most this often. */
 const TYPING_REPEAT_MS = 3000;
 
+const TWO_TYPING = 2;
+
 /** The text of the Typing Indicator for the Members typing now, or undefined for none. */
 function typingText(names: string[]): string | undefined {
   if (names.length === 0) return undefined;
   if (names.length === 1) return `${names[0]} is typing…`;
-  if (names.length === 2) return `${names[0]} and ${names[1]} are typing…`;
+  if (names.length === TWO_TYPING) return `${names[0]} and ${names[1]} are typing…`;
   return 'Several people are typing…';
 }
 

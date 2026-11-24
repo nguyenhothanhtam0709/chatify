@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/sheet';
 import { useRealtimeEvents } from '@/realtime/realtime-context';
 import { displayName } from './conversation-target';
+import { initials } from '@/lib/initials';
 import { UserSearchCombobox } from './NewConversationDialog';
 
 /**
@@ -161,7 +162,7 @@ export function GroupDetailsSheet({
               {group.members.map((member) => (
                 <li key={member.id} className="flex items-center gap-2 rounded-md py-1">
                   <Avatar className="size-8">
-                    <AvatarFallback>{displayName(member).slice(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{initials(displayName(member))}</AvatarFallback>
                   </Avatar>
                   <span className="min-w-0 flex-1 truncate">{displayName(member)}</span>
                   {member.id === group.ownerId && <Badge variant="secondary">Owner</Badge>}

@@ -1,5 +1,6 @@
 import {
   GROUP_NAME_MAX,
+  GROUP_NAME_MIN,
   GroupNameSchema,
   type Group,
   type UserSearchResult,
@@ -60,7 +61,9 @@ function NewGroupForm({ onCreated }: { onCreated: (group: Group) => void }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <FieldDescription>1 to {GROUP_NAME_MAX} characters.</FieldDescription>
+        <FieldDescription>
+          {GROUP_NAME_MIN} to {GROUP_NAME_MAX} characters.
+        </FieldDescription>
       </Field>
       <Field>
         <FieldLabel>Members</FieldLabel>

@@ -1,4 +1,4 @@
-import { NICKNAME_MAX, UpdateProfileRequestSchema, type User } from '@chat/contracts';
+import { NICKNAME_MAX, NICKNAME_MIN, UpdateProfileRequestSchema, type User } from '@chat/contracts';
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '@/auth/auth-context';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,9 @@ function ProfileForm({ user, onSaved }: { user: User; onSaved: () => void }) {
       ...(shareReadReceipts !== user.shareReadReceipts && { shareReadReceipts }),
     });
     if (!parsed.success) {
-      setError(`Nickname must be 1-${NICKNAME_MAX} characters, without control characters.`);
+      setError(
+        `Nickname must be ${NICKNAME_MIN}-${NICKNAME_MAX} characters, without control characters.`,
+      );
       return;
     }
     setError(undefined);

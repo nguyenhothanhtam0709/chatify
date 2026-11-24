@@ -3,6 +3,7 @@ import {
   ErrorResponseSchema,
   MeResponseSchema,
   NICKNAME_MAX,
+  NICKNAME_MIN,
   type UpdateProfileRequest,
   type User,
 } from '@chat/contracts';
@@ -36,7 +37,7 @@ export async function updateProfile(
   if (code === ErrorCode.VALIDATION_FAILED) {
     return {
       ok: false,
-      error: `Nickname must be 1-${NICKNAME_MAX} characters, without control characters.`,
+      error: `Nickname must be ${NICKNAME_MIN}-${NICKNAME_MAX} characters, without control characters.`,
     };
   }
   return { ok: false, error: 'Something went wrong. Try again.' };

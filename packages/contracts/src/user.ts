@@ -55,15 +55,16 @@ export const PasswordSchema = plainText.refine(
   { message: `must be ${PASSWORD_MIN}-${PASSWORD_MAX} characters` },
 );
 
+export const NICKNAME_MIN = 1;
 export const NICKNAME_MAX = 50;
 
-/** Optional display name: trimmed, 1-`NICKNAME_MAX` characters, no control or bidi-override characters. */
+/** Optional display name: trimmed, `NICKNAME_MIN`-`NICKNAME_MAX` characters, no control or bidi-override characters. */
 export const NicknameSchema = nameText(true).refine(
   (value) => {
     const length = codePointLength(value);
-    return length >= 1 && length <= NICKNAME_MAX;
+    return length >= NICKNAME_MIN && length <= NICKNAME_MAX;
   },
-  { message: `must be 1-${NICKNAME_MAX} characters` },
+  { message: `must be ${NICKNAME_MIN}-${NICKNAME_MAX} characters` },
 );
 
 /**

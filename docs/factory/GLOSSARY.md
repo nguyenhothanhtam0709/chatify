@@ -45,8 +45,12 @@ What must be true before work leaves a Stage.
 _Avoid_: Check (a machine's job inside a Gate), milestone
 
 **Agent Role**:
-What one agent session is for: its inputs, outputs, allowed tools and skills, and when it stops.
+What one agent session is for: its inputs, outputs, what it may write, allowed tools and skills, and when it stops. Each Role is defined by a Role file.
 _Avoid_: Persona, agent type
+
+**Role file**:
+The document that defines one Agent Role; every sub-agent spawn and every main-session skill for that Role points to it.
+_Avoid_: Agent file (that is only the spawn wrapper), persona file
 
 **Feature Branch**:
 The shared branch where one Spec's Tickets are collected before they reach `main`.

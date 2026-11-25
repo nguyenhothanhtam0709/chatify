@@ -125,9 +125,7 @@ const guardedGlob = (glob: string, context: ReadContext, allowed: string[]): boo
     return true;
   }
   return (
-    context.scope !== null &&
-    matchesAny(`${fixedPart}x`, SCOPED_DOCS) &&
-    !matchesAny(glob, allowed)
+    context.scope !== null && matchesAny(`${fixedPart}x`, SCOPED_DOCS) && !matchesAny(glob, allowed)
   );
 };
 

@@ -151,7 +151,10 @@ test('a cat inside a for loop or an if is guarded like any other', () => {
   assert.ok(decide(bash('for f in docs/factory/gates.md; do cat "$f"; done'), scoped));
   assert.ok(decide(bash('for f in a.md docs/*; do echo "$f"; cat ${f}; done'), scoped));
   assert.equal(
-    decide(bash('for f in docs/conventions/api.md packages/api/AGENTS.md; do cat "$f"; done'), scoped),
+    decide(
+      bash('for f in docs/conventions/api.md packages/api/AGENTS.md; do cat "$f"; done'),
+      scoped,
+    ),
     null,
   );
   assert.ok(decide(bash('for f in docs/conventions/*.md; do cat "$f"; done'), scoped));

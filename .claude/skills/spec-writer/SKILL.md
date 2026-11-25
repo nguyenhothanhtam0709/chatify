@@ -1,4 +1,5 @@
 ---
+kind: intent
 name: spec-writer
 description: Turns an idea into a Spec and its Tickets on a Spec branch and opens the Spec PR into the Feature Branch. Run by the human as the main session.
 disable-model-invocation: true

@@ -15,9 +15,8 @@ How the Orchestrator runs a Spec with `implement-spec` at the lowest token cost.
 
 ## Choosing the model
 
-Decide when writing the brief, record it there with a one-line reason, and pass `model` when spawning.
+Decide when writing the brief and record it there with a one-line reason. Each Role's default model lives in its agent file in `.claude/agents/`; pass `model` when spawning only on an Opus signal.
 
-- **Default: Sonnet.**
 - **Opus** when the Ticket designs something new, not when it follows an existing pattern:
   - a migration with a backfill or a change to existing data;
   - a locking, multi-step transaction or realtime ordering mechanism;
@@ -25,16 +24,16 @@ Decide when writing the brief, record it there with a one-line reason, and pass 
   - a design decision the Ticket and Spec leave open.
 - Package count, line count and Ticket length are not signals. Most Tickets touch several packages, so they would send nearly everything to Opus.
 - If a Sonnet run gets stuck or keeps failing, run it again on Opus and say why in the handoff note.
+- An Implementer fixing review findings stays on its default unless a finding hits an Opus signal.
 - No Haiku until there are numbers to support it.
-- Other Roles: Reviewer on Opus; Explorer and an Implementer fixing review findings on Sonnet, unless a finding hits an Opus signal.
 
 ## Hand-off
 
-The spawn prompt is the absolute path of the brief and one sentence. The brief points at documents instead of copying them. It states directly only what a sub-agent can't find itself: new decisions and the current state of the Feature Branch.
+Spawn each Role by its `subagent_type` (`implementer`, `reviewer`, `explorer`, `doc-sync`), never a general-purpose agent. The spawn prompt is the absolute path of the brief and one sentence. The brief points at documents instead of copying them. It states directly only what a sub-agent can't find itself: new decisions and the current state of the Feature Branch.
 
 ### Implementer brief
 
-Write it to the scratchpad, about 25 lines:
+Write it to the scratchpad, about 15 lines. The rules are in the [Implementer Role file](../factory/roles/implementer.md).
 
 ```markdown
 Ticket: <path>
@@ -49,15 +48,6 @@ Latest migration: <number, if the Ticket changes the schema>
 Decisions since the Ticket was written: <human answers, packages allowed, or None>
 Handoff notes to read: <absolute paths, only Tickets in Blocked by, or None>
 Handoff note: <absolute path>/<NNNNN>-<NN>.md
-
-Rules:
-
-- Read what this brief names, plus a doc from the root AGENTS.md table when you reach its step. A link in a doc is not an instruction to read it: follow it only when the condition beside it holds, or when stuck.
-- Docs outside your read scope are denied when read whole, and so is the whole Spec. Grep and read the section you need, and say so in the PR body if it wasn't in this brief.
-- Stop when the PR is open. Do not merge. When stuck, follow docs/workflow/escalation.md.
-- Commit work in progress and update your note at each milestone.
-- Handoff note, at most 15 lines: new helpers or seams with paths, migration number, gotchas, what is unfinished. Do not retell the work.
-- Final report, at most 10 lines: PR, check results, anything to decide.
 ```
 
 ### Other Roles
@@ -98,14 +88,12 @@ On a conflict or a missing Feature Branch tip, send the PR back to its Implement
 
 ## Doc Sync
 
-After the review findings are fixed and before the feature PR, run `pnpm docs:check`, then decide whether the change needs a Doc Sync agent on Sonnet. A script can't tell whether new code made a hand-written doc wrong.
+After the review findings are fixed and before the feature PR, run `pnpm docs:check`, then decide whether the change needs a Doc Sync agent. A script can't tell whether new code made a hand-written doc wrong.
 
 - **Run it** when the diff changes behaviour, a runtime flow or a term, or adds a new pattern.
 - **Skip it** when the diff only changes tests, refactors without changing behaviour, or only changes docs. Say why in the feature PR.
 - **Compare against:** [runtime flows](../architecture/runtime-flows.md), the [architecture overview](../architecture/overview.md), the [glossary](../../GLOSSARY.md) and the [conventions](../conventions/general.md).
-- **A Descriptive Doc that is wrong:** it fixes the doc in a task PR on `agent/<NNNNN>-doc-sync`.
-- **An Intent Doc that contradicts the code:** it reports this and changes nothing, because the code may be the defect ([ADR 0008](../adr/0008-documents-are-classed-by-how-they-are-maintained.md)). Take it to the human.
-- It changes no Spec and no code.
+- Its rules are in its [Role file](../factory/roles/doc-sync.md); read it only to change them.
 
 ## Keeping the main session small
 

@@ -4,7 +4,19 @@ kind: intent
 
 # Orchestrator
 
-How the Orchestrator runs a Spec with `implement-spec` at the lowest token cost. Where this differs from the skill, this page wins. Only the Orchestrator reads it: every sub-agent gets what it needs through its hand-off.
+How the Orchestrator runs a Spec with `implement-spec` at the lowest token cost. It changes the `implement-spec` steps listed in [Changes to `implement-spec`](#changes-to-implement-spec). Only the Orchestrator reads it: every sub-agent gets what it needs through its hand-off.
+
+## Changes to `implement-spec`
+
+Written against `mattpocock-skills` 1.3.1. When the installed version differs, tell the human so this list is checked.
+
+- "merger subagent": merge each task PR yourself, as in [Merging](#merging).
+- "code-review on the integration branch": a Reviewer reviews the Feature Branch, an Implementer fixes the findings, then run [Doc Sync](#doc-sync) if you decide so.
+- "mark it ready for review": first set the Spec's Status to `resolved`.
+- "each in its own worktree": one Implementer works in the main checkout; use a worktree when two or more run at once.
+- Addition to "implementer subagents": spawn by `subagent_type`, pass the brief path, write the scope file, and pass `model` only on an Opus signal.
+
+Every other step runs as the skill says, including using the existing Feature Branch as the integration branch and opening a draft feature PR after the first merge.
 
 ## Before spawning
 

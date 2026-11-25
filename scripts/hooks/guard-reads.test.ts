@@ -13,11 +13,13 @@ const scoped: ReadContext = {
   roots: [repo],
   cwd: repo,
   branch: 'agent/00007-01-typing',
-  scope: ['packages/api/AGENTS.md', 'docs/conventions/*.md'],
+  scope: ['packages: api'],
 };
-const read = (path: string, limit?: number) => ({
+const withFacts = (...scope: string[]): ReadContext => ({ ...scoped, scope });
+const read = (path: string, limit?: number, agentType?: string) => ({
   tool_name: 'Read',
   tool_input: { file_path: `${repo}/${path}`, limit },
+  ...(agentType === undefined ? {} : { agent_type: agentType }),
 });
 const bash = (command: string) => ({ tool_name: 'Bash', tool_input: { command } });
 
@@ -52,6 +54,7 @@ test('with a scope, docs outside it are denied and the reason says how to read a
 test('with a scope, listed docs, always-allowed docs and the ticket are allowed', () => {
   assert.equal(decide(read('packages/api/AGENTS.md'), scoped), null);
   assert.equal(decide(read('docs/conventions/api.md'), scoped), null);
+  assert.equal(decide(read('docs/conventions/general.md'), scoped), null);
   assert.equal(decide(read('docs/workflow/definition-of-done.md'), scoped), null);
   assert.equal(decide(read('docs/workflow/git-workflow.md'), scoped), null);
   assert.equal(
@@ -59,6 +62,47 @@ test('with a scope, listed docs, always-allowed docs and the ticket are allowed'
     null,
   );
   assert.ok(decide(read('.scratch/00007-live-signals/issues/02-typing-in-groups.md'), scoped));
+});
+
+test('the packages fact allows the AGENTS.md and convention of each named package', () => {
+  assert.ok(decide(read('packages/web/AGENTS.md'), scoped));
+  assert.ok(decide(read('docs/conventions/web.md'), scoped));
+  const two = withFacts('packages: api contracts');
+  assert.equal(decide(read('packages/contracts/AGENTS.md'), two), null);
+  assert.equal(decide(read('docs/conventions/contracts.md'), two), null);
+  assert.ok(decide(read('docs/conventions/web.md'), two));
+  const none = withFacts('browser-check: no');
+  assert.ok(decide(read('packages/api/AGENTS.md'), none));
+  assert.ok(decide(read('docs/conventions/api.md'), none));
+});
+
+test('the browser-check and worktree facts allow their doc only when yes', () => {
+  for (const [fact, doc] of [
+    ['browser-check', 'docs/workflow/browser-check.md'],
+    ['worktree', 'docs/workflow/worktree.md'],
+  ] as const) {
+    assert.equal(decide(read(doc), withFacts(`${fact}: yes`)), null);
+    assert.ok(decide(read(doc), withFacts(`${fact}: no`)));
+    assert.ok(decide(read(doc), scoped));
+  }
+});
+
+test('a scope file in the old glob format reads as no facts', () => {
+  const old = withFacts('packages/api/AGENTS.md', 'docs/conventions/*.md');
+  assert.ok(decide(read('packages/api/AGENTS.md'), old));
+  assert.ok(decide(read('docs/conventions/api.md'), old));
+  assert.equal(decide(read('docs/workflow/testing-policy.md'), old), null);
+});
+
+test('a sub-agent can always read its own Role file whole, and no other', () => {
+  const implementer = 'docs/factory/roles/implementer.md';
+  const reviewer = 'docs/factory/roles/reviewer.md';
+  assert.equal(decide(read(implementer, undefined, 'implementer'), scoped), null);
+  assert.ok(decide(read(reviewer, undefined, 'implementer'), scoped));
+  assert.ok(decide(read(implementer), scoped));
+  assert.ok(decide(read(implementer, undefined, '../../README'), scoped));
+  assert.equal(decide(read(reviewer, undefined, 'reviewer'), noScope), null);
+  assert.ok(decide(read('docs/laters.md', undefined, 'laters'), noScope));
 });
 
 test('a short read outside the scope is allowed', () => {
@@ -93,11 +137,12 @@ test('a shell glob that can reach a guarded file is denied', () => {
 });
 
 test('a shell glob that stays inside the scope is allowed', () => {
-  assert.equal(decide(bash('cat docs/conventions/*.md'), scoped), null);
-  assert.equal(decide(bash('cat docs/conventions/w*.md'), scoped), null);
-  const adr = { ...scoped, scope: ['docs/adr/0009-*'] };
-  assert.equal(decide(bash('cat docs/adr/0009-*.md'), adr), null);
-  assert.ok(decide(bash('cat docs/adr/*.md'), adr));
+  assert.equal(decide(bash('cat packages/api/AGENTS.md docs/conventions/api.md'), scoped), null);
+  assert.ok(decide(bash('cat docs/conventions/*.md'), scoped));
+  assert.ok(decide(bash('cat docs/conventions/w*.md'), scoped));
+  const ticket = '.scratch/00007-live-signals/issues';
+  assert.equal(decide(bash(`cat ${ticket}/01-*.md`), scoped), null);
+  assert.ok(decide(bash(`cat ${ticket}/*.md`), scoped));
 });
 
 test('a cat inside a for loop or an if is guarded like any other', () => {
@@ -105,7 +150,14 @@ test('a cat inside a for loop or an if is guarded like any other', () => {
   assert.ok(decide(bash('if true; then cat docs/factory/gates.md; fi'), scoped));
   assert.ok(decide(bash('for f in docs/factory/gates.md; do cat "$f"; done'), scoped));
   assert.ok(decide(bash('for f in a.md docs/*; do echo "$f"; cat ${f}; done'), scoped));
-  assert.equal(decide(bash('for f in docs/conventions/*.md; do cat "$f"; done'), scoped), null);
+  assert.equal(
+    decide(
+      bash('for f in docs/conventions/api.md packages/api/AGENTS.md; do cat "$f"; done'),
+      scoped,
+    ),
+    null,
+  );
+  assert.ok(decide(bash('for f in docs/conventions/*.md; do cat "$f"; done'), scoped));
   assert.equal(decide(bash('for f in docs/factory/gates.md; do head -5 "$f"; done'), scoped), null);
 });
 
@@ -142,13 +194,24 @@ test('the hook finds the scope by branch in a real repo and answers in the hook 
   const git = (...args: string[]) => execFileSync('git', args, { cwd: dir, stdio: 'ignore' });
   git('init', '-q', '-b', 'agent/00007-01-typing');
   git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'x');
-  mkdirSync(join(dir, '.git/read-scope/agent'), { recursive: true });
-  writeFileSync(join(dir, '.git/read-scope/agent/00007-01-typing.txt'), 'docs/ok.md\n# note\n');
-  const input = (path: string) =>
-    JSON.stringify({ tool_name: 'Read', tool_input: { file_path: join(dir, path) }, cwd: dir });
+  mkdirSync(join(dir, '.git/scope/agent'), { recursive: true });
+  writeFileSync(
+    join(dir, '.git/scope/agent/00007-01-typing.txt'),
+    '# note\npackages: web\nworktree: yes\n',
+  );
+  const input = (path: string, agentType?: string) =>
+    JSON.stringify({
+      tool_name: 'Read',
+      tool_input: { file_path: join(dir, path) },
+      cwd: dir,
+      agent_type: agentType,
+    });
 
   const denied = JSON.parse(runCli(input('docs/other.md')).stdout);
   assert.equal(denied.hookSpecificOutput.hookEventName, 'PreToolUse');
   assert.equal(denied.hookSpecificOutput.permissionDecision, 'deny');
-  assert.equal(runCli(input('docs/ok.md')).stdout, '');
+  assert.equal(runCli(input('docs/conventions/web.md')).stdout, '');
+  assert.equal(runCli(input('docs/workflow/worktree.md')).stdout, '');
+  assert.equal(runCli(input('docs/factory/roles/implementer.md', 'implementer')).stdout, '');
+  assert.notEqual(runCli(input('docs/factory/roles/reviewer.md', 'implementer')).stdout, '');
 });

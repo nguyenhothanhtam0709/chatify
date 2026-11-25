@@ -73,9 +73,17 @@ An agent blocked on a question continues through `SendMessage` with the answer, 
 
 ## Read scope
 
-Before spawning, write the docs the Implementer may read whole to `<git-common-dir>/read-scope/<task-branch>.txt`, one glob per line: the `AGENTS.md` and conventions of each package it touches, plus [browser-check](browser-check.md) and [worktree](worktree.md) if it needs them. Handoff notes sit outside the repo and need no entry. Delete the file when cleaning up the worktree.
+Before spawning an Implementer, write three facts about its Ticket to `<git-common-dir>/scope/<task-branch>.txt`, one per line:
 
-[guard-reads.ts](../../scripts/hooks/guard-reads.ts) enforces it and always allows the Ticket and the docs every PR needs. The Spec is left out on purpose, so the Implementer reads only the named sections. A PR body that reports a read outside the scope means the scope or the brief was missing something: fix it for the next Ticket.
+```
+packages: api contracts
+browser-check: yes
+worktree: no
+```
+
+Copy `packages` from the Ticket's _What to build_. A missing line means `no`, or no packages. Write facts, not globs: a file of globs reads as no facts. Only the Implementer gets a scope file; an Implementer fixing findings gets one built from the packages the findings touch. Handoff notes sit outside the repo and need no entry. Delete the file when cleaning up the worktree.
+
+[guard-reads.ts](../../scripts/hooks/guard-reads.ts) derives from the facts which docs are readable whole: the `AGENTS.md` and convention of each package, plus the general convention, plus [browser-check](browser-check.md) or [worktree](worktree.md) when its fact is `yes`. It always allows the Ticket, the docs every PR needs and the sub-agent's own Role file. The Spec is left out on purpose, so the Implementer reads only the named sections. A PR body that reports a read outside the scope means the scope or the brief was missing something: fix it for the next Ticket.
 
 ## Merging
 

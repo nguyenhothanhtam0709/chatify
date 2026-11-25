@@ -9,7 +9,8 @@ const MAX_READ_LINES = 80;
 
 // Large files nobody needs whole, on any branch.
 const ALWAYS_GUARDED = ['docs/laters.md', 'packages/api/drizzle/meta/**', 'pnpm-lock.yaml'];
-// On a branch with a scope file, these are readable only when listed. Source code is never guarded.
+// On a branch with a scope file, these are readable only when its facts allow them. Source code is
+// never guarded.
 const SCOPED_DOCS = ['docs/**', '.scratch/**', 'GLOSSARY*', 'README.md', 'packages/*/AGENTS.md'];
 // Every Ticket needs these. `spec.md` is left out on purpose: read only the sections the brief names.
 const ALWAYS_IN_SCOPE = [
@@ -25,7 +26,7 @@ export interface ReadContext {
   roots: string[];
   cwd: string;
   branch: string;
-  /** Globs from the branch's scope file, or null when it has none. */
+  /** Lines of the branch's scope file, read as `<fact>: <value>`, or null when it has none. */
   scope: string[] | null;
 }
 
@@ -33,7 +34,35 @@ interface HookInput {
   tool_name?: string;
   tool_input?: { file_path?: string; limit?: number; command?: string };
   cwd?: string;
+  /** The sub-agent's type, absent in the main session. */
+  agent_type?: string;
 }
+
+const NAME = /^[\w-]+$/;
+
+// A fact line is `<name>: <value>`. Any other line, such as an old-format glob, is no fact.
+const facts = (scope: string[]): Map<string, string> =>
+  new Map(
+    scope.flatMap((line) => {
+      const match = /^([\w-]+):\s*(.*)$/.exec(line);
+      return match?.[1] === undefined ? [] : [[match[1], (match[2] ?? '').trim()] as const];
+    }),
+  );
+
+// The docs a scope file's facts make readable whole. A missing fact means no.
+const docsFromFacts = (scope: string[]): string[] => {
+  const fact = facts(scope);
+  const packages = (fact.get('packages') ?? '').split(/\s+/).filter((name) => NAME.test(name));
+  return [
+    ...packages.flatMap((name) => [`packages/${name}/AGENTS.md`, `docs/conventions/${name}.md`]),
+    ...(packages.length > 0 ? ['docs/conventions/general.md'] : []),
+    ...(fact.get('browser-check') === 'yes' ? ['docs/workflow/browser-check.md'] : []),
+    ...(fact.get('worktree') === 'yes' ? ['docs/workflow/worktree.md'] : []),
+  ];
+};
+
+const roleFile = (agentType: string | undefined): string[] =>
+  agentType !== undefined && NAME.test(agentType) ? [`docs/factory/roles/${agentType}.md`] : [];
 
 const globToRegExp = (glob: string): RegExp => {
   const source = glob
@@ -64,24 +93,27 @@ const repoPath = (path: string, context: ReadContext): string | null => {
   return null;
 };
 
-const allowedInScope = (path: string, context: ReadContext): boolean => {
+// Globs readable whole inside a scope: the always-allowed docs, the Ticket, the docs the facts
+// allow and the sub-agent's own Role file.
+const inScope = (context: ReadContext, agentType: string | undefined): string[] => {
   const ticket = ticketGlob(context.branch);
-  return matchesAny(path, [
+  return [
     ...ALWAYS_IN_SCOPE,
-    ...(context.scope ?? []),
+    ...docsFromFacts(context.scope ?? []),
     ...(ticket ? [ticket] : []),
-  ]);
+    ...roleFile(agentType),
+  ];
 };
 
-const guardedFile = (path: string, context: ReadContext): boolean => {
+const guardedFile = (path: string, context: ReadContext, allowed: string[]): boolean => {
   if (matchesAny(path, ALWAYS_GUARDED)) return true;
-  return context.scope !== null && matchesAny(path, SCOPED_DOCS) && !allowedInScope(path, context);
+  return context.scope !== null && matchesAny(path, SCOPED_DOCS) && !matchesAny(path, allowed);
 };
 
 // A shell glob is guarded if it can reach a guarded file. Inside a scope it is denied without
 // expanding it, because one match outside the scope is enough to waste the read. A glob whose own
 // text matches the scope can only expand to files in the scope.
-const guardedGlob = (glob: string, context: ReadContext): boolean => {
+const guardedGlob = (glob: string, context: ReadContext, allowed: string[]): boolean => {
   const pattern = globToRegExp(glob);
   if (ALWAYS_GUARDED.some((guarded) => pattern.test(guarded))) return true;
   const fixedPart = glob.slice(0, glob.search(/[*?[]/));
@@ -95,7 +127,7 @@ const guardedGlob = (glob: string, context: ReadContext): boolean => {
   return (
     context.scope !== null &&
     matchesAny(`${fixedPart}x`, SCOPED_DOCS) &&
-    !allowedInScope(glob, context)
+    !matchesAny(glob, allowed)
   );
 };
 
@@ -114,7 +146,7 @@ const expandLoopVariable = (arg: string, loops: Map<string, string[]>): string[]
   return name && values ? values.map((value) => arg.replace(name[0], value)) : [arg];
 };
 
-const decideBash = (command: string, context: ReadContext): string | null => {
+const decideBash = (command: string, context: ReadContext, allowed: string[]): string | null => {
   let cwd = context.cwd;
   const loops = new Map<string, string[]>();
   for (const segment of command.split(/&&|\|\||[;|\n]/)) {
@@ -140,8 +172,8 @@ const decideBash = (command: string, context: ReadContext): string | null => {
         const path = repoPath(arg, { ...context, cwd });
         if (path === null) continue;
         const guarded = /[*?[]/.test(path)
-          ? guardedGlob(path, context)
-          : guardedFile(path, context);
+          ? guardedGlob(path, context, allowed)
+          : guardedFile(path, context, allowed);
         if (guarded) return denial(path, context);
       }
     }
@@ -152,16 +184,17 @@ const decideBash = (command: string, context: ReadContext): string | null => {
 /** Why this tool call should be denied, or null to let it through. */
 export const decide = (input: HookInput, context: ReadContext): string | null => {
   const { file_path: filePath, limit, command } = input.tool_input ?? {};
-  if (input.tool_name === 'Bash' && command) return decideBash(command, context);
+  const allowed = inScope(context, input.agent_type);
+  if (input.tool_name === 'Bash' && command) return decideBash(command, context, allowed);
   if (input.tool_name !== 'Read' || !filePath) return null;
   if (limit !== undefined && limit <= MAX_READ_LINES) return null;
   const path = repoPath(filePath, context);
-  return path !== null && guardedFile(path, context) ? denial(path, context) : null;
+  return path !== null && guardedFile(path, context, allowed) ? denial(path, context) : null;
 };
 
 const readScope = (commonDir: string, branch: string): string[] | null => {
   try {
-    return readFileSync(join(commonDir, 'read-scope', `${branch}.txt`), 'utf8')
+    return readFileSync(join(commonDir, 'scope', `${branch}.txt`), 'utf8')
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line && !line.startsWith('#'));

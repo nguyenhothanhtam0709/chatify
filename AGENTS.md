@@ -43,7 +43,7 @@ When doing a Ticket, read each doc only when you reach its step:
 
 An Implementer doesn't need `docs/factory/`, other Specs or `docs/architecture/` unless the Ticket names them.
 
-Orchestrator: read [orchestrator](docs/workflow/orchestrator.md). Never spawn a merger sub-agent, even when `implement-spec` says to.
+Orchestrator: run `/orchestrator`, which reads its [Role file](docs/factory/roles/orchestrator.md) and [orchestrator](docs/workflow/orchestrator.md). Never spawn a merger sub-agent, even when `implement-spec` says to.
 
 The pipeline from idea to merge (Stages, Agent Roles, Gates): [SDLC](docs/factory/sdlc.md).
 

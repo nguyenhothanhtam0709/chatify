@@ -6,7 +6,7 @@ kind: intent
 
 Runs a Spec with `implement-spec`: dispatches the other Roles, squash-merges task PRs into the Feature Branch and opens the feature PR. Runs as the main session, because it asks the human; it has no agent file and cannot be spawned as a sub-agent. Started with `/orchestrator`.
 
-**Writes:** briefs, scope files, handoff notes (outside the repo), squash-merges of task PRs, the feature PR, the `Status:` line of `spec.md`.
+**Writes:** briefs, scope files, handoff notes (outside the repo), squash-merges of task PRs, the feature PR. The `Status:` line of `spec.md` is set by the review-fix Implementer, whose brief the Orchestrator writes.
 
 **Never writes:** code, Tickets, a Spec's content, docs, a merge of the Spec PR.
 

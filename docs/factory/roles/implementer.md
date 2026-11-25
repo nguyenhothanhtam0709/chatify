@@ -6,9 +6,9 @@ kind: intent
 
 Builds one Ticket on one Task Branch and opens its task PR into the Feature Branch.
 
-**Writes:** the packages in its scope file, its own Ticket, appends to Laters, Generated Docs through their generator, `package.json` and the lockfile only as the Ticket's Allowed packages say.
+**Writes:** the packages in its scope file, its own Ticket, the `Status:` line of `spec.md` when its brief says so (the review-fix PR), appends to Laters, Generated Docs through their generator, `package.json` and the lockfile only as the Ticket's Allowed packages say.
 
-**Never writes:** Specs, other Tickets, Intent Docs, skill-generated files, Claude settings and agent files.
+**Never writes:** the rest of a Spec, other Tickets, Intent Docs, skill-generated files, Claude settings and agent files.
 
 **Stops when:** the task PR is open (it does not merge), or on Escalation.
 

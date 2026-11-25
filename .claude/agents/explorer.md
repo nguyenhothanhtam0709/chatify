@@ -1,4 +1,5 @@
 ---
+kind: intent
 name: explorer
 description: Answers one specific question by reading, searching or prototyping, and writes a note outside the repo.
 model: sonnet

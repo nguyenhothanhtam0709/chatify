@@ -1,4 +1,5 @@
 ---
+kind: intent
 name: reviewer
 description: Reviews the whole Feature Branch against its Spec and reports findings. Writes nothing.
 model: opus

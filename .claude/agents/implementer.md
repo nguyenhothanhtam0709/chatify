@@ -1,4 +1,5 @@
 ---
+kind: intent
 name: implementer
 description: Builds one Ticket on one Task Branch and opens its task PR into the Feature Branch.
 model: sonnet

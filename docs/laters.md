@@ -43,7 +43,7 @@ The Unread Count is computed when the Conversation list is fetched, capped at 10
 `pnpm docs:check` covers the Generated Docs, links, `kind` and Ticket Status, and a hook runs it when an agent opens a PR. Nothing checks a human's PR, and the other rules are followed by reading. Enforcement to build in a later MVP:
 
 - **Enforcement tags:** tag each rule with how it is enforced, and apply "broken twice, automate it": once a rule is broken a second time, replace the prose with an automated check.
-- **Required CI checks:** lint, typecheck, tests with Postgres, migration drift, generated-doc drift, and a front matter and link check. Back them with branch protection and a required human approval.
+- **Required CI checks:** lint, typecheck, tests with Postgres, migration drift, generated-doc drift, and a front matter and link check. Back them with branch protection. A required approval would block a solo maintainer, because GitHub doesn't let a PR's author approve it, so require only the status checks while the repo has one human.
 - **`covers:` check:** a PR that touches code covered by a Descriptive Doc without updating that doc fails, unless the PR body justifies it.
 - **Stop hook:** run the fast checks when the agent stops.
 - **Drift audit:** a periodic audit of docs against code that opens Tickets for each drift found.
@@ -153,3 +153,9 @@ Ticket 00009-04 made the mutation clients (`login`, `register`, `updateProfile`,
 - **Seen:** while grilling spec 00015. `"\u200B"` is not `\s`, so `MessageBodySchema` accepts it as not blank, and it gives an invisible Message and Preview.
 - **Not done:** a validation question, not a Preview one.
 - **Idea:** decide whether "not blank" should also reject zero-width and format characters (Unicode `Cf`).
+
+## Replay past Tickets when the workflow changes
+
+- **Seen:** while planning the Factory hardening Specs. A change to `docs/workflow/` or an agent definition has no way to show whether agents do better or worse afterwards.
+- **Not done:** needs numbers first, from the per-Ticket metrics line planned in the Learning Loop Spec.
+- **Idea:** keep one or two `resolved` Tickets as benchmarks, replay them from their starting commit with the new docs, and compare escalations, check failures and diff size with the original run.

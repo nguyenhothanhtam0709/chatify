@@ -1,6 +1,6 @@
 # Spec: Agent Roles
 
-Status: ready-for-agent
+Status: resolved
 
 ## Problem Statement
 

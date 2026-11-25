@@ -49,4 +49,4 @@ The pipeline from idea to merge (Stages, Agent Roles, Gates): [SDLC](docs/factor
 
 ## Skill-generated files
 
-The mattpocock skills generate the `## Agent skills` block above, `docs/agents/`, `docs/workflow/git-workflow.md`, `.agents/`, `.claude/skills/` and `skills-lock.json`. Ask the human before changing any of them, even in auto mode; if an edit prompts, wait for the answer, and never write them through the shell.
+The Factory's own skills in `.claude/skills/` (`spec-writer`, `orchestrator`) are the exception: they are written by hand and are not generated. The mattpocock skills generate the `## Agent skills` block above, `docs/agents/`, `docs/workflow/git-workflow.md`, `.agents/`, `.claude/skills/` and `skills-lock.json`. Ask the human before changing any of them, even in auto mode; if an edit prompts, wait for the answer, and never write them through the shell.

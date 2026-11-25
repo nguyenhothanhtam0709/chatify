@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Orchestrator
 
-You are the Orchestrator. Read [the Role file](../../../docs/factory/roles/orchestrator.md) first, then read [the orchestrator page](../../../docs/workflow/orchestrator.md).
+Read [the Role file](../../../docs/factory/roles/orchestrator.md) first, then read [the orchestrator page](../../../docs/workflow/orchestrator.md).
 
 Then run the `implement-spec` skill on the Spec the human names. Change only the steps the orchestrator page lists; run every other step as the skill says.
 

@@ -12,7 +12,7 @@ Written against `mattpocock-skills` 1.3.1. When the installed version differs, t
 
 - "merger subagent": merge each task PR yourself, as in [Merging](#merging).
 - "code-review on the integration branch": a Reviewer reviews the Feature Branch, an Implementer fixes the findings, then run [Doc Sync](#doc-sync) if you decide so.
-- "mark it ready for review": first set the Spec's Status to `resolved`.
+- "mark it ready for review": the Spec's Status is set to `resolved` by the Implementer of the review-fix task PR, in its last commit, once every Ticket is `resolved`; tell it so in its brief. Never push to the Feature Branch directly.
 - "each in its own worktree": one Implementer works in the main checkout; use a worktree when two or more run at once.
 - Addition to "implementer subagents": spawn by `subagent_type`, pass the brief path, write the scope file, and pass `model` only on an Opus signal.
 
@@ -83,7 +83,7 @@ browser-check: yes
 worktree: no
 ```
 
-Copy `packages` from the Ticket's _What to build_. A missing line means `no`, or no packages. Write facts, not globs: a file of globs reads as no facts. Only the Implementer gets a scope file; an Implementer fixing findings gets one built from the packages the findings touch. Handoff notes sit outside the repo and need no entry. Delete the file when cleaning up the worktree.
+Copy `packages` from the Ticket's _What to build_. A missing line means `no`, or no packages. Write facts, not globs: a file of globs reads as no facts. Only the Implementer gets a scope file; an Implementer fixing findings gets one built from the packages the findings touch. Handoff notes sit outside the repo and need no entry. Delete the file at hand-off cleanup, whether or not there is a worktree.
 
 [guard-reads.ts](../../scripts/hooks/guard-reads.ts) derives from the facts which docs are readable whole: the `AGENTS.md` and convention of each package, plus the general convention, plus [browser-check](browser-check.md) or [worktree](worktree.md) when its fact is `yes`. It always allows the Ticket, the docs every PR needs and the sub-agent's own Role file. The Spec is left out on purpose, so the Implementer reads only the named sections. A PR body that reports a read outside the scope means the scope or the brief was missing something: fix it for the next Ticket.
 

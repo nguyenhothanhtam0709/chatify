@@ -102,7 +102,14 @@ test('a sub-agent can always read its own Role file whole, and no other', () => 
   assert.ok(decide(read(implementer), scoped));
   assert.ok(decide(read(implementer, undefined, '../../README'), scoped));
   assert.equal(decide(read(reviewer, undefined, 'reviewer'), noScope), null);
-  assert.ok(decide(read('docs/laters.md', undefined, 'laters'), noScope));
+});
+
+test('a Role file name cannot unlock an always-guarded file', () => {
+  assert.ok(decide(read('docs/laters.md', undefined, '../../laters'), scoped));
+  assert.ok(decide(read('docs/laters.md', undefined, '../../laters'), noScope));
+  assert.ok(decide(read('pnpm-lock.yaml', undefined, '../../../pnpm-lock'), scoped));
+  assert.ok(decide(read('docs/factory/roles/reviewer.md', undefined, '*'), scoped));
+  assert.ok(decide(read('docs/factory/roles/reviewer.md', undefined, '**'), scoped));
 });
 
 test('a short read outside the scope is allowed', () => {

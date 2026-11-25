@@ -32,13 +32,13 @@ See the Spec's "Roles and Role files", "Agent files for sub-agent Roles" and "Wr
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Four Role files exist with the parts above and pass `pnpm docs:check`
-- [ ] Four agent files exist with the models, tools and skills above, and none lists `Agent`
-- [ ] The SDLC table has a Writes column for all six Roles and no Ticket Writer row
-- [ ] The orchestrator page says to spawn by `subagent_type`, and its brief has no Rules block
-- [ ] No Doc Sync rule is stated both in the orchestrator page and in the Doc Sync Role file
+- [x] Four Role files exist with the parts above and pass `pnpm docs:check`
+- [x] Four agent files exist with the models, tools and skills above, and none lists `Agent`
+- [x] The SDLC table has a Writes column for all six Roles and no Ticket Writer row
+- [x] The orchestrator page says to spawn by `subagent_type`, and its brief has no Rules block
+- [x] No Doc Sync rule is stated both in the orchestrator page and in the Doc Sync Role file
 
 **Verification:** Spawn each of the four Roles by its `subagent_type` with a small question (for example, "name your Writes and your tools"). Check that each read its Role file, that the Reviewer and Explorer have no `Edit`, that the Reviewer has no `Write`, and that none has `Agent`. Report the answers in the PR body.
 
@@ -48,3 +48,5 @@ See the Spec's "Roles and Role files", "Agent files for sub-agent Roles" and "Wr
 
 - Human decision (PR #216): the Explorer gets `Skill` in its tools, because `research` and `prototype` need it.
 - Human decision (PR #216): the Reviewer runs both `code-review` axes (Standards and Spec) itself, in sequence, without sub-agents, because it has no `Agent`.
+
+Resolved. Delivered in PR #216.

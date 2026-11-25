@@ -30,6 +30,6 @@
 
 ### Finishing the feature
 
-1. When every Ticket is resolved, set `Status: resolved` in `spec.md` through a task PR as above.
+1. When every Ticket is resolved, set `Status: resolved` in `spec.md` in the last commit of the review-fix task PR, as above. Never push directly to the feature branch.
 2. Open a PR from the feature branch to `main`.
 3. A human merges it with a merge commit (not squash), keeping one commit per Ticket on `main`, and deletes the feature branch.

@@ -26,4 +26,4 @@ There is no "in progress" Status. A Ticket is taken when its Task Branch (`agent
 
 ## Spec status
 
-A Spec's `spec.md` also has a `Status:` line. It is `ready-for-agent` once its Spec PR is merged into the Feature Branch, and the Orchestrator sets it to `resolved` when every Ticket is `resolved`.
+A Spec's `spec.md` also has a `Status:` line. It is `ready-for-agent` once its Spec PR is merged into the Feature Branch, and it is set to `resolved` in the last commit of the review-fix task PR, once every Ticket is `resolved`. The Orchestrator's brief tells that Implementer to do it; nobody pushes to the Feature Branch directly.

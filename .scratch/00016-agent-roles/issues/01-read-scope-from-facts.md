@@ -38,3 +38,5 @@ See the Spec's "Read scope".
 ## Comments
 
 Resolved. Verified with `pnpm test:scripts` (scoped cases rewritten from globs to facts, none dropped; new cases for each fact, the old glob format and `agent_type`), plus `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm docs:check`. Assumptions: the general convention is readable only when `packages` names at least one package; an `agent_type` that is not a plain name (letters, digits, `_`, `-`) grants no Role file. Shell globs are now denied inside a scope unless their text matches an allowed path or the Ticket glob, since the facts derive exact paths.
+
+Human decision: confirmed that Bash globs are denied inside a scope, and the dropped `docs/adr/0009-*` case is accepted.

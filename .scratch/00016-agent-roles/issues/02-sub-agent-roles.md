@@ -45,3 +45,6 @@ See the Spec's "Roles and Role files", "Agent files for sub-agent Roles" and "Wr
 **Out of scope:** The Spec Writer and Orchestrator Role files and skills (Tickets 03 and 04); enforcing the Writes column (Spec 00017).
 
 ## Comments
+
+- Human decision (PR #216): the Explorer gets `Skill` in its tools, because `research` and `prototype` need it.
+- Human decision (PR #216): the Reviewer runs both `code-review` axes (Standards and Spec) itself, in sequence, without sub-agents, because it has no `Agent`.

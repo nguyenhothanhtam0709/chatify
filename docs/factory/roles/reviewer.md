@@ -16,6 +16,6 @@ Reviews the whole Feature Branch against its Spec and the repo's standards, and 
 
 ## Inputs
 
-The diff range, the Spec path and the scope (the whole Feature Branch). Run `code-review` on them.
+The diff range, the Spec path and the scope (the whole Feature Branch). Run `code-review` on them. You have no `Agent`, so run both axes (Standards and Spec) yourself, in sequence, without sub-agents.
 
 - Read the [definition of done](../../workflow/definition-of-done.md) when judging whether a change is finished.

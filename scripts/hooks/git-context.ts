@@ -70,3 +70,48 @@ export const worktreeOf = (dir: string, branch: string): string | null => {
   const all = worktrees(dir);
   return (all.find((tree) => tree.branch === branch) ?? all[0])?.path ?? null;
 };
+
+/**
+ * The text of each of `paths` at `ref`, read in one `git cat-file --batch`, so a check needs no
+ * worktree on the branch. A path missing at `ref` is left out.
+ */
+export const readAtRef = (dir: string, ref: string, paths: string[]): Map<string, string> => {
+  const files = new Map<string, string>();
+  if (paths.length === 0) return files;
+  const result = spawnSync('git', ['cat-file', '--batch'], {
+    cwd: dir,
+    input: paths.map((path) => `${ref}:${path}\n`).join(''),
+    maxBuffer: 256 * 1024 * 1024,
+  });
+  if (result.status !== 0) return files;
+  const out = result.stdout;
+  let at = 0;
+  for (const path of paths) {
+    const end = out.indexOf(10, at);
+    if (end < 0) break;
+    const header = out.subarray(at, end).toString('utf8');
+    at = end + 1;
+    const size = / blob (\d+)$/.exec(header)?.[1];
+    if (size === undefined) {
+      // `missing`, or a tree or commit: no contents follow unless it has a size.
+      const other = / \w+ (\d+)$/.exec(header)?.[1];
+      if (other !== undefined) at += Number(other) + 1;
+      continue;
+    }
+    files.set(path, out.subarray(at, at + Number(size)).toString('utf8'));
+    at += Number(size) + 1;
+  }
+  return files;
+};
+
+/** Reads one file at `ref`, or null when it is missing there. */
+export const readerAtRef =
+  (dir: string, ref: string) =>
+  (path: string): string | null =>
+    readAtRef(dir, ref, [path]).get(path) ?? null;
+
+/** The remote Feature Branch of a Spec, `origin/feat/<specNumber>-…`, or null. */
+export const featureTip = (dir: string, specNumber: string): string | null =>
+  (git(dir, ['branch', '-r', '--list', `origin/feat/${specNumber}-*`]) ?? '')
+    .split('\n')[0]
+    ?.trim() || null;

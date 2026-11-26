@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { checkBeforePr, opensPr, prBody, type RunResult } from './guard-pr.ts';
+import { worktreeFixture } from './worktree-fixture.ts';
 
 const ok: RunResult = { status: 0, output: '' };
 const failed = (output: string): RunResult => ({ status: 1, output });
@@ -176,4 +177,93 @@ test('the hook denies a PR that changed covered code without its doc, until the 
     }).stdout;
   assert.match(run('no mention'), /docs\/flow\.md/);
   assert.doesNotMatch(run('Doc not updated: docs/flow.md — wording only'), /docs\/flow\.md/);
+});
+
+const guard = (input: object) =>
+  spawnSync('node', [fileURLToPath(new URL('./guard-pr.ts', import.meta.url))], {
+    input: JSON.stringify(input),
+    encoding: 'utf8',
+  }).stdout;
+const reasonOf = (stdout: string) =>
+  stdout === ''
+    ? ''
+    : (JSON.parse(stdout) as { hookSpecificOutput: { permissionDecisionReason: string } })
+        .hookSpecificOutput.permissionDecisionReason;
+
+test('with cwd on the Feature Branch, the MCP head is the branch the PR guard checks', () => {
+  const tree = worktreeFixture();
+  const open = (head: string) =>
+    reasonOf(
+      guard({
+        tool_name: 'mcp__github__create_pull_request',
+        tool_input: { head, body: '' },
+        agent_type: 'implementer',
+        cwd: tree.main,
+      }),
+    );
+  tree.write('docs/flow.md', '---\nkind: descriptive\ncovers: [scripts/**]\n---\nsaid\n');
+  tree.write('scripts/a.ts', 'x');
+  tree.commit('in scope, with its doc');
+  assert.doesNotMatch(open(tree.branch), /outside its Role's Writes|Descriptive Doc/);
+  tree.write('packages/web/b.ts', 'x');
+  tree.commit('out of scope');
+  assert.match(open(tree.branch), /packages\/web\/b\.ts/);
+});
+
+test('with cwd on the Feature Branch, gh pr create --head is the branch the PR guard checks', () => {
+  const tree = worktreeFixture();
+  tree.write('scripts/a.ts', 'x');
+  tree.commit('covered code, doc unchanged');
+  for (const flag of [`--head ${tree.branch}`, `-H ${tree.branch}`, `--head=${tree.branch}`]) {
+    const reason = reasonOf(
+      guard({
+        tool_name: 'Bash',
+        tool_input: { command: `gh pr create --base feat/00007-x ${flag} --title t --body x` },
+        agent_type: 'implementer',
+        cwd: tree.main,
+      }),
+    );
+    assert.match(reason, /docs\/flow\.md/, flag);
+  }
+});
+
+test('with no head, the PR guard checks the branch of the cd before gh pr create', () => {
+  const tree = worktreeFixture();
+  tree.write('packages/web/b.ts', 'x');
+  tree.commit('out of scope');
+  const reason = reasonOf(
+    guard({
+      tool_name: 'Bash',
+      tool_input: { command: `cd ${tree.worktree} && gh pr create --title t --body x` },
+      agent_type: 'implementer',
+      cwd: tree.main,
+    }),
+  );
+  assert.match(reason, /packages\/web\/b\.ts/);
+});
+
+test("an Implementer PR whose head is not a Task Branch with a scope file is denied, saying why", () => {
+  const tree = worktreeFixture();
+  tree.git(['branch', 'agent/00007-02-noscope'], tree.main);
+  const open = (input: object) =>
+    reasonOf(
+      guard({
+        tool_name: 'mcp__github__create_pull_request',
+        agent_type: 'implementer',
+        cwd: tree.main,
+        ...input,
+      }),
+    );
+  assert.match(open({}), /can't find its Task Branch/);
+  assert.match(open({ tool_input: { head: 'feat/00007-x' } }), /can't find its Task Branch/);
+  assert.match(
+    open({ tool_input: { head: 'agent/00007-02-noscope' } }),
+    /can't find its Task Branch.*no scope file/s,
+  );
+  // Other Roles, and a broken input, still fail open.
+  assert.doesNotMatch(open({ agent_type: 'reviewer' }), /Task Branch/);
+  assert.equal(
+    reasonOf(guard({ tool_name: 'mcp__github__create_pull_request', agent_type: 'implementer', cwd: '/nonexistent' })),
+    '',
+  );
 });

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { join } from 'node:path';
-import { gitContext, gitContextOfPath, worktreeOf } from './git-context.ts';
+import { gitContext, gitContextOfPath, readAtRef, worktreeOf } from './git-context.ts';
 import { worktreeFixture } from './worktree-fixture.ts';
 
 test('a directory resolves to its own checkout root, the shared git dir and its branch', () => {
@@ -40,4 +40,15 @@ test('the worktree of a branch is the one checked out on it, else the main check
   assert.equal(worktreeOf(repo.worktree, 'feat/00007-x'), repo.main);
   repo.git(['branch', 'agent/00007-02-z'], repo.main);
   assert.equal(worktreeOf(repo.worktree, 'agent/00007-02-z'), repo.main);
+});
+
+test('files are read at a branch ref without its worktree, a missing one left out', () => {
+  const repo = worktreeFixture();
+  repo.write('scripts/a.ts', 'on the branch\n');
+  repo.commit('change');
+  const files = readAtRef(repo.main, repo.branch, ['scripts/a.ts', 'nope.md', 'docs/other.md']);
+  assert.deepEqual([...files], [
+    ['scripts/a.ts', 'on the branch\n'],
+    ['docs/other.md', 'other\n'],
+  ]);
 });

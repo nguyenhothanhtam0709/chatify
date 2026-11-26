@@ -72,24 +72,28 @@ interface HookInput {
   agent_type?: string;
 }
 
-export const frontMatterKind = (root: string) => (path: string) => {
-  try {
-    const text = readFileSync(resolve(root, path), 'utf8');
-    const block = /^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? '';
-    return /^kind:\s*(\w+)\s*$/m.exec(block)?.[1] ?? null;
-  } catch {
-    return null;
-  }
+/** Reads a repo file from the checkout at `root`, or null when it can't. */
+export const fromDisk =
+  (root: string) =>
+  (path: string): string | null => {
+    try {
+      return readFileSync(resolve(root, path), 'utf8');
+    } catch {
+      return null;
+    }
+  };
+
+export const frontMatterKind = (read: (path: string) => string | null) => (path: string) => {
+  const block = /^---\n([\s\S]*?)\n---/.exec(read(path) ?? '')?.[1] ?? '';
+  return /^kind:\s*(\w+)\s*$/m.exec(block)?.[1] ?? null;
 };
 
 /** Whether a repo file is a Descriptive Doc that covers one of `changed`. */
-export const coveredByChange = (root: string, changed: string[]) => (path: string) => {
-  try {
-    return coversChange(readFileSync(resolve(root, path), 'utf8'), changed);
-  } catch {
-    return false;
-  }
-};
+export const coveredByChange =
+  (read: (path: string) => string | null, changed: string[]) => (path: string) => {
+    const text = read(path);
+    return text !== null && coversChange(text, changed);
+  };
 
 /** The files changed since the Feature Branch tip, committed or not; empty when it can't tell. */
 const changedSinceFeature = (cwd: string, specNumber: string | null): string[] => {
@@ -125,8 +129,8 @@ const decideFor = (input: HookInput): string | null => {
   return canWrite(path, input.agent_type, {
     ...scopeFacts(scope ?? []),
     specNumber,
-    kindOf: frontMatterKind(root),
-    coveredByChange: coveredByChange(root, changedSinceFeature(root, specNumber)),
+    kindOf: frontMatterKind(fromDisk(root)),
+    coveredByChange: coveredByChange(fromDisk(root), changedSinceFeature(root, specNumber)),
   });
 };
 

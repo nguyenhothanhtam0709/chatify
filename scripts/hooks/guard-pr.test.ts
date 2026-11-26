@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { checkBeforePr, opensPr, prBody, type RunResult } from './guard-pr.ts';
+import { type Check as FastCheck, type CheckResult as FastResult } from './fast-checks.ts';
+import { checkBeforePr, checkFastOnPr, opensPr, prBody, type RunResult } from './guard-pr.ts';
 import { worktreeFixture } from './worktree-fixture.ts';
 
 const ok: RunResult = { status: 0, output: '' };
@@ -272,4 +273,68 @@ test('an Implementer PR whose head is not a Task Branch with a scope file is den
     ),
     '',
   );
+});
+
+const fastCheck = (name: string, result: FastResult): FastCheck => ({ name, run: () => result });
+const clockAt = (...times: number[]) => {
+  let i = 0;
+  return () => times[Math.min(i++, times.length - 1)] ?? 0;
+};
+
+test('a failing fast check denies an Implementer PR, with the output', () => {
+  const { reason } = checkFastOnPr(
+    { agent_type: 'implementer' },
+    [fastCheck('lint:scripts', { status: 1, output: 'no-unused-vars in a.ts' })],
+    clockAt(0),
+  );
+  assert.match(reason ?? '', /lint:scripts/);
+  assert.match(reason ?? '', /no-unused-vars in a\.ts/);
+});
+
+test('clean fast checks let the PR through, and other Roles run none', () => {
+  const clean = [fastCheck('lint', { status: 0, output: '' })];
+  assert.deepEqual(checkFastOnPr({ agent_type: 'implementer' }, clean, clockAt(0)), {
+    reason: null,
+    notice: null,
+  });
+  const ran: string[] = [];
+  const spy: FastCheck = { name: 'x', run: () => (ran.push('x'), { status: 1, output: 'bad' }) };
+  for (const input of [{ agent_type: 'reviewer' }, { agent_type: 'doc-sync' }, {}]) {
+    assert.equal(checkFastOnPr(input, [spy], clockAt(0)).reason, null);
+  }
+  assert.deepEqual(ran, []);
+});
+
+test('a fast check over the budget is reported and does not deny', () => {
+  const timedOut = fastCheck('tests scripts', { status: null, output: '', timedOut: true });
+  const result = checkFastOnPr({ agent_type: 'implementer' }, [timedOut], clockAt(0));
+  assert.equal(result.reason, null);
+  assert.match(result.notice ?? '', /tests scripts/);
+});
+
+test('the hook denies an Implementer PR whose scope package fails lint', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'guard-pr-fast-'));
+  const git = (...args: string[]) =>
+    spawnSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { cwd: dir });
+  git('init', '-q', '-b', 'main');
+  writeFileSync(join(dir, 'a.txt'), '');
+  git('add', '.');
+  git('commit', '-q', '-m', 'base');
+  git('update-ref', 'refs/remotes/origin/feat/00007-x', 'HEAD');
+  git('checkout', '-q', '-b', 'agent/00007-y');
+  mkdirSync(join(dir, '.git/scope/agent'), { recursive: true });
+  writeFileSync(join(dir, '.git/scope/agent/00007-y.txt'), 'ticket: none\npackages: scripts\n');
+  // No package.json here, so `pnpm lint:scripts` fails in the worktree of the head.
+  const input = JSON.stringify({
+    tool_name: 'mcp__github__create_pull_request',
+    agent_type: 'implementer',
+    cwd: dir,
+  });
+  const out = spawnSync('node', [fileURLToPath(new URL('./guard-pr.ts', import.meta.url))], {
+    input,
+    encoding: 'utf8',
+  }).stdout;
+  const reason = (JSON.parse(out) as { hookSpecificOutput: { permissionDecisionReason: string } })
+    .hookSpecificOutput.permissionDecisionReason;
+  assert.match(reason, /lint:scripts/);
 });

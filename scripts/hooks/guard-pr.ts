@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { docsNotUpdated } from '../docs/covers.ts';
 import { checkDiff, parseDiff, type Change } from './check-diff.ts';
+import { BUDGET_MS, fastChecks, runChecks, type Check } from './fast-checks.ts';
 import { featureTip, gitContext, readAtRef, readerAtRef, worktreeOf } from './git-context.ts';
 import { coveredByChange, frontMatterKind } from './guard-writes.ts';
 import { readScopeFile, scopeFacts } from './scope-facts.ts';
@@ -232,29 +233,76 @@ const commands: Record<Exclude<Step, 'scope' | 'covers'>, [string, string[]]> = 
   check: ['node', ['scripts/docs/check.ts']],
 };
 
+export interface FastDecision {
+  /** Why the PR is denied, or null. */
+  reason: string | null;
+  /** A report that does not deny (a check ran out of the budget), or null. */
+  notice: string | null;
+}
+
+/** Runs the fast checks of an Implementer's PR within the budget. A timeout does not deny. */
+export const checkFastOnPr = (
+  input: HookInput,
+  checks: Check[],
+  now: () => number,
+): FastDecision => {
+  if (input.agent_type !== 'implementer') return { reason: null, notice: null };
+  const { failures, skipped } = runChecks(checks, now);
+  return {
+    reason:
+      failures.length > 0
+        ? `The fast checks failed. Fix these before opening the PR:\n\n${failures.join('\n\n')}`
+        : null,
+    notice:
+      skipped.length > 0
+        ? `The PR guard ran out of its ${BUDGET_MS / 1000} s budget and did not run: ${skipped.join(', ')}.`
+        : null,
+  };
+};
+
+/** The fast checks for the Task Branch, in its worktree. None when there is nothing to diff. */
+const fastChecksFor = (task: TaskBranch): Check[] => {
+  const { specNumber, scope, worktree } = task;
+  if (specNumber === null || scope === null) return [];
+  const since = sinceFeature(task, specNumber);
+  if (since === null) return [];
+  const changed = gitOut(worktree, ['diff', '--name-only', '--no-renames', since.range])
+    .split('\n')
+    .filter(Boolean);
+  return fastChecks(worktree, scope, changed);
+};
+
 /** Why the PR should be denied, or null. Null too when the guard can't run (it fails open). */
-const decide = (input: HookInput): string | null => {
-  if (!opensPr(input)) return null;
+const decide = (input: HookInput): FastDecision => {
+  if (!opensPr(input)) return { reason: null, notice: null };
   const task = findTaskBranch(input);
   if (input.agent_type === 'implementer' && task !== null) {
     const missing = missingTaskBranch(task);
-    if (missing !== null) return missing;
+    if (missing !== null) return { reason: missing, notice: null };
   }
   const where = task?.worktree ?? input.cwd;
-  return checkBeforePr((step) => {
+  const docs = checkBeforePr((step) => {
     if (step === 'scope') return task ? diffScope(input.agent_type, task) : ok;
     if (step === 'covers') return task ? coversCheck(input, task) : ok;
     const [command, args] = commands[step];
     const result = spawnSync(command, args, { cwd: where, encoding: 'utf8' });
     return { status: result.status, output: `${result.stdout}${result.stderr}`.trim() };
   });
+  let fast: FastDecision = { reason: null, notice: null };
+  try {
+    fast = task ? checkFastOnPr(input, fastChecksFor(task), Date.now) : fast;
+  } catch {
+    // The fast checks can't run: the PR is not denied for that.
+  }
+  const reasons = [docs, fast.reason].filter((reason) => reason !== null);
+  return { reason: reasons.length > 0 ? reasons.join('\n\n') : null, notice: fast.notice };
 };
 
 const ok: RunResult = { status: 0, output: '' };
 
 if (import.meta.main) {
   try {
-    const reason = decide(JSON.parse(readFileSync(0, 'utf8')) as HookInput);
+    const { reason, notice } = decide(JSON.parse(readFileSync(0, 'utf8')) as HookInput);
     if (reason) {
       process.stdout.write(
         JSON.stringify({
@@ -265,6 +313,9 @@ if (import.meta.main) {
           },
         }),
       );
+    } else if (notice !== null) {
+      process.stdout.write(JSON.stringify({ systemMessage: notice }));
+      process.stderr.write(`${notice}\n`);
     }
   } catch {
     // Fail open: a broken guard must never block an agent.

@@ -34,7 +34,7 @@ export const featureBranchFor = (branch: string, featureBranches: string[]): str
 };
 
 /** Whether `version` satisfies a `>=N[.M[.P]]` range; null when the range is any other shape. */
-const satisfies = (version: string, range: string): boolean | null => {
+export const satisfies = (version: string, range: string): boolean | null => {
   const min = /^>=\s*(\d+(?:\.\d+){0,2})$/.exec(range.trim())?.[1];
   if (min === undefined) {
     return null;

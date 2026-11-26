@@ -77,7 +77,10 @@ test('a run over 180 s is reported and does not block', () => {
 });
 
 test('a check that times out is reported and does not block', () => {
-  const timedOut: Check = { name: 'tests', run: () => ({ status: null, output: '', timedOut: true }) };
+  const timedOut: Check = {
+    name: 'tests',
+    run: () => ({ status: null, output: '', timedOut: true }),
+  };
   const result = checkOnStop(implementer, [timedOut], clock(0));
   assert.equal(result.block, null);
   assert.match(result.notice ?? '', /tests/);

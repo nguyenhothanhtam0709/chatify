@@ -35,11 +35,7 @@ export interface StopDecision {
 }
 
 /** Runs the checks in order within the budget. Only an `implementer`'s first stop is checked. */
-export const checkOnStop = (
-  input: StopInput,
-  checks: Check[],
-  now: () => number,
-): StopDecision => {
+export const checkOnStop = (input: StopInput, checks: Check[], now: () => number): StopDecision => {
   if (input.agent_type !== 'implementer' || input.stop_hook_active) {
     return { block: null, notice: null };
   }
@@ -113,15 +109,17 @@ export const stopChecks = (packages: string[], changedFiles: string[]): Command[
   return commands;
 };
 
-const spawned = (cwd: string, { command, args }: Command) => (budgetMs: number): CheckResult => {
-  const result = spawnSync(command, args, { cwd, encoding: 'utf8', timeout: budgetMs });
-  const code = (result.error as NodeJS.ErrnoException | undefined)?.code;
-  if (code === 'ETIMEDOUT') return { status: null, output: '', timedOut: true };
-  if (result.error || result.status === null) {
-    return { status: null, output: String(result.error ?? 'killed') };
-  }
-  return { status: result.status > 0 ? 1 : 0, output: `${result.stdout}${result.stderr}`.trim() };
-};
+const spawned =
+  (cwd: string, { command, args }: Command) =>
+  (budgetMs: number): CheckResult => {
+    const result = spawnSync(command, args, { cwd, encoding: 'utf8', timeout: budgetMs });
+    const code = (result.error as NodeJS.ErrnoException | undefined)?.code;
+    if (code === 'ETIMEDOUT') return { status: null, output: '', timedOut: true };
+    if (result.error || result.status === null) {
+      return { status: null, output: String(result.error ?? 'killed') };
+    }
+    return { status: result.status > 0 ? 1 : 0, output: `${result.stdout}${result.stderr}`.trim() };
+  };
 
 /** The checks to run for the branch in the hook input's cwd. */
 const checksFor = (input: StopInput): Check[] => {
@@ -147,7 +145,7 @@ const checksFor = (input: StopInput): Check[] => {
     .filter(Boolean);
   return [
     {
-      name: 'Diff scope (files outside the Role\'s Writes)',
+      name: "Diff scope (files outside the Role's Writes)",
       run: () => diffScope(input),
     },
     ...stopChecks(scopeFacts(scope).packages, changed).map((command) => ({

@@ -24,18 +24,22 @@ See the Spec's "Hooks".
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The hook does nothing for any `agent_type` other than `implementer`, and nothing when `stop_hook_active` is set
-- [ ] A scope violation blocks the stop with the violation listed
-- [ ] A lint or typecheck failure in a scope package blocks the stop with its output
-- [ ] Only the test files changed on the branch run; with none, no tests run
-- [ ] A run over 180 s is reported and does not block
-- [ ] The hook is registered as `SubagentStop`, not `Stop`
-- [ ] The "Stop hook" bullet is gone from Laters, and the SDLC Checks Stage mentions the stop check
+- [x] The hook does nothing for any `agent_type` other than `implementer`, and nothing when `stop_hook_active` is set
+- [x] A scope violation blocks the stop with the violation listed
+- [x] A lint or typecheck failure in a scope package blocks the stop with its output
+- [x] Only the test files changed on the branch run; with none, no tests run
+- [x] A run over 180 s is reported and does not block
+- [x] The hook is registered as `SubagentStop`, not `Stop`
+- [x] The "Stop hook" bullet is gone from Laters, and the SDLC Checks Stage mentions the stop check
 
 **Verification:** Script tests for the stop check's decision function, with the commands' results and the clock passed in: each case above. Pipe a sample `SubagentStop` input into the hook on a branch with a lint error and check it blocks. Ticket 08 checks it live.
 
 **Out of scope:** Running the full test suite on stop; changing the definition of done's full checks; a self-repair loop.
 
 ## Comments
+
+Resolved. Verified with script tests for `checkOnStop` and `stopChecks` (each criterion), then a sample `SubagentStop` input piped into the hook on a branch with a committed lint error: it blocked with the lint output; `stop_hook_active` and a `reviewer` input did nothing. Full `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm docs:check` pass. Not run live in a sub-agent session (Ticket 08).
+
+Assumptions: a timeout (a check over the remaining budget, or the budget spent before a check starts) is reported through `systemMessage` and stderr, and a real failure found before that still blocks. A check that cannot start is skipped. The hook's `timeout` in settings is 200 s, above the 180 s budget. Test files changed on the branch are committed work, like the Diff-scope check.

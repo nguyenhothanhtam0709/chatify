@@ -75,15 +75,29 @@ An agent blocked on a question continues through `SendMessage` with the answer, 
 
 ## Read scope
 
-Before spawning an Implementer, write three facts about its Ticket to `<git-common-dir>/scope/<task-branch>.txt`, one per line:
+Before spawning an Implementer, write six facts about its Ticket to `<git-common-dir>/scope/<task-branch>.txt`, one per line:
 
 ```
+ticket: .scratch/00017-ticket-gates/issues/03-guard-writes.md
 packages: api contracts
+writes: .claude/settings.json docs/factory/sdlc.md
+spec-status: no
 browser-check: yes
 worktree: no
 ```
 
-Copy `packages` from the Ticket's _What to build_. A missing line means `no`, or no packages. Write facts, not globs: a file of globs reads as no facts. Only the Implementer gets a scope file; an Implementer fixing findings gets one built from the packages the findings touch. Handoff notes sit outside the repo and need no entry. Delete the file at hand-off cleanup, whether or not there is a worktree.
+Where each is copied from:
+
+- `ticket`: the Ticket's repo path, or `none` for a branch with no Ticket (the review-fix branch).
+- `packages`: the Ticket's _Packages_, space-separated. For a Ticket without that field, read them from _What to build_.
+- `writes`: the Ticket's _Also writes_ paths, space-separated.
+- `spec-status`: `yes` only for the review-fix PR, which sets the Spec's `Status:` line.
+- `browser-check`: the brief's _Browser check_.
+- `worktree`: `yes` when the Implementer works in a worktree.
+
+A missing line means `no`, `none` or empty. Write facts, not globs: a file of globs reads as no facts. Only the Implementer gets a scope file; an Implementer fixing findings gets one built from the packages the findings touch. Handoff notes sit outside the repo and need no entry. Delete the file at hand-off cleanup, whether or not there is a worktree.
+
+[scope-facts.ts](../../scripts/hooks/scope-facts.ts) reads the facts by name for every hook.
 
 [guard-reads.ts](../../scripts/hooks/guard-reads.ts) derives from the facts which docs are readable whole: the `AGENTS.md` and convention of each package, plus the general convention, plus [browser-check](browser-check.md) or [worktree](worktree.md) when its fact is `yes`. It always allows the Ticket, the docs every PR needs and the sub-agent's own Role file. The Spec is left out on purpose, so the Implementer reads only the named sections. A PR body that reports a read outside the scope means the scope or the brief was missing something: fix it for the next Ticket.
 

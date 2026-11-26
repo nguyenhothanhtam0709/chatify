@@ -33,16 +33,20 @@ See the Spec's "Ticket template and scope file".
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The Ticket template has `Packages:` and `Also writes:` after *What to build*, each described in the Fields list
-- [ ] The shared module reads `ticket`, `packages`, `writes`, `spec-status`, `browser-check` and `worktree`, and a missing line gives the empty value
-- [ ] A scope file in the old glob format still reads as no facts
-- [ ] Every existing read guard test passes unchanged in meaning
-- [ ] The orchestrator page's *Read scope* section names all six facts and their sources
+- [x] The Ticket template has `Packages:` and `Also writes:` after *What to build*, each described in the Fields list
+- [x] The shared module reads `ticket`, `packages`, `writes`, `spec-status`, `browser-check` and `worktree`, and a missing line gives the empty value
+- [x] A scope file in the old glob format still reads as no facts
+- [x] Every existing read guard test passes unchanged in meaning
+- [x] The orchestrator page's *Read scope* section names all six facts and their sources
 
 **Verification:** Script tests (`node --test`, run by `pnpm test:scripts`) for the shared module, driven with scope file lines: each fact present, missing, and the old glob format. The read guard suite stays green.
 
 **Out of scope:** Any guard that reads `writes`, `ticket` or `spec-status` (Tickets 03 to 06); rewriting existing Tickets with the new fields.
 
 ## Comments
+- scripts/hooks/scope-facts.ts: `scopeFacts(lines)` returns the six facts; `readScopeFile(commonDir, branch)` reads the lines. guard-reads.ts uses both. Docs updated: ticket-template.md, orchestrator.md (Read scope).
+- Assumption: `packages: scripts` still maps to packages/scripts/AGENTS.md in the read guard (a path that doesn't exist, harmless), to keep the guard's answers unchanged.
+- pnpm lint fails only on untracked overview.md (prettier), not committed.
+- Exception, accepted by the human: the tests were written alongside the implementation, not first. They were shown red after the fact by making scopeFacts return the empty value for every fact: "reads all six facts by name" and "a missing line gives the empty value" failed; the file was then restored (git diff empty) and all 5 pass.

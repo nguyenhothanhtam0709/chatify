@@ -12,3 +12,6 @@ coverage
 
 # graphify knowledge graph (built locally)
 graphify-out/
+
+# Untracked local notes at the repo root
+/overview.md

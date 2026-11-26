@@ -16,6 +16,8 @@ export interface Check {
   name: string;
   /** Runs the check with at most `budgetMs` to finish. */
   run: (budgetMs: number) => CheckResult;
+  /** When this check fails, the checks after it do not run, since they would only repeat it. */
+  stopOnFail?: boolean;
 }
 
 export interface RunOutcome {
@@ -38,7 +40,10 @@ export const runChecks = (checks: Check[], now: () => number): RunOutcome => {
     }
     const result = check.run(left);
     if (result.timedOut) skipped.push(check.name);
-    else if (result.status === 1) failures.push(`${check.name}:\n${result.output}`);
+    else if (result.status === 1) {
+      failures.push(`${check.name}:\n${result.output}`);
+      if (check.stopOnFail) break;
+    }
   }
   return { failures, skipped };
 };
@@ -47,21 +52,29 @@ export interface Command {
   name: string;
   command: string;
   args: string[];
+  /** A failure of this command ends the run. */
+  stopOnFail?: boolean;
 }
 
 const TEST_FILE = /\.(?:test|spec)\.tsx?$/;
 
-/** Lint and typecheck of each scope package, then the changed test files. */
+/** The contracts build (api and web only), lint and typecheck of each scope package, then the changed test files. */
 export const stopChecks = (packages: string[], changedFiles: string[]): Command[] => {
-  const commands: Command[] = packages.flatMap((pkg) =>
-    ['lint', 'typecheck'].map((script) =>
-      pkg === 'scripts'
-        ? { name: `${script}:scripts`, command: 'pnpm', args: [`${script}:scripts`] }
-        : {
-            name: `${script} @chat/${pkg}`,
-            command: 'pnpm',
-            args: ['--filter', `@chat/${pkg}`, script],
-          },
+  const needsContracts = packages.some((pkg) => pkg === 'api' || pkg === 'web');
+  const commands: Command[] = needsContracts
+    ? [{ name: 'build contracts', command: 'pnpm', args: ['build:contracts'], stopOnFail: true }]
+    : [];
+  commands.push(
+    ...packages.flatMap((pkg) =>
+      ['lint', 'typecheck'].map((script) =>
+        pkg === 'scripts'
+          ? { name: `${script}:scripts`, command: 'pnpm', args: [`${script}:scripts`] }
+          : {
+              name: `${script} @chat/${pkg}`,
+              command: 'pnpm',
+              args: ['--filter', `@chat/${pkg}`, script],
+            },
+      ),
     ),
   );
   const tests = changedFiles.filter((file) => TEST_FILE.test(file));
@@ -105,4 +118,5 @@ export const fastChecks = (worktree: string, scope: string[], changed: string[])
   stopChecks(scopeFacts(scope).packages, changed).map((command) => ({
     name: command.name,
     run: spawned(worktree, command),
+    stopOnFail: command.stopOnFail,
   }));

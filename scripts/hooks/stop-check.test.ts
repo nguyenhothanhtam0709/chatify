@@ -108,6 +108,7 @@ test('a failure found before the budget ran out still blocks', () => {
 test('stopChecks lints and typechecks each scope package, workspace or scripts', () => {
   const commands = stopChecks(['api', 'scripts'], []).map((c) => [c.command, ...c.args].join(' '));
   assert.deepEqual(commands, [
+    'pnpm build:contracts',
     'pnpm --filter @chat/api lint',
     'pnpm --filter @chat/api typecheck',
     'pnpm lint:scripts',
@@ -125,11 +126,52 @@ test('stopChecks runs only the test files changed on the branch', () => {
       'README.md',
     ],
   ).map((c) => [c.command, ...c.args].join(' '));
-  assert.deepEqual(commands.slice(4), [
+  assert.deepEqual(commands.slice(5), [
     'pnpm --filter @chat/api exec vitest run test/a.test.ts',
     'node --test scripts/hooks/c.test.ts',
   ]);
-  assert.equal(stopChecks(['api'], ['packages/api/src/b.ts']).length, 2);
+  assert.equal(stopChecks(['api'], ['packages/api/src/b.ts']).length, 3);
+});
+
+test('stopChecks builds the contracts first for api or web, and not for contracts or scripts', () => {
+  const first = (packages: string[]) =>
+    stopChecks(packages, []).map((c) => [c.command, ...c.args].join(' '));
+  assert.equal(first(['web'])[0], 'pnpm build:contracts');
+  assert.equal(first(['contracts', 'api'])[0], 'pnpm build:contracts');
+  assert.equal(first(['scripts', 'web'])[0], 'pnpm build:contracts');
+  assert.equal(first(['api', 'web']).filter((c) => c === 'pnpm build:contracts').length, 1);
+  for (const packages of [['contracts'], ['scripts'], ['contracts', 'scripts']]) {
+    assert.ok(!first(packages).includes('pnpm build:contracts'));
+  }
+});
+
+test('stopChecks marks the contracts build as stopping the run', () => {
+  const [build, ...rest] = stopChecks(['api'], []);
+  assert.equal(build?.stopOnFail, true);
+  assert.ok(rest.every((c) => !c.stopOnFail));
+});
+
+test('a failed contracts build is the failure and the checks after it are skipped', () => {
+  const ran: string[] = [];
+  const build: Check = {
+    ...check('build contracts', fail('TS2322 in contracts'), ran),
+    stopOnFail: true,
+  };
+  const result = checkOnStop(
+    implementer,
+    [check('Diff scope', pass, ran), build, check('lint @chat/api', fail('repeat'), ran)],
+    clock(0),
+  );
+  assert.match(result.block ?? '', /TS2322 in contracts/);
+  assert.doesNotMatch(result.block ?? '', /repeat/);
+  assert.deepEqual(ran, ['Diff scope', 'build contracts']);
+});
+
+test('a passing contracts build lets the later checks run', () => {
+  const ran: string[] = [];
+  const build: Check = { ...check('build contracts', pass, ran), stopOnFail: true };
+  checkOnStop(implementer, [build, check('lint', pass, ran)], clock(0));
+  assert.deepEqual(ran, ['build contracts', 'lint']);
 });
 
 const stopHook = (cwd: string) =>

@@ -21,7 +21,7 @@
 
 **Allowed packages:** None
 
-**Blocked by:** 03, 04, 05, 06, 07, 09, 10
+**Blocked by:** 03, 04, 05, 06, 07, 09, 10, 11
 
 **Status:** ready-for-human
 

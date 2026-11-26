@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { decide, type ReadContext } from './guard-reads.ts';
+import { worktreeFixture } from './worktree-fixture.ts';
 
 const repo = '/repo';
 const noScope: ReadContext = { roots: [repo], cwd: repo, branch: 'main', scope: null };
@@ -221,4 +222,44 @@ test('the hook finds the scope by branch in a real repo and answers in the hook 
   assert.equal(runCli(input('docs/workflow/worktree.md')).stdout, '');
   assert.equal(runCli(input('docs/factory/roles/implementer.md', 'implementer')).stdout, '');
   assert.notEqual(runCli(input('docs/factory/roles/reviewer.md', 'implementer')).stdout, '');
+});
+
+test('with cwd on the Feature Branch, a Read in the agent worktree is held to its scope', () => {
+  const tree = worktreeFixture('ticket: none\npackages: web\nworktree: no\n');
+  const input = (path: string) =>
+    JSON.stringify({
+      tool_name: 'Read',
+      tool_input: { file_path: join(tree.worktree, path) },
+      cwd: tree.main,
+      agent_type: 'implementer',
+    });
+  assert.match(runCli(input('docs/other.md')).stdout, /"permissionDecision":"deny"/);
+  assert.equal(runCli(input('docs/conventions/web.md')).stdout, '');
+  // The same file in the main checkout, on the Feature Branch, has no scope to hold it to.
+  assert.equal(
+    runCli(
+      JSON.stringify({
+        tool_name: 'Read',
+        tool_input: { file_path: join(tree.main, 'docs/other.md') },
+        cwd: tree.main,
+        agent_type: 'implementer',
+      }),
+    ).stdout,
+    '',
+  );
+});
+
+test('a cat in Bash still resolves from cwd and its cd', () => {
+  const tree = worktreeFixture('ticket: none\npackages: web\nworktree: no\n');
+  const bashIn = (command: string) =>
+    runCli(
+      JSON.stringify({
+        tool_name: 'Bash',
+        tool_input: { command },
+        cwd: tree.worktree,
+        agent_type: 'implementer',
+      }),
+    ).stdout;
+  assert.match(bashIn('cat docs/other.md'), /deny/);
+  assert.match(bashIn('cd docs && cat other.md'), /deny/);
 });

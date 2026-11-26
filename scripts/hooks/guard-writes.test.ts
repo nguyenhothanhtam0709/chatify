@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { canWrite, type WriteFacts } from './guard-writes.ts';
+import { worktreeFixture } from './worktree-fixture.ts';
 
 const kinds: Record<string, string> = {
   'docs/factory/overview.md': 'intent',
@@ -117,4 +119,33 @@ test('an implementer may write a Descriptive Doc that covers a file it changed, 
   assert.equal(canWrite('docs/factory/descriptive-thing.md', 'implementer', covering), null);
   assert.ok(canWrite('docs/factory/descriptive-thing.md', 'implementer', facts()));
   assert.ok(canWrite('docs/factory/overview.md', 'implementer', covering));
+});
+
+test('with cwd on the Feature Branch, an edit in the agent worktree is held to its scope', () => {
+  const repo = worktreeFixture();
+  const edit = (path: string) =>
+    hook({
+      tool_name: 'Edit',
+      tool_input: { file_path: join(repo.worktree, path) },
+      agent_type: 'implementer',
+      cwd: repo.main,
+    }).stdout;
+  assert.match(edit('docs/other.md'), /"permissionDecision":"deny"/);
+  assert.match(edit('packages/web/new/file.ts'), /packages\/web\/new\/file\.ts is outside/);
+  assert.equal(edit('scripts/a.ts'), '');
+});
+
+test('in the main checkout, a relative path resolves against cwd as before', () => {
+  const repo = worktreeFixture();
+  repo.git(['checkout', '-q', '-b', 'agent/00007-02-z'], repo.main);
+  repo.write('.git/scope/agent/00007-02-z.txt', 'ticket: none\npackages: scripts\n', repo.main);
+  const edit = (path: string) =>
+    hook({
+      tool_name: 'Write',
+      tool_input: { file_path: path },
+      agent_type: 'implementer',
+      cwd: repo.main,
+    }).stdout;
+  assert.match(edit('docs/other.md'), /docs\/other\.md is outside/);
+  assert.equal(edit('scripts/b.ts'), '');
 });

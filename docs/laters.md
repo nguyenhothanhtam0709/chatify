@@ -153,3 +153,9 @@ Ticket 00009-04 made the mutation clients (`login`, `register`, `updateProfile`,
 - **Seen:** while planning the Factory hardening Specs. A change to `docs/workflow/` or an agent definition has no way to show whether agents do better or worse afterwards.
 - **Not done:** needs numbers first, from the per-Ticket metrics line planned in the Learning Loop Spec.
 - **Idea:** keep one or two `resolved` Tickets as benchmarks, replay them from their starting commit with the new docs, and compare escalations, check failures and diff size with the original run.
+
+## The read guard denies a Ticket's Also writes files whole
+
+- **Seen:** in Ticket 00017-09. `docs/workflow/worktree.md` was under the Ticket's Also writes, so in the scope file's `writes:`, but the read guard denied reading it whole because `worktree: no`.
+- **Not done:** outside that Ticket; a Read with a limit worked.
+- **Idea:** let `docsFromFacts` in `scripts/hooks/guard-reads.ts` also allow every path in `writes:`.

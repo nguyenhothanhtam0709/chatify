@@ -4,9 +4,9 @@
 // Fails open, like the other guards.
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { diffScope, gitOut, type HookInput } from './guard-pr.ts';
-import { readScopeFile, scopeFacts } from './scope-facts.ts';
+import { featureTip, gitContext, worktrees } from './git-context.ts';
+import { diffScope, gitOut, taskBranch, type HookInput, type TaskBranch } from './guard-pr.ts';
+import { scopeFacts } from './scope-facts.ts';
 
 export const BUDGET_MS = 180_000;
 
@@ -121,48 +121,69 @@ const spawned =
     return { status: result.status > 0 ? 1 : 0, output: `${result.stdout}${result.stderr}`.trim() };
   };
 
-/** The checks to run for the branch in the hook input's cwd. */
-const checksFor = (input: StopInput): Check[] => {
+/**
+ * The Task Branch whose work is checked. The input names no file or branch, and a sub-agent in a
+ * worktree gets the main checkout as `cwd` (Ticket 08). So: the branch of `cwd` when it is an
+ * `agent/` branch, else the one `agent/` worktree whose scope file says `worktree: yes`. Several
+ * give a notice instead, since nothing says which is this agent's; none gives nothing.
+ */
+export const findStopBranch = (input: StopInput): TaskBranch | { notice: string } | null => {
   const cwd = input.cwd ?? process.cwd();
-  const [root = cwd, gitCommonDir = '.git', branch = ''] = gitOut(cwd, [
-    'rev-parse',
-    '--show-toplevel',
-    '--git-common-dir',
-    '--abbrev-ref',
-    'HEAD',
-  ]).split('\n');
-  const specNumber = /^agent\/(\d{5})-/.exec(branch)?.[1];
-  if (specNumber === undefined) return [];
-  const scope = readScopeFile(resolve(cwd, gitCommonDir), branch);
-  if (scope === null) return [];
-  const tip = gitOut(cwd, ['branch', '-r', '--list', `origin/feat/${specNumber}-*`])
-    .split('\n')[0]
-    ?.trim();
-  if (!tip) return [];
-  const base = gitOut(cwd, ['merge-base', tip, 'HEAD']);
-  const changed = gitOut(root, ['diff', '--name-only', '--no-renames', `${base}..HEAD`])
+  const context = gitContext(cwd);
+  if (context === null) return null;
+  const task = (branch: string, worktree: string) =>
+    taskBranch(branch, context.commonDir, worktree);
+  if (context.branch.startsWith('agent/')) return task(context.branch, context.root);
+  const candidates = worktrees(cwd).flatMap(({ path, branch }) => {
+    if (!branch?.startsWith('agent/')) return [];
+    const found = task(branch, path);
+    return found.scope !== null && scopeFacts(found.scope).worktree ? [found] : [];
+  });
+  if (candidates.length > 1) {
+    return {
+      notice:
+        `The stop check did not run: cwd is on ${context.branch} and several agent worktrees ` +
+        `could be this agent's (${candidates.map((c) => c.branch).join(', ')}).`,
+    };
+  }
+  return candidates[0] ?? null;
+};
+
+/** The checks to run for the Task Branch. */
+const checksFor = (input: StopInput, task: TaskBranch): Check[] => {
+  const { specNumber, scope, worktree, branch } = task;
+  if (specNumber === null || scope === null) return [];
+  const tip = featureTip(worktree, specNumber);
+  if (tip === null) return [];
+  const base = gitOut(worktree, ['merge-base', tip, branch]);
+  const changed = gitOut(worktree, ['diff', '--name-only', '--no-renames', `${base}..${branch}`])
     .split('\n')
     .filter(Boolean);
   return [
     {
       name: "Diff scope (files outside the Role's Writes)",
-      run: () => diffScope(input),
+      run: () => diffScope(input.agent_type, task),
     },
     ...stopChecks(scopeFacts(scope).packages, changed).map((command) => ({
       name: command.name,
-      run: spawned(root, command),
+      run: spawned(worktree, command),
     })),
   ];
 };
 
+const decideStop = (input: StopInput): StopDecision => {
+  if (input.agent_type !== 'implementer' || input.stop_hook_active) {
+    return { block: null, notice: null };
+  }
+  const found = findStopBranch(input);
+  if (found === null) return { block: null, notice: null };
+  if ('notice' in found) return { block: null, notice: found.notice };
+  return checkOnStop(input, checksFor(input, found), Date.now);
+};
+
 if (import.meta.main) {
   try {
-    const input = JSON.parse(readFileSync(0, 'utf8')) as StopInput;
-    const { block, notice } = checkOnStop(
-      input,
-      input.agent_type === 'implementer' && !input.stop_hook_active ? checksFor(input) : [],
-      Date.now,
-    );
+    const { block, notice } = decideStop(JSON.parse(readFileSync(0, 'utf8')) as StopInput);
     if (block !== null) {
       process.stdout.write(JSON.stringify({ decision: 'block', reason: block }));
     } else if (notice !== null) {

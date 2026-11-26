@@ -117,8 +117,8 @@ Most Gates in the Factory are ticked by the agent that did the work. There is no
   - `canWrite(path, role, facts)` returns allowed, or a reason.
   - `checkDiff(changes, role, facts)` calls it for every changed file and adds the rules only a diff shows.
 - The Role is the hook input's `agent_type`. With none (the main session), everything is allowed.
-- **Implementer**: the packages in `packages`; the paths in `writes`; its own Ticket (`ticket`); Descriptive Docs whose `covers:` matches a file it changed; appends to Laters; Generated Docs; `package.json` and the lockfile when Allowed packages is not `None`; the `Status:` line of `spec.md` when `spec-status: yes`.
-- **Diff-only rules**: Laters only gains lines; `spec.md` changes only on its `Status:` line; `package.json` and the lockfile change only when the Ticket's Allowed packages is not `None` (versions are not compared). Generated Docs are allowed because `docs:check` already proves they match their generator.
+- **Implementer**: the packages in `packages`; the paths in `writes`; its own Ticket (`ticket`); Descriptive Docs whose `covers:` matches a file it changed; appends to Laters; Generated Docs; the lockfile and any `package.json`'s dependency fields when Allowed packages is not `None`; any other field of a `package.json` (such as `scripts`) when that `package.json` is in `writes`; the `Status:` line of `spec.md` when `spec-status: yes`.
+- **Diff-only rules**: Laters only gains lines; `spec.md` changes only on its `Status:` line; the lockfile and the dependency fields of a `package.json` (`dependencies`, `devDependencies`, `peerDependencies`, `optionalDependencies`) change only when the Ticket's Allowed packages is not `None` (versions are not compared); its other fields change only when the file is in `writes`. Generated Docs are allowed because `docs:check` already proves they match their generator.
 - **Doc Sync**: only files with `kind: descriptive` front matter.
 - **Explorer**: only paths outside the repo.
 - **Reviewer**: unchanged; it has no `Edit` or `Write`.
@@ -173,7 +173,7 @@ Recorded in ADR 0012.
   - No `agent_type`: everything passes.
 - **Preflight**, through `checkPreflight(env)`. One failing case and one passing case per check. Untracked files fail with a message that says to ask the human. `ticket: none` skips the `Blocked by` check. The Doc Sync branch name passes.
 - **`covers:`**, through `docsNotUpdated`. A doc whose glob matches an unchanged doc is listed. Updating the doc clears it. A `Doc not updated:` line clears it. A doc without `covers:` is never listed.
-- **Hook wiring.** No automated test. A Ticket's Verification triggers each hook once in a real sub-agent session: an edit outside the boundary, a stop with a lint error, a PR with an uncovered change.
+- **Hook wiring.** No automated test. Claude Code reads `.claude/settings.json` hooks when a session starts, so an Implementer can't trigger a hook its own Ticket adds. Each Ticket checks its wrapper by piping a sample hook input into the script. A final `ready-for-human` Ticket checks every hook in a fresh session on the Feature Branch: an edit outside the boundary, a stop with a lint error, a PR with an uncovered change.
 - **Typechecking `scripts/`.** `pnpm typecheck` passes and fails on a deliberate type error in a script.
 
 ## Out of Scope

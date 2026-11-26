@@ -17,7 +17,7 @@ export interface RunResult {
 
 type Step = 'generate' | 'diff' | 'check' | 'scope' | 'covers';
 
-interface HookInput {
+export interface HookInput {
   tool_name?: string;
   tool_input?: { command?: string; body?: string };
   cwd?: string;
@@ -68,14 +68,14 @@ export const checkBeforePr = (run: (step: Step) => RunResult): string | null => 
 const git = (cwd: string, args: string[]) =>
   spawnSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 
-const gitOut = (cwd: string, args: string[]): string => {
+export const gitOut = (cwd: string, args: string[]): string => {
   const result = git(cwd, args);
   if (result.status !== 0) throw new Error(result.stderr);
   return result.stdout.trim();
 };
 
 /** The Diff-scope check on the branch in `cwd`: status 1 lists the violations, null cannot run. */
-const diffScope = (input: HookInput): RunResult => {
+export const diffScope = (input: HookInput): RunResult => {
   try {
     const role = input.agent_type;
     const cwd = input.cwd ?? process.cwd();

@@ -20,19 +20,23 @@ See the Spec's "`covers:` and Doc Sync".
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The overview and the runtime flows have `covers:` globs that match their code
-- [ ] `docs:check` fails on a malformed `covers:` and on `covers:` outside a Descriptive Doc
-- [ ] A changed covered file with the doc unchanged is listed; updating the doc or a `Doc not updated:` line clears it
-- [ ] A Descriptive Doc without `covers:` is never listed
-- [ ] The PR guard denies a PR with an unexcused doc and lets it through once excused
-- [ ] The root script lists the docs for a Feature Branch, and the orchestrator page's Doc Sync section uses it
-- [ ] An Implementer may write a Descriptive Doc that covers a file it changed
-- [ ] The "`covers:` check" bullet is gone from Laters
+- [x] The overview and the runtime flows have `covers:` globs that match their code
+- [x] `docs:check` fails on a malformed `covers:` and on `covers:` outside a Descriptive Doc
+- [x] A changed covered file with the doc unchanged is listed; updating the doc or a `Doc not updated:` line clears it
+- [x] A Descriptive Doc without `covers:` is never listed
+- [x] The PR guard denies a PR with an unexcused doc and lets it through once excused
+- [x] The root script lists the docs for a Feature Branch, and the orchestrator page's Doc Sync section uses it
+- [x] An Implementer may write a Descriptive Doc that covers a file it changed
+- [x] The "`covers:` check" bullet is gone from Laters
 
 **Verification:** Script tests for `docsNotUpdated` (each case above), for the new `docs:check` rule (in the existing check suite), and a `canWrite` case for a covering doc. Pipe a sample hook input into the PR guard for a PR that changes covered code without the doc and check it denies.
 
 **Out of scope:** `covers:` on other Descriptive Docs (setup, worktree, browser check); a periodic drift audit; checking Intent Docs.
 
 ## Comments
+
+Built `parseCovers`, `docsNotUpdated` and `coversChange` in `scripts/docs/covers.ts`; `docs:check` rejects a malformed or misplaced `covers:`; the PR guard has a `covers` step reading the body from the MCP `body` or `gh pr create --body`; `pnpm docs:covers` runs it over the Feature Branch against `main`; `canWrite` takes an optional `coveredByChange`.
+
+Assumptions: globs use `node:path` `matchesGlob` (no braces or negation, so `covers:` rejects `[]{}` characters); the overview's globs are the files it cites (package.json files, app.ts, schema, drizzle, contracts index, vite config), the runtime flows' are the auth, messages, memberships and realtime folders. The guard fails open when it can't find the Feature Branch.

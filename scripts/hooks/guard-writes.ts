@@ -4,6 +4,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { coversChange } from '../docs/covers.ts';
 import { repoPath } from './guard-reads.ts';
 import { readScopeFile, scopeFacts, type ScopeFacts } from './scope-facts.ts';
 
@@ -12,6 +13,8 @@ export interface WriteFacts extends ScopeFacts {
   specNumber: string | null;
   /** The `kind:` in a repo file's front matter, or null when it has none. */
   kindOf: (path: string) => string | null;
+  /** True when `path` is a Descriptive Doc whose `covers:` matches a file changed on the branch. */
+  coveredByChange?: (path: string) => boolean;
 }
 
 const ALWAYS_WRITABLE = ['docs/laters.md', 'pnpm-lock.yaml'];
@@ -51,6 +54,7 @@ export const canWrite = (
     ALWAYS_WRITABLE.includes(path) ||
     isPackageJson(path) ||
     facts.kindOf(path) === 'generated' ||
+    facts.coveredByChange?.(path) === true ||
     isOwnSpec(path, facts)
   ) {
     return null;
@@ -77,6 +81,32 @@ export const frontMatterKind = (root: string) => (path: string) => {
   }
 };
 
+/** Whether a repo file is a Descriptive Doc that covers one of `changed`. */
+export const coveredByChange = (root: string, changed: string[]) => (path: string) => {
+  try {
+    return coversChange(readFileSync(resolve(root, path), 'utf8'), changed);
+  } catch {
+    return false;
+  }
+};
+
+/** The files changed since the Feature Branch tip, committed or not; empty when it can't tell. */
+const changedSinceFeature = (cwd: string, specNumber: string | null): string[] => {
+  try {
+    const git = (...args: string[]) =>
+      execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const tip = git('branch', '-r', '--list', `origin/feat/${specNumber}-*`).split('\n')[0]?.trim();
+    if (!tip) return [];
+    const base = git('merge-base', tip, 'HEAD').trim();
+    return [
+      ...git('diff', '--name-only', '--no-renames', base).split('\n'),
+      ...git('ls-files', '--others', '--exclude-standard').split('\n'),
+    ].filter(Boolean);
+  } catch {
+    return [];
+  }
+};
+
 const decideFor = (input: HookInput): string | null => {
   const filePath = input.tool_input?.file_path;
   if (!filePath || !input.agent_type) return null;
@@ -93,10 +123,12 @@ const decideFor = (input: HookInput): string | null => {
   // No scope file means no Ticket to hold the Writes against.
   if (scope === null && input.agent_type === 'implementer') return null;
   const path = repoPath(filePath, { roots: [root, dirname(commonDir)], cwd, branch, scope });
+  const specNumber = /^agent\/(\d{5})-/.exec(branch)?.[1] ?? null;
   return canWrite(path, input.agent_type, {
     ...scopeFacts(scope ?? []),
-    specNumber: /^agent\/(\d{5})-/.exec(branch)?.[1] ?? null,
+    specNumber,
     kindOf: frontMatterKind(root),
+    coveredByChange: coveredByChange(root, changedSinceFeature(cwd, specNumber)),
   });
 };
 

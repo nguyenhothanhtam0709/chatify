@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { checkBeforePr, opensPr, type RunResult } from './guard-pr.ts';
+import { checkBeforePr, opensPr, prBody, type RunResult } from './guard-pr.ts';
 
 const ok: RunResult = { status: 0, output: '' };
 const failed = (output: string): RunResult => ({ status: 1, output });
@@ -118,4 +118,62 @@ test('the hook denies a PR whose branch changed a file outside the Writes, and l
   git('commit', '-q', '-m', 'out of scope');
   const out = JSON.parse(run()) as { hookSpecificOutput: { permissionDecisionReason: string } };
   assert.match(out.hookSpecificOutput.permissionDecisionReason, /packages\/web\/b\.ts/);
+});
+
+test('an unexcused Descriptive Doc denies the PR, naming the doc and the line to add', () => {
+  const reason = checkBeforePr(runner({ covers: failed('docs/architecture/runtime-flows.md') }));
+  assert.match(reason ?? '', /docs\/architecture\/runtime-flows\.md/);
+  assert.match(reason ?? '', /Doc not updated: <doc path> — <reason>/);
+});
+
+test('the PR body comes from the MCP tool or from gh pr create --body', () => {
+  assert.equal(
+    prBody({ tool_name: 'mcp__github__create_pull_request', tool_input: { body: 'hi' } }),
+    'hi',
+  );
+  const heredoc = `gh pr create --title t --body "$(cat <<'EOF'\nDoc not updated: docs/a.md — why\nEOF\n)"`;
+  assert.match(prBody({ tool_name: 'Bash', tool_input: { command: heredoc } }) ?? '', /^\$\(cat/);
+  const inline = 'gh pr create --body "Doc not updated: docs/a.md — why"';
+  assert.match(
+    prBody({ tool_name: 'Bash', tool_input: { command: inline } }) ?? '',
+    /^Doc not updated/,
+  );
+  assert.equal(
+    prBody({ tool_name: 'Bash', tool_input: { command: 'gh pr create --fill' } }),
+    undefined,
+  );
+});
+
+test('the hook denies a PR that changed covered code without its doc, until the body excuses it', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'guard-pr-covers-'));
+  const git = (...args: string[]) =>
+    spawnSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { cwd: dir });
+  git('init', '-q', '-b', 'main');
+  mkdirSync(join(dir, 'docs'));
+  mkdirSync(join(dir, 'scripts'));
+  writeFileSync(join(dir, 'docs/flow.md'), '---\nkind: descriptive\ncovers: [scripts/**]\n---\n');
+  writeFileSync(join(dir, 'scripts/a.ts'), '');
+  git('add', '.');
+  git('commit', '-q', '-m', 'base');
+  git('update-ref', 'refs/remotes/origin/feat/00007-x', 'HEAD');
+  git('checkout', '-q', '-b', 'agent/00007-y');
+  mkdirSync(join(dir, '.git/scope/agent'), { recursive: true });
+  writeFileSync(
+    join(dir, '.git/scope/agent/00007-y.txt'),
+    'ticket: none\npackages: scripts\nwrites: docs/flow.md\n',
+  );
+  writeFileSync(join(dir, 'scripts/a.ts'), 'x');
+  git('commit', '-qam', 'change covered code');
+  const run = (body: string) =>
+    spawnSync('node', [fileURLToPath(new URL('./guard-pr.ts', import.meta.url))], {
+      input: JSON.stringify({
+        tool_name: 'mcp__github__create_pull_request',
+        tool_input: { body },
+        agent_type: 'implementer',
+        cwd: dir,
+      }),
+      encoding: 'utf8',
+    }).stdout;
+  assert.match(run('no mention'), /docs\/flow\.md/);
+  assert.doesNotMatch(run('Doc not updated: docs/flow.md — wording only'), /docs\/flow\.md/);
 });

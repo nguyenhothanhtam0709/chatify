@@ -5,8 +5,9 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { docsNotUpdated } from '../docs/covers.ts';
 import { checkDiff, parseDiff, type Change } from './check-diff.ts';
-import { frontMatterKind } from './guard-writes.ts';
+import { coveredByChange, frontMatterKind } from './guard-writes.ts';
 import { readScopeFile, scopeFacts } from './scope-facts.ts';
 
 export interface RunResult {
@@ -14,11 +15,11 @@ export interface RunResult {
   output: string;
 }
 
-type Step = 'generate' | 'diff' | 'check' | 'scope';
+type Step = 'generate' | 'diff' | 'check' | 'scope' | 'covers';
 
 export interface HookInput {
   tool_name?: string;
-  tool_input?: { command?: string };
+  tool_input?: { command?: string; body?: string };
   cwd?: string;
   agent_type?: string;
 }
@@ -26,6 +27,13 @@ export interface HookInput {
 /** The hook also runs on every shell command, so only one that starts `gh pr create` counts. */
 export const opensPr = ({ tool_name: tool, tool_input: input }: HookInput): boolean =>
   tool !== 'Bash' || /(?:^|&&|\|\||[;|\n])\s*gh\s+pr\s+create\b/.test(input?.command ?? '');
+
+/** The PR body from the MCP tool's `body` or from `gh pr create --body`, or undefined. */
+export const prBody = ({ tool_name: tool, tool_input: input }: HookInput): string | undefined => {
+  if (tool !== 'Bash') return input?.body;
+  const flag = /(?:--body|-b)(?:\s+|=)(["']?)/.exec(input?.command ?? '');
+  return flag ? (input?.command ?? '').slice(flag.index + flag[0].length) : undefined;
+};
 
 /** Why the PR should be denied, or null to let it through. */
 export const checkBeforePr = (run: (step: Step) => RunResult): string | null => {
@@ -41,6 +49,14 @@ export const checkBeforePr = (run: (step: Step) => RunResult): string | null => 
         `The Generated Docs differ from the code. Commit what pnpm docs:generate wrote:\n${diff.output}`,
       );
     }
+  }
+  const covers = run('covers');
+  if (covers.status === 1) {
+    reasons.push(
+      `The PR changes code a Descriptive Doc covers, and the doc is unchanged:\n${covers.output}\n` +
+        'Update the doc, or if that is deliberate add to the PR body a line for each:\n' +
+        'Doc not updated: <doc path> — <reason>',
+    );
   }
   const check = run('check');
   if (check.status === 1) {
@@ -105,6 +121,10 @@ export const diffScope = (input: HookInput): RunResult => {
       ...facts,
       specNumber,
       kindOf: frontMatterKind(root),
+      coveredByChange: coveredByChange(
+        root,
+        changes.map((change) => change.path),
+      ),
       allowsDependencies: allowed !== '' && allowed.toLowerCase() !== 'none',
     });
     return {
@@ -116,7 +136,44 @@ export const diffScope = (input: HookInput): RunResult => {
   }
 };
 
-const commands: Record<Exclude<Step, 'scope'>, [string, string[]]> = {
+/** The Descriptive Docs the branch's changes leave out: status 1 lists them, null cannot run. */
+const coversCheck = (input: HookInput): RunResult => {
+  try {
+    const cwd = input.cwd ?? process.cwd();
+    const [root = cwd, branch = ''] = gitOut(cwd, [
+      'rev-parse',
+      '--show-toplevel',
+      '--abbrev-ref',
+      'HEAD',
+    ]).split('\n');
+    const specNumber = /^agent\/(\d{5})-/.exec(branch)?.[1] ?? null;
+    if (!input.agent_type || specNumber === null) return { status: 0, output: '' };
+    const tip = gitOut(cwd, ['branch', '-r', '--list', `origin/feat/${specNumber}-*`])
+      .split('\n')[0]
+      ?.trim();
+    if (!tip) return { status: null, output: `No origin/feat/${specNumber}-* branch.` };
+    const base = gitOut(cwd, ['merge-base', tip, 'HEAD']);
+    const changed = gitOut(root, ['diff', '--name-only', '--no-renames', `${base}..HEAD`])
+      .split('\n')
+      .filter(Boolean);
+    const docs = gitOut(root, ['ls-files', '*.md'])
+      .split('\n')
+      .filter(Boolean)
+      .flatMap((path) => {
+        try {
+          return [{ path, content: readFileSync(resolve(root, path), 'utf8') }];
+        } catch {
+          return [];
+        }
+      });
+    const missed = docsNotUpdated(changed, docs, prBody(input));
+    return { status: missed.length > 0 ? 1 : 0, output: missed.join('\n') };
+  } catch (error) {
+    return { status: null, output: String(error) };
+  }
+};
+
+const commands: Record<Exclude<Step, 'scope' | 'covers'>, [string, string[]]> = {
   generate: ['pnpm', ['-s', 'docs:generate']],
   diff: ['git', ['diff', '--exit-code', '--name-only', 'docs/architecture']],
   check: ['node', ['scripts/docs/check.ts']],
@@ -129,6 +186,7 @@ if (import.meta.main) {
       opensPr(input) &&
       checkBeforePr((step) => {
         if (step === 'scope') return diffScope(input);
+        if (step === 'covers') return coversCheck(input);
         const [command, args] = commands[step];
         const result = spawnSync(command, args, { cwd: input.cwd, encoding: 'utf8' });
         return { status: result.status, output: `${result.stdout}${result.stderr}`.trim() };

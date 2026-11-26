@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseCovers } from './covers.ts';
 
 export interface Doc {
   path: string;
@@ -37,6 +38,16 @@ export const findMissingKinds = (docs: Doc[]): string[] =>
     )
     .map(({ path }) => `${path}: no kind in front matter`);
 
+export const findBadCovers = (docs: Doc[]): string[] =>
+  docs.flatMap(({ path, content }) => {
+    const covers = parseCovers(content);
+    if (covers === null) return [];
+    if (!/^---\n(?:.*\n)*?kind: descriptive\n/.test(content)) {
+      return [`${path}: covers only belongs on a doc with kind: descriptive`];
+    }
+    return covers === 'invalid' ? [`${path}: covers must be a list of strings`] : [];
+  });
+
 export const findOpenTickets = (docs: Doc[]): string[] => {
   const statusOf = (content: string) => STATUS.exec(content)?.[1]?.toLowerCase();
   const resolvedFolders = new Set(
@@ -63,6 +74,7 @@ if (import.meta.main) {
   const findings = [
     ...findBrokenLinks(docs, (path) => existsSync(join(root, path))),
     ...findMissingKinds(docs),
+    ...findBadCovers(docs),
     ...findOpenTickets(docs),
   ];
   if (findings.length > 0) {

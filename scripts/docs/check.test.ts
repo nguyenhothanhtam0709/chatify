@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { findBrokenLinks, findMissingKinds, findOpenTickets } from './check.ts';
+import { findBadCovers, findBrokenLinks, findMissingKinds, findOpenTickets } from './check.ts';
 
 const doc = (path: string, content: string) => ({ path, content });
 
@@ -80,4 +80,17 @@ test('an open Spec may have open Tickets, and a folder with no Spec is not check
     doc('.scratch/00002-b/issues/01-a.md', '**Status:** ready-for-agent\n'),
   ];
   assert.deepEqual(findOpenTickets(files), []);
+});
+
+test('covers must be a list of strings, and only on a Descriptive Doc', () => {
+  const d = (path: string, kind: string, covers: string) =>
+    doc(path, `---\nkind: ${kind}\ncovers: ${covers}\n---\n`);
+  assert.deepEqual(findBadCovers([d('docs/a.md', 'descriptive', '[packages/api/**]')]), []);
+  assert.deepEqual(findBadCovers([doc('docs/n.md', '---\nkind: descriptive\n---\n')]), []);
+  assert.deepEqual(findBadCovers([d('docs/b.md', 'descriptive', 'packages/api')]), [
+    'docs/b.md: covers must be a list of strings',
+  ]);
+  assert.deepEqual(findBadCovers([d('docs/c.md', 'intent', '[a]')]), [
+    'docs/c.md: covers only belongs on a doc with kind: descriptive',
+  ]);
 });

@@ -33,6 +33,7 @@
     "typecheck:scripts": "tsc -p scripts --checkers 2",
     "preflight": "node scripts/preflight/preflight.ts",
     "test:scripts": "node --test scripts/*/*.test.ts",
+    "docs:covers": "node scripts/docs/doc-sync-check.ts",
     "docs:check": "pnpm docs:generate && git diff --exit-code docs/architecture && node scripts/docs/check.ts",
     "metrics:tokens": "node scripts/metrics/token-report.ts"
   },

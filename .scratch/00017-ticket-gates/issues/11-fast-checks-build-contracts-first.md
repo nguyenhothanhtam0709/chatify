@@ -17,15 +17,19 @@ See Ticket 08's `## Comments`, "Probe run 2".
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] With `api` or `web` in the scope, `pnpm build:contracts` runs before every other fast check
-- [ ] With only `contracts` or `scripts` in the scope, it doesn't run
-- [ ] A failing build is reported as the failure, and the checks after it are skipped
-- [ ] In a fresh worktree with no `packages/contracts/dist`, the fast checks pass on a clean branch with `packages: api`
+- [x] With `api` or `web` in the scope, `pnpm build:contracts` runs before every other fast check
+- [x] With only `contracts` or `scripts` in the scope, it doesn't run
+- [x] A failing build is reported as the failure, and the checks after it are skipped
+- [x] In a fresh worktree with no `packages/contracts/dist`, the fast checks pass on a clean branch with `packages: api`
 
 **Verification:** Script tests for `stopChecks`'s command list and for the stop on a failed build, with the commands' results passed in. Run the stop check by hand in a fresh worktree on a clean branch. Ticket 08 checks it live.
 
 **Out of scope:** Building contracts in preflight or in the worktree setup; caching the build.
 
 ## Comments
+
+Resolved. `stopChecks` puts `build contracts` (`pnpm build:contracts`, marked `stopOnFail`) first when `api` or `web` is in scope; `runChecks` stops after a failed `stopOnFail` check, so the build output is the only failure. Verified by script tests (command list, stop on failed build) and by running the fast checks in a throwaway worktree with no `packages/contracts/dist` and `packages: api`: build, lint and typecheck all passed. Tests were written first and seen failing.
+Assumption: the stop is a `stopOnFail` flag on Check/Command rather than a name match.
+Follow-up: docs/factory/sdlc.md ("The fast checks are...") and ADR 0012 do not mention the contracts build; outside this Ticket's Writes, so left for the Orchestrator.

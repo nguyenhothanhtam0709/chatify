@@ -118,5 +118,5 @@ export const fastChecks = (worktree: string, scope: string[], changed: string[])
   stopChecks(scopeFacts(scope).packages, changed).map((command) => ({
     name: command.name,
     run: spawned(worktree, command),
-    stopOnFail: command.stopOnFail,
+    ...(command.stopOnFail ? { stopOnFail: true } : {}),
   }));

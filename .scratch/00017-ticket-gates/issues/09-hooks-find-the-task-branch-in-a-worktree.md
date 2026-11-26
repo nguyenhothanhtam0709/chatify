@@ -24,17 +24,28 @@ See the Spec's "Hooks" and Ticket 08's `## Comments`.
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] With `cwd` on the Feature Branch and the file in an `agent/` worktree, `guard-writes` denies an out-of-scope edit and `guard-reads` denies an out-of-scope read
-- [ ] The PR guard runs the Diff-scope and `covers:` checks on the MCP `head` and on `gh pr create --head`, with `cwd` on the Feature Branch
-- [ ] An Implementer PR whose head has no scope file, or is not an `agent/` branch, is denied with the reason
-- [ ] The stop check checks the single `agent/` worktree with `worktree: yes` when `cwd` is not on an `agent/` branch, and reports without blocking when there are several
-- [ ] In the main checkout, every hook behaves as before
-- [ ] ADR 0012 and the worktree page match the rules above
+- [x] With `cwd` on the Feature Branch and the file in an `agent/` worktree, `guard-writes` denies an out-of-scope edit and `guard-reads` denies an out-of-scope read
+- [x] The PR guard runs the Diff-scope and `covers:` checks on the MCP `head` and on `gh pr create --head`, with `cwd` on the Feature Branch
+- [x] An Implementer PR whose head has no scope file, or is not an `agent/` branch, is denied with the reason
+- [x] The stop check checks the single `agent/` worktree with `worktree: yes` when `cwd` is not on an `agent/` branch, and reports without blocking when there are several
+- [x] In the main checkout, every hook behaves as before
+- [x] ADR 0012 and the worktree page match the rules above
 
 **Verification:** Script tests for each resolution rule, with a temp repo that has a second worktree on an `agent/` branch and the main checkout on a `feat/` branch. Pipe a sample hook input with that `cwd` into each of the four hooks and check that it denies or blocks. Ticket 08 checks it live.
 
 **Out of scope:** The PR guard running lint, typecheck and tests (Ticket 10); finding the worktree from the agent's transcript; guarding Bash writes.
 
 ## Comments
+
+Resolved. `scripts/hooks/git-context.ts` resolves a directory to its checkout, shared git dir and branch, and every hook uses it. Verified with script tests on a temp repo whose main checkout is on `feat/00007-x` and whose second worktree is on an `agent/` branch (`scripts/hooks/worktree-fixture.ts`): each of the four hooks gets that `cwd` piped in and denies or blocks. Then `pnpm test:scripts`, `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm docs:check`. Ticket 08 checks it live. Follow-up: "The read guard denies a Ticket's Also writes files whole" in `docs/laters.md`.
+
+Assumptions:
+
+- A file outside any repo resolves from `cwd`, as before, so Doc Sync and the Explorer get the same answers there.
+- An `owner:branch` head gives the branch.
+- The Diff-scope and `covers:` checks read files (Ticket, front matter, docs) at the head ref with `git cat-file --batch`, not from disk, so they see committed work only, like the diff.
+- The PR guard's `docs:generate`, Generated Docs diff and `docs:check` steps now run in the head's worktree, or the main checkout when none, instead of `cwd`.
+- A PR from a sub-agent other than the Implementer with no Task Branch still fails open, as do a broken input and a `cwd` outside any repo.
+- The stop check's "several worktrees" notice goes to `systemMessage` and stderr, like its timeout notice.

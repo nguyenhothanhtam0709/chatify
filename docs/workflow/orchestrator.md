@@ -21,7 +21,6 @@ Every other step runs as the skill says, including using the existing Feature Br
 ## Before spawning
 
 - Build the task graph with `grep` on each Ticket's `**Blocked by:**` and `**Status:**` lines. Read a whole Ticket only when writing its brief.
-- Check that Docker is running.
 - If a Ticket may change a dependency (for example `shadcn add`) and its Allowed packages don't cover it, ask the human first.
 - Run Tickets one at a time when both change the schema (they would take the same migration number) or both need a browser check (they would share ports). Everything else on the frontier may run at once.
 

@@ -46,6 +46,16 @@ pnpm db:seed           # optional dev data, safe to rerun, refuses in production
 
 Gotcha: `db:up` fails if something else already listens on port 5432. Stop that service or point `DATABASE_URL` at it.
 
+## Before a Ticket
+
+Right after creating the Task Branch, an Implementer runs:
+
+```sh
+pnpm preflight
+```
+
+It reports, and fixes nothing. It fails when Node is below `engines`, the branch is not `agent/NNNNN-NN-<slug>` or `agent/NNNNN-doc-sync`, the Feature Branch tip on `origin` is not merged in, a tracked file is modified or staged, there are untracked files (escalate to the human), Docker is not running, the Spec PR is not merged, or a Ticket in `Blocked by` is not `resolved`. Any unexpected error also fails it.
+
 ## A second worktree
 
 When working outside the main checkout: [worktree](worktree.md).

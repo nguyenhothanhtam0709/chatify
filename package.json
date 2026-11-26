@@ -31,6 +31,7 @@
     "docs:generate": "pnpm build:contracts && pnpm --filter @chat/api build && node scripts/docs/generate.ts",
     "typecheck": "pnpm build:contracts && pnpm -r typecheck && pnpm typecheck:scripts",
     "typecheck:scripts": "tsc -p scripts --checkers 2",
+    "preflight": "node scripts/preflight/preflight.ts",
     "test:scripts": "node --test scripts/*/*.test.ts",
     "docs:check": "pnpm docs:generate && git diff --exit-code docs/architecture && node scripts/docs/check.ts",
     "metrics:tokens": "node scripts/metrics/token-report.ts"

@@ -22,13 +22,13 @@ Every PR passes this one checklist.
 
 ```markdown
 - [ ] Every acceptance criterion in the Ticket is met and ticked in the Ticket file.
-- [ ] No dependency changed beyond the Ticket's Allowed packages.
+- [ ] No dependency changed beyond the Ticket's Allowed packages (the PR guard checks this).
 - [ ] Tests follow the testing policy: the right kind, written first, nothing weakened without approval.
 - [ ] `pnpm lint`, `pnpm typecheck` and `pnpm test` pass locally on the final commit, and `pnpm docs:check` passes.
 - [ ] Docs affected by the change are updated in this PR; `pnpm docs:generate` was run and committed if the schema, routes or realtime events changed.
 - [ ] Migrations follow ADR 0003 (never hand-edited).
 - [ ] No limit, code or wire shape is re-declared outside contracts.
-- [ ] Nothing outside the Ticket changed; anything noticed is appended to `docs/laters.md` or raised.
+- [ ] Nothing outside the Ticket changed (the PR guard checks this); anything noticed is appended to `docs/laters.md` or raised.
 - [ ] Every assumption is listed in the PR body and under the Ticket's `## Comments`.
 - [ ] The latest feature branch is merged in; the PR targets the feature branch, links the Ticket and says how the change was verified (including the browser check when the testing policy requires one).
 ```

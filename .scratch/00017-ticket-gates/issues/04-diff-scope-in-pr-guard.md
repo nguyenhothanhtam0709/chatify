@@ -22,19 +22,23 @@ See the Spec's "The write boundary" and "Hooks".
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A changed file outside the Writes is a violation with its reason
-- [ ] Laters: an added line passes, a removed line fails
-- [ ] `spec.md`: a `Status:` change passes only with `spec-status: yes`; any other line fails
-- [ ] The lockfile or a dependency field fails with Allowed packages `None` and passes otherwise
-- [ ] A `scripts` change in `package.json` passes only when that file is in `writes`
-- [ ] With no `agent_type`, nothing is a violation
-- [ ] The PR guard denies a PR with a violation and lets a clean one through
-- [ ] The definition of done names the PR guard for the two items
+- [x] A changed file outside the Writes is a violation with its reason
+- [x] Laters: an added line passes, a removed line fails
+- [x] `spec.md`: a `Status:` change passes only with `spec-status: yes`; any other line fails
+- [x] The lockfile or a dependency field fails with Allowed packages `None` and passes otherwise
+- [x] A `scripts` change in `package.json` passes only when that file is in `writes`
+- [x] With no `agent_type`, nothing is a violation
+- [x] The PR guard denies a PR with a violation and lets a clean one through
+- [x] The definition of done names the PR guard for the two items
 
 **Verification:** Script tests for `checkDiff`, one case per rule, with `changes` built by hand. Extend the PR guard's suite so a violation denies the PR, with the steps passed in as today. Pipe a sample hook input into the PR guard on a branch with an out-of-scope change and check it denies.
 
 **Out of scope:** The stop check (Ticket 05); the `covers:` check (Ticket 07); checks on the main session's PRs or a human's.
 
 ## Comments
+
+Resolved. `checkDiff`/`parseDiff` in `scripts/hooks/check-diff.ts`; PR guard runs it as a `scope` step. Verified with node tests (one case per rule, a temp-repo run of the hook) and the full checks.
+
+Assumptions: `changes` also carries optional `before`/`after` text for a `package.json`, since added and removed lines alone can't say which field changed. The Ticket's Allowed packages is read in the guard and passed in as `allowsDependencies`. The branch diff is `merge-base(origin/feat/NNNNN-*, HEAD)..HEAD`, so uncommitted files are not seen. An implementer with no scope file, or a missing origin feature branch, passes (fails open).

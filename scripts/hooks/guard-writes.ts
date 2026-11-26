@@ -67,7 +67,7 @@ interface HookInput {
   agent_type?: string;
 }
 
-const frontMatterKind = (root: string) => (path: string) => {
+export const frontMatterKind = (root: string) => (path: string) => {
   try {
     const text = readFileSync(resolve(root, path), 'utf8');
     const block = /^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? '';

@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { coversChange } from '../docs/covers.ts';
+import { gitContext, gitContextOfPath } from './git-context.ts';
 import { repoPath } from './guard-reads.ts';
 import { readScopeFile, scopeFacts, type ScopeFacts } from './scope-facts.ts';
 
@@ -71,24 +72,28 @@ interface HookInput {
   agent_type?: string;
 }
 
-export const frontMatterKind = (root: string) => (path: string) => {
-  try {
-    const text = readFileSync(resolve(root, path), 'utf8');
-    const block = /^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? '';
-    return /^kind:\s*(\w+)\s*$/m.exec(block)?.[1] ?? null;
-  } catch {
-    return null;
-  }
+/** Reads a repo file from the checkout at `root`, or null when it can't. */
+export const fromDisk =
+  (root: string) =>
+  (path: string): string | null => {
+    try {
+      return readFileSync(resolve(root, path), 'utf8');
+    } catch {
+      return null;
+    }
+  };
+
+export const frontMatterKind = (read: (path: string) => string | null) => (path: string) => {
+  const block = /^---\n([\s\S]*?)\n---/.exec(read(path) ?? '')?.[1] ?? '';
+  return /^kind:\s*(\w+)\s*$/m.exec(block)?.[1] ?? null;
 };
 
 /** Whether a repo file is a Descriptive Doc that covers one of `changed`. */
-export const coveredByChange = (root: string, changed: string[]) => (path: string) => {
-  try {
-    return coversChange(readFileSync(resolve(root, path), 'utf8'), changed);
-  } catch {
-    return false;
-  }
-};
+export const coveredByChange =
+  (read: (path: string) => string | null, changed: string[]) => (path: string) => {
+    const text = read(path);
+    return text !== null && coversChange(text, changed);
+  };
 
 /** The files changed since the Feature Branch tip, committed or not; empty when it can't tell. */
 const changedSinceFeature = (cwd: string, specNumber: string | null): string[] => {
@@ -111,14 +116,11 @@ const decideFor = (input: HookInput): string | null => {
   const filePath = input.tool_input?.file_path;
   if (!filePath || !input.agent_type) return null;
   const cwd = input.cwd ?? process.cwd();
-  const [root = cwd, gitCommonDir = '.git', branch = ''] = execFileSync(
-    'git',
-    ['rev-parse', '--show-toplevel', '--git-common-dir', '--abbrev-ref', 'HEAD'],
-    { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
-  )
-    .trim()
-    .split('\n');
-  const commonDir = resolve(cwd, gitCommonDir);
+  // The file says which checkout and branch it belongs to; `cwd` may be the main checkout while
+  // the sub-agent edits its worktree. A file outside any repo falls back to `cwd`.
+  const context = gitContextOfPath(filePath, cwd) ?? gitContext(cwd);
+  if (context === null) return null;
+  const { root, commonDir, branch } = context;
   const scope = readScopeFile(commonDir, branch);
   // No scope file means no Ticket to hold the Writes against.
   if (scope === null && input.agent_type === 'implementer') return null;
@@ -127,8 +129,8 @@ const decideFor = (input: HookInput): string | null => {
   return canWrite(path, input.agent_type, {
     ...scopeFacts(scope ?? []),
     specNumber,
-    kindOf: frontMatterKind(root),
-    coveredByChange: coveredByChange(root, changedSinceFeature(cwd, specNumber)),
+    kindOf: frontMatterKind(fromDisk(root)),
+    coveredByChange: coveredByChange(fromDisk(root), changedSinceFeature(root, specNumber)),
   });
 };
 

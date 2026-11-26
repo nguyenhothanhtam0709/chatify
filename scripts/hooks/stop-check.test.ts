@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { checkOnStop, stopChecks, type Check, type CheckResult } from './stop-check.ts';
+import { worktreeFixture } from './worktree-fixture.ts';
 
 const pass: CheckResult = { status: 0, output: '' };
 const fail = (output: string): CheckResult => ({ status: 1, output });
@@ -127,4 +130,48 @@ test('stopChecks runs only the test files changed on the branch', () => {
     'node --test scripts/hooks/c.test.ts',
   ]);
   assert.equal(stopChecks(['api'], ['packages/api/src/b.ts']).length, 2);
+});
+
+const stopHook = (cwd: string) =>
+  spawnSync('node', [fileURLToPath(new URL('./stop-check.ts', import.meta.url))], {
+    input: JSON.stringify({ agent_type: 'implementer', cwd }),
+    encoding: 'utf8',
+  }).stdout;
+const worktreeScope = 'ticket: none\npackages: none\nworktree: yes\n';
+
+test('with cwd on the Feature Branch, the stop check checks the one agent worktree', () => {
+  const tree = worktreeFixture(worktreeScope);
+  tree.write('packages/web/b.ts', 'x');
+  tree.commit('out of scope');
+  const out = JSON.parse(stopHook(tree.main)) as { decision: string; reason: string };
+  assert.equal(out.decision, 'block');
+  assert.match(out.reason, /packages\/web\/b\.ts/);
+});
+
+test('with several agent worktrees, the stop check reports it cannot tell and does not block', () => {
+  const tree = worktreeFixture(worktreeScope);
+  tree.write('packages/web/b.ts', 'x');
+  tree.commit('out of scope');
+  tree.addWorktree('agent-2', 'agent/00007-02-z', worktreeScope);
+  const out = JSON.parse(stopHook(tree.main)) as { decision?: string; systemMessage: string };
+  assert.equal(out.decision, undefined);
+  assert.match(out.systemMessage, /agent\/00007-01-y/);
+  assert.match(out.systemMessage, /agent\/00007-02-z/);
+});
+
+test('an agent worktree without worktree: yes is not checked from the Feature Branch', () => {
+  const tree = worktreeFixture('ticket: none\npackages: none\nworktree: no\n');
+  tree.write('packages/web/b.ts', 'x');
+  tree.commit('out of scope');
+  assert.equal(stopHook(tree.main), '');
+});
+
+test('with cwd on an agent branch, that branch is checked as before', () => {
+  const tree = worktreeFixture('ticket: none\npackages: none\nworktree: no\n');
+  tree.write('packages/web/b.ts', 'x');
+  tree.commit('out of scope');
+  tree.addWorktree('agent-2', 'agent/00007-02-z', worktreeScope);
+  const out = JSON.parse(stopHook(tree.worktree)) as { decision: string; reason: string };
+  assert.equal(out.decision, 'block');
+  assert.match(out.reason, /packages\/web\/b\.ts/);
 });

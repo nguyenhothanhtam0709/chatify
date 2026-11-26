@@ -9,7 +9,11 @@ A hook can't tell what a shell command will write without parsing it, and any pa
 - A write through Bash outside the boundary is caught only when the sub-agent stops or opens its PR, not when it is made.
 - A file a Role does not normally write (an Intent Doc, `.claude/settings.json`) is allowed only when its Ticket lists it under **Also writes**, which the human approves by merging the Spec PR.
 - The `SubagentStop` hook blocks a stop once; when `stop_hook_active` is set it lets the agent stop, so a failing check can't loop.
-- Like the other guards, these hooks fail open: a broken hook never blocks an agent.
+- A sub-agent in a worktree gets the main checkout as its hook `cwd`, so the hooks don't trust `cwd` for the Task Branch. `guard-writes` and the read guard take it from the file's path, the PR guard from the PR's head, and the stop check from the one `agent/` worktree whose scope file says `worktree: yes`.
+- The PR guard is the gate for the fast checks: after the Diff-scope and `covers:` checks it runs lint and typecheck of each scope package and the test files changed on the branch, in the head's worktree, through the function the stop check uses. A stop block doesn't hold the agent (it hands back anyway, and sees the block only if resumed), so the stop check stays an early warning. A run over the shared 180 s budget is reported without denying.
+- A `SessionStart` hook warns when the session's Node is below `engines`, since pnpm, the stop check and the PR guard then fail.
+- Like the other guards, these hooks fail open: a broken hook never blocks an agent. The stop check also lets the agent stop, with a notice, when several worktrees could be its own.
+- One exception: the PR guard denies an Implementer's PR whose Task Branch it can't find, an `agent/` branch with a scope file, since failing open there would let every worktree PR through unchecked.
 - Hooks run only in agent sessions. A human's PR is unchecked until CI exists.
 
 ## Considered Options

@@ -5,7 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { checkBeforePr, opensPr, prBody, type RunResult } from './guard-pr.ts';
+import { type Check as FastCheck, type CheckResult as FastResult } from './fast-checks.ts';
+import { checkBeforePr, checkFastOnPr, opensPr, prBody, type RunResult } from './guard-pr.ts';
+import { worktreeFixture } from './worktree-fixture.ts';
 
 const ok: RunResult = { status: 0, output: '' };
 const failed = (output: string): RunResult => ({ status: 1, output });
@@ -176,4 +178,163 @@ test('the hook denies a PR that changed covered code without its doc, until the 
     }).stdout;
   assert.match(run('no mention'), /docs\/flow\.md/);
   assert.doesNotMatch(run('Doc not updated: docs/flow.md — wording only'), /docs\/flow\.md/);
+});
+
+const guard = (input: object) =>
+  spawnSync('node', [fileURLToPath(new URL('./guard-pr.ts', import.meta.url))], {
+    input: JSON.stringify(input),
+    encoding: 'utf8',
+  }).stdout;
+const reasonOf = (stdout: string) =>
+  stdout === ''
+    ? ''
+    : (JSON.parse(stdout) as { hookSpecificOutput: { permissionDecisionReason: string } })
+        .hookSpecificOutput.permissionDecisionReason;
+
+test('with cwd on the Feature Branch, the MCP head is the branch the PR guard checks', () => {
+  const tree = worktreeFixture();
+  const open = (head: string) =>
+    reasonOf(
+      guard({
+        tool_name: 'mcp__github__create_pull_request',
+        tool_input: { head, body: '' },
+        agent_type: 'implementer',
+        cwd: tree.main,
+      }),
+    );
+  tree.write('docs/flow.md', '---\nkind: descriptive\ncovers: [scripts/**]\n---\nsaid\n');
+  tree.write('scripts/a.ts', 'x');
+  tree.commit('in scope, with its doc');
+  assert.doesNotMatch(open(tree.branch), /outside its Role's Writes|Descriptive Doc/);
+  tree.write('packages/web/b.ts', 'x');
+  tree.commit('out of scope');
+  assert.match(open(tree.branch), /packages\/web\/b\.ts/);
+});
+
+test('with cwd on the Feature Branch, gh pr create --head is the branch the PR guard checks', () => {
+  const tree = worktreeFixture();
+  tree.write('scripts/a.ts', 'x');
+  tree.commit('covered code, doc unchanged');
+  for (const flag of [`--head ${tree.branch}`, `-H ${tree.branch}`, `--head=${tree.branch}`]) {
+    const reason = reasonOf(
+      guard({
+        tool_name: 'Bash',
+        tool_input: { command: `gh pr create --base feat/00007-x ${flag} --title t --body x` },
+        agent_type: 'implementer',
+        cwd: tree.main,
+      }),
+    );
+    assert.match(reason, /docs\/flow\.md/, flag);
+  }
+});
+
+test('with no head, the PR guard checks the branch of the cd before gh pr create', () => {
+  const tree = worktreeFixture();
+  tree.write('packages/web/b.ts', 'x');
+  tree.commit('out of scope');
+  const reason = reasonOf(
+    guard({
+      tool_name: 'Bash',
+      tool_input: { command: `cd ${tree.worktree} && gh pr create --title t --body x` },
+      agent_type: 'implementer',
+      cwd: tree.main,
+    }),
+  );
+  assert.match(reason, /packages\/web\/b\.ts/);
+});
+
+test('an Implementer PR whose head is not a Task Branch with a scope file is denied, saying why', () => {
+  const tree = worktreeFixture();
+  tree.git(['branch', 'agent/00007-02-noscope'], tree.main);
+  const open = (input: object) =>
+    reasonOf(
+      guard({
+        tool_name: 'mcp__github__create_pull_request',
+        agent_type: 'implementer',
+        cwd: tree.main,
+        ...input,
+      }),
+    );
+  assert.match(open({}), /can't find its Task Branch/);
+  assert.match(open({ tool_input: { head: 'feat/00007-x' } }), /can't find its Task Branch/);
+  assert.match(
+    open({ tool_input: { head: 'agent/00007-02-noscope' } }),
+    /can't find its Task Branch.*no scope file/s,
+  );
+  // Other Roles, and a broken input, still fail open.
+  assert.doesNotMatch(open({ agent_type: 'reviewer' }), /Task Branch/);
+  assert.equal(
+    reasonOf(
+      guard({
+        tool_name: 'mcp__github__create_pull_request',
+        agent_type: 'implementer',
+        cwd: '/nonexistent',
+      }),
+    ),
+    '',
+  );
+});
+
+const fastCheck = (name: string, result: FastResult): FastCheck => ({ name, run: () => result });
+const clockAt = (...times: number[]) => {
+  let i = 0;
+  return () => times[Math.min(i++, times.length - 1)] ?? 0;
+};
+
+test('a failing fast check denies an Implementer PR, with the output', () => {
+  const { reason } = checkFastOnPr(
+    { agent_type: 'implementer' },
+    [fastCheck('lint:scripts', { status: 1, output: 'no-unused-vars in a.ts' })],
+    clockAt(0),
+  );
+  assert.match(reason ?? '', /lint:scripts/);
+  assert.match(reason ?? '', /no-unused-vars in a\.ts/);
+});
+
+test('clean fast checks let the PR through, and other Roles run none', () => {
+  const clean = [fastCheck('lint', { status: 0, output: '' })];
+  assert.deepEqual(checkFastOnPr({ agent_type: 'implementer' }, clean, clockAt(0)), {
+    reason: null,
+    notice: null,
+  });
+  const ran: string[] = [];
+  const spy: FastCheck = { name: 'x', run: () => (ran.push('x'), { status: 1, output: 'bad' }) };
+  for (const input of [{ agent_type: 'reviewer' }, { agent_type: 'doc-sync' }, {}]) {
+    assert.equal(checkFastOnPr(input, [spy], clockAt(0)).reason, null);
+  }
+  assert.deepEqual(ran, []);
+});
+
+test('a fast check over the budget is reported and does not deny', () => {
+  const timedOut = fastCheck('tests scripts', { status: null, output: '', timedOut: true });
+  const result = checkFastOnPr({ agent_type: 'implementer' }, [timedOut], clockAt(0));
+  assert.equal(result.reason, null);
+  assert.match(result.notice ?? '', /tests scripts/);
+});
+
+test('the hook denies an Implementer PR whose scope package fails lint', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'guard-pr-fast-'));
+  const git = (...args: string[]) =>
+    spawnSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { cwd: dir });
+  git('init', '-q', '-b', 'main');
+  writeFileSync(join(dir, 'a.txt'), '');
+  git('add', '.');
+  git('commit', '-q', '-m', 'base');
+  git('update-ref', 'refs/remotes/origin/feat/00007-x', 'HEAD');
+  git('checkout', '-q', '-b', 'agent/00007-y');
+  mkdirSync(join(dir, '.git/scope/agent'), { recursive: true });
+  writeFileSync(join(dir, '.git/scope/agent/00007-y.txt'), 'ticket: none\npackages: scripts\n');
+  // No package.json here, so `pnpm lint:scripts` fails in the worktree of the head.
+  const input = JSON.stringify({
+    tool_name: 'mcp__github__create_pull_request',
+    agent_type: 'implementer',
+    cwd: dir,
+  });
+  const out = spawnSync('node', [fileURLToPath(new URL('./guard-pr.ts', import.meta.url))], {
+    input,
+    encoding: 'utf8',
+  }).stdout;
+  const reason = (JSON.parse(out) as { hookSpecificOutput: { permissionDecisionReason: string } })
+    .hookSpecificOutput.permissionDecisionReason;
+  assert.match(reason, /lint:scripts/);
 });

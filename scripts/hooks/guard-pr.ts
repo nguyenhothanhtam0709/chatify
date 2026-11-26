@@ -7,6 +7,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { docsNotUpdated } from '../docs/covers.ts';
 import { checkDiff, parseDiff, type Change } from './check-diff.ts';
+import { BUDGET_MS, fastChecks, runChecks, type Check } from './fast-checks.ts';
+import { featureTip, gitContext, readAtRef, readerAtRef, worktreeOf } from './git-context.ts';
 import { coveredByChange, frontMatterKind } from './guard-writes.ts';
 import { readScopeFile, scopeFacts } from './scope-facts.ts';
 
@@ -19,7 +21,7 @@ type Step = 'generate' | 'diff' | 'check' | 'scope' | 'covers';
 
 export interface HookInput {
   tool_name?: string;
-  tool_input?: { command?: string; body?: string };
+  tool_input?: { command?: string; body?: string; head?: string };
   cwd?: string;
   agent_type?: string;
 }
@@ -74,55 +76,120 @@ export const gitOut = (cwd: string, args: string[]): string => {
   return result.stdout.trim();
 };
 
-/** The Diff-scope check on the branch in `cwd`: status 1 lists the violations, null cannot run. */
-export const diffScope = (input: HookInput): RunResult => {
+const unquote = (word: string) => word.replace(/^(["'])(.*)\1$/, '$2');
+
+/**
+ * The PR's head branch: the MCP tool's `head`, or `gh pr create --head` (or `-H`). An
+ * `owner:branch` head gives the branch. Null when none is given.
+ */
+export const prHead = ({ tool_name: tool, tool_input: input }: HookInput): string | null => {
+  const head =
+    tool === 'Bash'
+      ? /(?:^|\s)(?:--head|-H)(?:\s+|=)("[^"]*"|'[^']*'|\S+)/.exec(input?.command ?? '')?.[1]
+      : input?.head;
+  const branch = head === undefined ? '' : unquote(head).replace(/^[^:]*:/, '');
+  return branch === '' ? null : branch;
+};
+
+const CD = /^\s*cd\s+("[^"]*"|'[^']*'|[^\s;&|]+)\s*&&/;
+
+/** Where a shell command runs: `cwd`, after any leading `cd <dir> &&`. */
+const commandDir = ({ tool_name: tool, tool_input: input }: HookInput, cwd: string): string => {
+  if (tool !== 'Bash') return cwd;
+  let dir = cwd;
+  let rest = input?.command ?? '';
+  for (let match = CD.exec(rest); match; match = CD.exec(rest)) {
+    dir = resolve(dir, unquote(match[1] ?? ''));
+    rest = rest.slice(match[0].length);
+  }
+  return dir;
+};
+
+export interface TaskBranch {
+  /** The branch the PR opens from. */
+  branch: string;
+  /** The Spec number of an `agent/NNNNN-…` branch, or null. */
+  specNumber: string | null;
+  commonDir: string;
+  /** The lines of the branch's scope file, or null when it has none. */
+  scope: string[] | null;
+  /** The worktree checked out on the branch, or the main checkout: where commands run. */
+  worktree: string;
+}
+
+/** The facts of `branch`, checked out in `worktree` (or the main checkout). */
+export const taskBranch = (branch: string, commonDir: string, worktree: string): TaskBranch => ({
+  branch,
+  specNumber: /^agent\/(\d{5})-/.exec(branch)?.[1] ?? null,
+  commonDir,
+  scope: readScopeFile(commonDir, branch),
+  worktree,
+});
+
+/**
+ * The branch a PR opens from: its head, else the branch where the command runs. A sub-agent in
+ * a worktree gets the main checkout as `cwd` (Ticket 08), so `cwd` alone can't be trusted. Null
+ * when that directory is not in a repo.
+ */
+export const findTaskBranch = (input: HookInput): TaskBranch | null => {
+  const dir = commandDir(input, input.cwd ?? process.cwd());
+  const context = gitContext(dir);
+  if (context === null) return null;
+  const branch = prHead(input) ?? context.branch;
+  return taskBranch(branch, context.commonDir, worktreeOf(dir, branch) ?? context.root);
+};
+
+/** Why an Implementer's PR has no Task Branch to check, or null when it has one. */
+export const missingTaskBranch = (task: TaskBranch): string | null => {
+  const problem =
+    task.specNumber === null
+      ? `its head ${task.branch} is not an agent/NNNNN-… branch`
+      : task.scope === null
+        ? `${task.branch} has no scope file`
+        : null;
+  return problem === null
+    ? null
+    : `The PR guard can't find its Task Branch: ${problem}. Open the PR from the Task Branch, ` +
+        'naming it as the head (head for the MCP tool, --head for gh pr create).';
+};
+
+/** The Feature Branch tip's merge-base with the branch and the diff since, read from refs only. */
+const sinceFeature = (task: TaskBranch, specNumber: string) => {
+  const tip = featureTip(task.worktree, specNumber);
+  if (tip === null) return null;
+  const base = gitOut(task.worktree, ['merge-base', tip, task.branch]);
+  return { base, range: `${base}..${task.branch}` };
+};
+
+/** The Diff-scope check on the Task Branch: status 1 lists the violations, null cannot run. */
+export const diffScope = (role: string | undefined, task: TaskBranch): RunResult => {
   try {
-    const role = input.agent_type;
-    const cwd = input.cwd ?? process.cwd();
-    const [root = cwd, gitCommonDir = '.git', branch = ''] = gitOut(cwd, [
-      'rev-parse',
-      '--show-toplevel',
-      '--git-common-dir',
-      '--abbrev-ref',
-      'HEAD',
-    ]).split('\n');
-    const specNumber = /^agent\/(\d{5})-/.exec(branch)?.[1] ?? null;
+    const { specNumber, scope, worktree, branch } = task;
     if (!role || specNumber === null) return { status: 0, output: '' };
-    const scope = readScopeFile(resolve(cwd, gitCommonDir), branch);
     // No scope file means no Ticket to hold the Writes against.
     if (scope === null && role === 'implementer') return { status: 0, output: '' };
     const facts = scopeFacts(scope ?? []);
-    const tip = gitOut(cwd, ['branch', '-r', '--list', `origin/feat/${specNumber}-*`])
-      .split('\n')[0]
-      ?.trim();
-    if (!tip) return { status: null, output: `No origin/feat/${specNumber}-* branch.` };
-    const base = gitOut(cwd, ['merge-base', tip, 'HEAD']);
+    const since = sinceFeature(task, specNumber);
+    if (since === null) return { status: null, output: `No origin/feat/${specNumber}-* branch.` };
     const changes: Change[] = parseDiff(
-      gitOut(root, ['diff', '-U0', '--no-renames', `${base}..HEAD`]),
+      gitOut(worktree, ['diff', '-U0', '--no-renames', since.range]),
     );
-    const show = (rev: string, path: string) => {
-      const result = git(root, ['show', `${rev}:${path}`]);
-      return result.status === 0 ? result.stdout : null;
-    };
+    const atBranch = readerAtRef(worktree, branch);
     for (const change of changes) {
       if (change.path === 'package.json' || change.path.endsWith('/package.json')) {
-        change.before = show(base, change.path);
-        change.after = show('HEAD', change.path);
+        change.before = readerAtRef(worktree, since.base)(change.path);
+        change.after = atBranch(change.path);
       }
     }
-    let ticketText = '';
-    try {
-      ticketText = facts.ticket ? readFileSync(resolve(root, facts.ticket), 'utf8') : '';
-    } catch {
-      // An unreadable Ticket allows no dependency change.
-    }
+    // An unreadable Ticket allows no dependency change.
+    const ticketText = (facts.ticket ? atBranch(facts.ticket) : null) ?? '';
     const allowed = /^\*\*Allowed packages:\*\*\s*(.*)$/m.exec(ticketText)?.[1]?.trim() ?? '';
     const violations = checkDiff(changes, role, {
       ...facts,
       specNumber,
-      kindOf: frontMatterKind(root),
+      kindOf: frontMatterKind(atBranch),
       coveredByChange: coveredByChange(
-        root,
+        atBranch,
         changes.map((change) => change.path),
       ),
       allowsDependencies: allowed !== '' && allowed.toLowerCase() !== 'none',
@@ -137,35 +204,22 @@ export const diffScope = (input: HookInput): RunResult => {
 };
 
 /** The Descriptive Docs the branch's changes leave out: status 1 lists them, null cannot run. */
-const coversCheck = (input: HookInput): RunResult => {
+const coversCheck = (input: HookInput, task: TaskBranch): RunResult => {
   try {
-    const cwd = input.cwd ?? process.cwd();
-    const [root = cwd, branch = ''] = gitOut(cwd, [
-      'rev-parse',
-      '--show-toplevel',
-      '--abbrev-ref',
-      'HEAD',
-    ]).split('\n');
-    const specNumber = /^agent\/(\d{5})-/.exec(branch)?.[1] ?? null;
+    const { specNumber, worktree, branch } = task;
     if (!input.agent_type || specNumber === null) return { status: 0, output: '' };
-    const tip = gitOut(cwd, ['branch', '-r', '--list', `origin/feat/${specNumber}-*`])
-      .split('\n')[0]
-      ?.trim();
-    if (!tip) return { status: null, output: `No origin/feat/${specNumber}-* branch.` };
-    const base = gitOut(cwd, ['merge-base', tip, 'HEAD']);
-    const changed = gitOut(root, ['diff', '--name-only', '--no-renames', `${base}..HEAD`])
+    const since = sinceFeature(task, specNumber);
+    if (since === null) return { status: null, output: `No origin/feat/${specNumber}-* branch.` };
+    const changed = gitOut(worktree, ['diff', '--name-only', '--no-renames', since.range])
       .split('\n')
       .filter(Boolean);
-    const docs = gitOut(root, ['ls-files', '*.md'])
+    const paths = gitOut(worktree, ['ls-tree', '-r', '--name-only', branch])
       .split('\n')
-      .filter(Boolean)
-      .flatMap((path) => {
-        try {
-          return [{ path, content: readFileSync(resolve(root, path), 'utf8') }];
-        } catch {
-          return [];
-        }
-      });
+      .filter((path) => path.endsWith('.md'));
+    const docs = [...readAtRef(worktree, branch, paths)].map(([path, content]) => ({
+      path,
+      content,
+    }));
     const missed = docsNotUpdated(changed, docs, prBody(input));
     return { status: missed.length > 0 ? 1 : 0, output: missed.join('\n') };
   } catch (error) {
@@ -179,18 +233,76 @@ const commands: Record<Exclude<Step, 'scope' | 'covers'>, [string, string[]]> = 
   check: ['node', ['scripts/docs/check.ts']],
 };
 
+export interface FastDecision {
+  /** Why the PR is denied, or null. */
+  reason: string | null;
+  /** A report that does not deny (a check ran out of the budget), or null. */
+  notice: string | null;
+}
+
+/** Runs the fast checks of an Implementer's PR within the budget. A timeout does not deny. */
+export const checkFastOnPr = (
+  input: HookInput,
+  checks: Check[],
+  now: () => number,
+): FastDecision => {
+  if (input.agent_type !== 'implementer') return { reason: null, notice: null };
+  const { failures, skipped } = runChecks(checks, now);
+  return {
+    reason:
+      failures.length > 0
+        ? `The fast checks failed. Fix these before opening the PR:\n\n${failures.join('\n\n')}`
+        : null,
+    notice:
+      skipped.length > 0
+        ? `The PR guard ran out of its ${BUDGET_MS / 1000} s budget and did not run: ${skipped.join(', ')}.`
+        : null,
+  };
+};
+
+/** The fast checks for the Task Branch, in its worktree. None when there is nothing to diff. */
+const fastChecksFor = (task: TaskBranch): Check[] => {
+  const { specNumber, scope, worktree } = task;
+  if (specNumber === null || scope === null) return [];
+  const since = sinceFeature(task, specNumber);
+  if (since === null) return [];
+  const changed = gitOut(worktree, ['diff', '--name-only', '--no-renames', since.range])
+    .split('\n')
+    .filter(Boolean);
+  return fastChecks(worktree, scope, changed);
+};
+
+/** Why the PR should be denied, or null. Null too when the guard can't run (it fails open). */
+const decide = (input: HookInput): FastDecision => {
+  if (!opensPr(input)) return { reason: null, notice: null };
+  const task = findTaskBranch(input);
+  if (input.agent_type === 'implementer' && task !== null) {
+    const missing = missingTaskBranch(task);
+    if (missing !== null) return { reason: missing, notice: null };
+  }
+  const where = task?.worktree ?? input.cwd;
+  const docs = checkBeforePr((step) => {
+    if (step === 'scope') return task ? diffScope(input.agent_type, task) : ok;
+    if (step === 'covers') return task ? coversCheck(input, task) : ok;
+    const [command, args] = commands[step];
+    const result = spawnSync(command, args, { cwd: where, encoding: 'utf8' });
+    return { status: result.status, output: `${result.stdout}${result.stderr}`.trim() };
+  });
+  let fast: FastDecision = { reason: null, notice: null };
+  try {
+    fast = task ? checkFastOnPr(input, fastChecksFor(task), Date.now) : fast;
+  } catch {
+    // The fast checks can't run: the PR is not denied for that.
+  }
+  const reasons = [docs, fast.reason].filter((reason) => reason !== null);
+  return { reason: reasons.length > 0 ? reasons.join('\n\n') : null, notice: fast.notice };
+};
+
+const ok: RunResult = { status: 0, output: '' };
+
 if (import.meta.main) {
   try {
-    const input = JSON.parse(readFileSync(0, 'utf8')) as HookInput;
-    const reason =
-      opensPr(input) &&
-      checkBeforePr((step) => {
-        if (step === 'scope') return diffScope(input);
-        if (step === 'covers') return coversCheck(input);
-        const [command, args] = commands[step];
-        const result = spawnSync(command, args, { cwd: input.cwd, encoding: 'utf8' });
-        return { status: result.status, output: `${result.stdout}${result.stderr}`.trim() };
-      });
+    const { reason, notice } = decide(JSON.parse(readFileSync(0, 'utf8')) as HookInput);
     if (reason) {
       process.stdout.write(
         JSON.stringify({
@@ -201,6 +313,9 @@ if (import.meta.main) {
           },
         }),
       );
+    } else if (notice !== null) {
+      process.stdout.write(JSON.stringify({ systemMessage: notice }));
+      process.stderr.write(`${notice}\n`);
     }
   } catch {
     // Fail open: a broken guard must never block an agent.

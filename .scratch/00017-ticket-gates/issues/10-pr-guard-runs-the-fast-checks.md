@@ -30,18 +30,23 @@ See the Spec's "Hooks" and Ticket 08's `## Comments`.
 
 **Blocked by:** 09
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] An Implementer PR with a lint, typecheck or changed-test failure in a scope package is denied with the output
-- [ ] A clean Implementer PR is let through, and a run over 180 s is reported without denying
-- [ ] The PR guard and the stop check run the fast checks through one shared function
-- [ ] The PR guard's timeout in settings is 200
-- [ ] The `SessionStart` hook warns when Node is below `engines`, and prints nothing when it satisfies it or on an error
-- [ ] The engines rule is shared with `pnpm preflight`
-- [ ] ADR 0012, the SDLC Checks Stage and setup match the rules above
+- [x] An Implementer PR with a lint, typecheck or changed-test failure in a scope package is denied with the output
+- [x] A clean Implementer PR is let through, and a run over 180 s is reported without denying
+- [x] The PR guard and the stop check run the fast checks through one shared function
+- [x] The PR guard's timeout in settings is 200
+- [x] The `SessionStart` hook warns when Node is below `engines`, and prints nothing when it satisfies it or on an error
+- [x] The engines rule is shared with `pnpm preflight`
+- [x] ADR 0012, the SDLC Checks Stage and setup match the rules above
 
 **Verification:** Extend the PR guard's suite with the fast checks passed in: a failure denies, a clean run and a timeout don't. Script tests for the Node check with the version and range passed in. Pipe a sample PR hook input into the PR guard on a branch with a lint error and check it denies. Ticket 08 checks it live.
 
 **Out of scope:** Making a stop block hold the agent; running the full test suite at PR open; switching Node inside the hooks; checks on the main session's PRs.
 
 ## Comments
+
+### Closing summary (Implementer)
+New `scripts/hooks/fast-checks.ts` holds the shared fast checks (`runChecks`, `fastChecks`, `stopChecks`, `BUDGET_MS`); the stop check and the PR guard both call it. `guard-pr.ts` has `checkFastOnPr`, run after the docs checks, in the head's worktree; a timeout goes to `systemMessage`. PR guard timeout is 200. `scripts/hooks/node-version.ts` is the `SessionStart` hook and uses `satisfies`, now exported from `scripts/preflight/preflight.ts`. ADR 0012, the SDLC page and setup updated. Not live-tested; Ticket 08.
+
+Assumptions: the fast checks run last, after the docs checks, and their failures are joined to the other reasons. A fast-check setup error (no diff base) runs none and doesn't deny.

@@ -8,7 +8,7 @@ From a clean checkout to green tests. Run every command from the repo root.
 
 ## Prerequisites
 
-- Node at the version in `engines` in [package.json](../../package.json). Below it, pnpm stops every command with `This project requires Node.js >=26`. `nvm use` picks the version from [.nvmrc](../../.nvmrc).
+- Node at the version in `engines` in [package.json](../../package.json). Below it, pnpm stops every command with `This project requires Node.js >=26`. `nvm use` picks the version from [.nvmrc](../../.nvmrc). Run it before you start Claude Code: a session started on a lower Node warns at once, and pnpm, the stop check and the PR guard fail in it. Exit, run `nvm use` and start again.
 - pnpm at the version in `packageManager` in the same file. If pnpm is not installed, `corepack enable` provides it. That replaces any global `pnpm` shim, so skip it if pnpm is already there.
 - Docker with the daemon running. The local database and the API tests both need it.
 

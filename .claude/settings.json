@@ -39,7 +39,17 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/scripts/hooks/guard-pr.ts\"",
-            "timeout": 120
+            "timeout": 200
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/hooks/node-version.ts\""
           }
         ]
       }

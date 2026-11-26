@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "target": "esnext",
+    "allowImportingTsExtensions": true,
+    "typeRoots": ["../packages/api/node_modules/@types"],
+    "types": ["node"]
+  },
+  "include": ["."]
+}

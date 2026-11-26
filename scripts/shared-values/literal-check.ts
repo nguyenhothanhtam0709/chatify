@@ -29,10 +29,10 @@ const EXEMPT_LINES: { pattern: RegExp; why: string }[] = [
 
 export const sharedValuesOf = (contracts: Record<string, unknown>): SharedValue[] => {
   const sets: [string, readonly unknown[]][] = [
-    ['ErrorCode', Object.values(contracts.ErrorCode as object)],
-    ['RealtimeEvent', Object.values(contracts.RealtimeEvent as object)],
-    ['MESSAGE_KINDS', contracts.MESSAGE_KINDS as readonly unknown[]],
-    ['CONVERSATION_KINDS', contracts.CONVERSATION_KINDS as readonly unknown[]],
+    ['ErrorCode', Object.values(contracts['ErrorCode'] as object)],
+    ['RealtimeEvent', Object.values(contracts['RealtimeEvent'] as object)],
+    ['MESSAGE_KINDS', contracts['MESSAGE_KINDS'] as readonly unknown[]],
+    ['CONVERSATION_KINDS', contracts['CONVERSATION_KINDS'] as readonly unknown[]],
   ];
   return sets.flatMap(([source, values]) =>
     values

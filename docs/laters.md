@@ -130,10 +130,6 @@ MVP1 has only the Owner role and no renaming, deletion or invitations needing ac
 
 CI, deployment and OpenAPI docs were out of scope for MVP1. The required CI checks are already listed under "Enforce the doc and convention rules" and OpenAPI under "Contract-first development"; this entry is the rest: a hosting target, environment config and a deploy pipeline.
 
-## Type-checking `scripts/`
-
-`scripts/` is outside every package's `tsc` run. An ad hoc run under the strict flags found 25 errors. 24 have one cause: a helper in the read guard's test. The docs generator's import of the API needs a design choice, because the API's `dist` has no declarations and `@ts-` comments are banned.
-
 ## Server-side checks on API responses
 
 Strict output doesn't stop the server sending a field: the API never parses its responses. `UserSearchResultSchema` only makes API tests fail on a leak and makes the client throw. Decide whether to parse responses in the API, in tests or at runtime.

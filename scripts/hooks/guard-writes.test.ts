@@ -109,3 +109,12 @@ test('a broken input lets the call through', () => {
   assert.equal(out.stdout, '');
   assert.equal(out.status, 0);
 });
+
+test('an implementer may write a Descriptive Doc that covers a file it changed, and no other', () => {
+  const covering = facts({
+    coveredByChange: (path) => path === 'docs/factory/descriptive-thing.md',
+  });
+  assert.equal(canWrite('docs/factory/descriptive-thing.md', 'implementer', covering), null);
+  assert.ok(canWrite('docs/factory/descriptive-thing.md', 'implementer', facts()));
+  assert.ok(canWrite('docs/factory/overview.md', 'implementer', covering));
+});

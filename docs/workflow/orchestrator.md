@@ -113,9 +113,9 @@ On a conflict or a missing Feature Branch tip, send the PR back to its Implement
 
 ## Doc Sync
 
-After the review findings are fixed and before the feature PR, run `pnpm docs:check`, then decide whether the change needs a Doc Sync agent. A script can't tell whether new code made a hand-written doc wrong.
+After the review findings are fixed and before the feature PR, run `pnpm docs:check` and `pnpm docs:covers`. The second lists each Descriptive Doc whose `covers:` matches a file the Feature Branch changed against `main` while the doc is unchanged. Any doc it lists means Doc Sync runs. The glossary and the conventions are Intent Docs with no `covers:`, so you still judge those.
 
-- **Run it** when the diff changes behaviour, a runtime flow or a term, or adds a new pattern.
+- **Run it** when `pnpm docs:covers` lists a doc, or when the diff changes behaviour, a runtime flow or a term, or adds a new pattern.
 - **Skip it** when the diff only changes tests, refactors without changing behaviour, or only changes docs. Say why in the feature PR.
 - **Compare against:** [runtime flows](../architecture/runtime-flows.md), the [architecture overview](../architecture/overview.md), the [glossary](../../GLOSSARY.md) and the [conventions](../conventions/general.md).
 - Its rules are in its [Role file](../factory/roles/doc-sync.md); read it only to change them.

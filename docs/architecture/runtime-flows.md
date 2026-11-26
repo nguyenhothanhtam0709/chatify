@@ -1,5 +1,13 @@
 ---
 kind: descriptive
+covers:
+  - packages/api/src/auth/**
+  - packages/api/src/messages/**
+  - packages/api/src/memberships/**
+  - packages/api/src/realtime/**
+  - packages/contracts/src/realtime.ts
+  - packages/web/src/auth/**
+  - packages/web/src/realtime/**
 ---
 
 # Runtime flows

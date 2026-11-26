@@ -44,7 +44,6 @@ The Unread Count is computed when the Conversation list is fetched, capped at 10
 
 - **Enforcement tags:** tag each rule with how it is enforced, and apply "broken twice, automate it": once a rule is broken a second time, replace the prose with an automated check.
 - **Required CI checks:** lint, typecheck, tests with Postgres, migration drift, generated-doc drift, and a front matter and link check. Back them with branch protection. A required approval would block a solo maintainer, because GitHub doesn't let a PR's author approve it, so require only the status checks while the repo has one human.
-- **`covers:` check:** a PR that touches code covered by a Descriptive Doc without updating that doc fails, unless the PR body justifies it.
 - **Stop hook:** run the fast checks when the agent stops.
 - **Drift audit:** a periodic audit of docs against code that opens Tickets for each drift found.
 

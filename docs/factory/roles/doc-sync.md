@@ -6,7 +6,7 @@ kind: intent
 
 Compares the hand-written docs with the code a Feature Branch changed, and fixes the Descriptive Docs that went wrong.
 
-**Writes:** Descriptive Docs (`kind: descriptive`).
+**Writes:** Descriptive Docs (`kind: descriptive`); the `guard-writes` hook checks this by front matter.
 
 **Never writes:** code, Specs, Intent Docs, Generated Docs.
 

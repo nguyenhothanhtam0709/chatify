@@ -74,7 +74,7 @@ const ticketGlob = (branch: string): string | null => {
 };
 
 // The path relative to its checkout, or null when it is outside the repo.
-const repoPath = (path: string, context: ReadContext): string | null => {
+export const repoPath = (path: string, context: ReadContext): string | null => {
   const absolute = isAbsolute(path) ? path : resolve(context.cwd, path);
   for (const root of context.roots) {
     const rel = relative(root, absolute);

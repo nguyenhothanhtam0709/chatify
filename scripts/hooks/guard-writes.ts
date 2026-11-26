@@ -1,0 +1,121 @@
+// PreToolUse hook on Edit|Write: denies a write outside the Role's Writes (ADR 0012). `canWrite` is
+// the one place that knows the Writes column's rules; the Diff-scope check reuses it. Any failure
+// in the hook lets the call through.
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { repoPath } from './guard-reads.ts';
+import { readScopeFile, scopeFacts, type ScopeFacts } from './scope-facts.ts';
+
+export interface WriteFacts extends ScopeFacts {
+  /** The five-digit number of the Spec the Task Branch belongs to, or null. */
+  specNumber: string | null;
+  /** The `kind:` in a repo file's front matter, or null when it has none. */
+  kindOf: (path: string) => string | null;
+}
+
+const ALWAYS_WRITABLE = ['docs/laters.md', 'pnpm-lock.yaml'];
+
+const isPackageJson = (path: string) => path === 'package.json' || path.endsWith('/package.json');
+
+const inPackage = (path: string, name: string) =>
+  path.startsWith(name === 'scripts' ? 'scripts/' : `packages/${name}/`);
+
+const isOwnSpec = (path: string, facts: WriteFacts) =>
+  facts.specStatus &&
+  facts.specNumber !== null &&
+  new RegExp(`^\\.scratch/${facts.specNumber}-[^/]+/spec\\.md$`).test(path);
+
+/**
+ * Why `role` may not write `path`, or null when it may. `path` is relative to the repo root, or
+ * null when it lies outside the repo.
+ */
+export const canWrite = (
+  path: string | null,
+  role: string | undefined,
+  facts: WriteFacts,
+): string | null => {
+  if (role === 'explorer') {
+    return path === null ? null : `The explorer writes only outside the repo, not ${path}.`;
+  }
+  if (role === 'doc-sync') {
+    return path !== null && facts.kindOf(path) === 'descriptive'
+      ? null
+      : `Doc Sync writes only files with \`kind: descriptive\` front matter, not ${path}.`;
+  }
+  if (role !== 'implementer' || path === null) return null;
+  if (
+    facts.packages.some((name) => inPackage(path, name)) ||
+    facts.writes.includes(path) ||
+    path === facts.ticket ||
+    ALWAYS_WRITABLE.includes(path) ||
+    isPackageJson(path) ||
+    facts.kindOf(path) === 'generated' ||
+    isOwnSpec(path, facts)
+  ) {
+    return null;
+  }
+  return (
+    `${path} is outside this Ticket's Writes (packages: ${facts.packages.join(', ') || 'none'}). ` +
+    `If the Ticket needs it, list it under Also writes; otherwise escalate.`
+  );
+};
+
+interface HookInput {
+  tool_input?: { file_path?: string };
+  cwd?: string;
+  agent_type?: string;
+}
+
+const frontMatterKind = (root: string) => (path: string) => {
+  try {
+    const text = readFileSync(resolve(root, path), 'utf8');
+    const block = /^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? '';
+    return /^kind:\s*(\w+)\s*$/m.exec(block)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const decideFor = (input: HookInput): string | null => {
+  const filePath = input.tool_input?.file_path;
+  if (!filePath || !input.agent_type) return null;
+  const cwd = input.cwd ?? process.cwd();
+  const [root = cwd, gitCommonDir = '.git', branch = ''] = execFileSync(
+    'git',
+    ['rev-parse', '--show-toplevel', '--git-common-dir', '--abbrev-ref', 'HEAD'],
+    { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+  )
+    .trim()
+    .split('\n');
+  const commonDir = resolve(cwd, gitCommonDir);
+  const scope = readScopeFile(commonDir, branch);
+  // No scope file means no Ticket to hold the Writes against.
+  if (scope === null && input.agent_type === 'implementer') return null;
+  const path = repoPath(filePath, { roots: [root, dirname(commonDir)], cwd, branch, scope });
+  return canWrite(path, input.agent_type, {
+    ...scopeFacts(scope ?? []),
+    specNumber: /^agent\/(\d{5})-/.exec(branch)?.[1] ?? null,
+    kindOf: frontMatterKind(root),
+  });
+};
+
+if (import.meta.main) {
+  try {
+    const input = JSON.parse(readFileSync(0, 'utf8')) as HookInput;
+    const reason = decideFor(input);
+    if (reason) {
+      process.stdout.write(
+        JSON.stringify({
+          hookSpecificOutput: {
+            hookEventName: 'PreToolUse',
+            permissionDecision: 'deny',
+            permissionDecisionReason: reason,
+          },
+        }),
+      );
+    }
+  } catch {
+    // Fail open: a broken guard must never block an agent.
+  }
+}

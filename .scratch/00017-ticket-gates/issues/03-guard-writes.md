@@ -30,19 +30,23 @@ See the Spec's "The write boundary" and "Hooks".
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] An Implementer with `packages: api` may write under the API and is denied under the web package
-- [ ] A path in `writes` is allowed; an Intent Doc not in it is denied
-- [ ] Its own Ticket is allowed; another Ticket and the Spec are denied; the Spec is allowed with `spec-status: yes`
-- [ ] Doc Sync may write a `kind: descriptive` file and is denied an Intent Doc and code
-- [ ] The Explorer is denied any path in the repo and allowed one outside it
-- [ ] With no `agent_type`, every path is allowed
-- [ ] The hook is registered for `Edit|Write`, and a broken input lets the call through
-- [ ] The SDLC Writes column and the Implementer and Doc Sync Role files match the rules above
+- [x] An Implementer with `packages: api` may write under the API and is denied under the web package
+- [x] A path in `writes` is allowed; an Intent Doc not in it is denied
+- [x] Its own Ticket is allowed; another Ticket and the Spec are denied; the Spec is allowed with `spec-status: yes`
+- [x] Doc Sync may write a `kind: descriptive` file and is denied an Intent Doc and code
+- [x] The Explorer is denied any path in the repo and allowed one outside it
+- [x] With no `agent_type`, every path is allowed
+- [x] The hook is registered for `Edit|Write`, and a broken input lets the call through
+- [x] The SDLC Writes column and the Implementer and Doc Sync Role files match the rules above
 
 **Verification:** Script tests for `canWrite`, one case per rule above, in the style of the read guard's suite (decision function, context passed in). Pipe a sample `PreToolUse` input for an out-of-scope `Edit` into the hook and check it prints a deny. The hook can't be triggered in your own session, because hooks load when a session starts; Ticket 08 checks it live.
 
 **Out of scope:** The Diff-scope check and the diff-only rules (Ticket 04); allowing Descriptive Docs by `covers:` (Ticket 07); guarding Bash writes (ADR 0012).
 
 ## Comments
+
+Resolved. `canWrite` in `scripts/hooks/guard-writes.ts`, tested one case per rule (12 script tests); the hook was piped a sample explorer `Edit` of `AGENTS.md` and printed a deny. Lint, typecheck, test and docs:check pass (lint fails only on the untracked `overview.md`, fixed by PR #223). The live hook check is Ticket 08.
+
+Assumptions: (1) `canWrite` takes a repo-relative path, or null for one outside the repo, and `facts` extends the scope facts with `specNumber` and `kindOf(path)`, so it stays pure. (2) An implementer on a branch with no scope file is let through, as the read guard treats it as unscoped. (3) Doc Sync is denied a new file with no front matter. (4) The sdlc.md table was re-aligned by prettier. (5) `repoPath` is now exported from `guard-reads.ts` for reuse.

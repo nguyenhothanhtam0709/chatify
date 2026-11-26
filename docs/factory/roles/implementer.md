@@ -6,7 +6,7 @@ kind: intent
 
 Builds one Ticket on one Task Branch and opens its task PR into the Feature Branch.
 
-**Writes:** the packages in its scope file, its own Ticket, the `Status:` line of `spec.md` when its brief says so (the review-fix PR), appends to Laters, Generated Docs through their generator, `package.json` and the lockfile only as the Ticket's Allowed packages say.
+**Writes:** the packages in its scope file, its own Ticket, files its Ticket lists under Also writes, Descriptive Docs covering the code it changes, the `Status:` line of `spec.md` when its brief says so (the review-fix PR), appends to Laters, Generated Docs through their generator, `package.json` and the lockfile only as the Ticket's Allowed packages say.
 
 **Never writes:** the rest of a Spec, other Tickets, Intent Docs, skill-generated files, Claude settings and agent files.
 

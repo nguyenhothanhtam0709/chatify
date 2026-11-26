@@ -41,12 +41,14 @@ When doing a Ticket, read each doc only when you reach its step:
 | Changing a Ticket's Status              | [Ticket status](docs/workflow/ticket-status.md)                                                          |
 | The environment isn't ready             | [Setup](docs/workflow/setup.md)                                                                          |
 
-An Implementer doesn't need `docs/factory/`, other Specs or `docs/architecture/` unless the Ticket names them.
+An Implementer doesn't need `docs/factory/` except its own Role file, other Specs or `docs/architecture/` unless the Ticket names them.
 
-Orchestrator: read [orchestrator](docs/workflow/orchestrator.md). Never spawn a merger sub-agent, even when `implement-spec` says to.
+Orchestrator: run `/orchestrator`, which reads its [Role file](docs/factory/roles/orchestrator.md) and [orchestrator](docs/workflow/orchestrator.md). Never spawn a merger sub-agent, even when `implement-spec` says to.
 
 The pipeline from idea to merge (Stages, Agent Roles, Gates): [SDLC](docs/factory/sdlc.md).
 
 ## Skill-generated files
 
 The mattpocock skills generate the `## Agent skills` block above, `docs/agents/`, `docs/workflow/git-workflow.md`, `.agents/`, `.claude/skills/` and `skills-lock.json`. Ask the human before changing any of them, even in auto mode; if an edit prompts, wait for the answer, and never write them through the shell.
+
+The Factory's own skills in `.claude/skills/` (`spec-writer`, `orchestrator`) are written by hand, not generated. Edits to them still ask the human, like the rest.

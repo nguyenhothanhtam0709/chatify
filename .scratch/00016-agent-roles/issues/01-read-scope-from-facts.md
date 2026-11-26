@@ -23,16 +23,20 @@ See the Spec's "Read scope".
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] With `packages: api`, the api `AGENTS.md` and the api convention are readable whole and the web ones are denied
-- [ ] With `browser-check: yes`, the browser-check doc is readable whole; with `no` or no line it is denied. The same for `worktree`
-- [ ] With `agent_type: implementer`, the Implementer's Role file is readable whole inside a scope, and the Reviewer's Role file is denied
-- [ ] With no `agent_type`, every existing case gives the same answer as before
-- [ ] The orchestrator page describes the facts file and no longer asks for globs
+- [x] With `packages: api`, the api `AGENTS.md` and the api convention are readable whole and the web ones are denied
+- [x] With `browser-check: yes`, the browser-check doc is readable whole; with `no` or no line it is denied. The same for `worktree`
+- [x] With `agent_type: implementer`, the Implementer's Role file is readable whole inside a scope, and the Reviewer's Role file is denied
+- [x] With no `agent_type`, every existing case gives the same answer as before
+- [x] The orchestrator page describes the facts file and no longer asks for globs
 
 **Verification:** Extend the existing read guard suite under `scripts/hooks/`, run by `pnpm test:scripts`. Rewrite the existing scoped cases from glob lines to fact lines; drop none.
 
 **Out of scope:** Any write guard (Spec 00017); a `Packages:` field in the Ticket template (Spec 00017); a read scope for the Reviewer, Explorer or Doc Sync.
 
 ## Comments
+
+Resolved. Verified with `pnpm test:scripts` (scoped cases rewritten from globs to facts, none dropped; new cases for each fact, the old glob format and `agent_type`), plus `pnpm lint`, `pnpm typecheck`, `pnpm test` and `pnpm docs:check`. Assumptions: the general convention is readable only when `packages` names at least one package; an `agent_type` that is not a plain name (letters, digits, `_`, `-`) grants no Role file. Shell globs are now denied inside a scope unless their text matches an allowed path or the Ticket glob, since the facts derive exact paths.
+
+Human decision: confirmed that Bash globs are denied inside a scope, and the dropped `docs/adr/0009-*` case is accepted.

@@ -4,7 +4,19 @@ kind: intent
 
 # Orchestrator
 
-How the Orchestrator runs a Spec with `implement-spec` at the lowest token cost. Where this differs from the skill, this page wins. Only the Orchestrator reads it: every sub-agent gets what it needs through its hand-off.
+How the Orchestrator runs a Spec with `implement-spec` at the lowest token cost. It changes the `implement-spec` steps listed in [Changes to `implement-spec`](#changes-to-implement-spec). Only the Orchestrator reads it: every sub-agent gets what it needs through its hand-off.
+
+## Changes to `implement-spec`
+
+Written against `mattpocock-skills` 1.3.1. When the installed version differs, tell the human so this list is checked.
+
+- "merger subagent": merge each task PR yourself, as in [Merging](#merging).
+- "code-review on the integration branch": a Reviewer reviews the Feature Branch, an Implementer fixes the findings, then run [Doc Sync](#doc-sync) if you decide so.
+- "mark it ready for review": the Spec's Status is set to `resolved` by the Implementer of the review-fix task PR, in its last commit, once every Ticket is `resolved`; tell it so in its brief. Never push to the Feature Branch directly.
+- "each in its own worktree": one Implementer works in the main checkout; use a worktree when two or more run at once.
+- Addition to "implementer subagents": spawn by `subagent_type`, pass the brief path, write the scope file, and pass `model` only on an Opus signal.
+
+Every other step runs as the skill says, including using the existing Feature Branch as the integration branch and opening a draft feature PR after the first merge.
 
 ## Before spawning
 
@@ -15,9 +27,8 @@ How the Orchestrator runs a Spec with `implement-spec` at the lowest token cost.
 
 ## Choosing the model
 
-Decide when writing the brief, record it there with a one-line reason, and pass `model` when spawning.
+Decide when writing the brief and record it there with a one-line reason. Each Role's default model lives in its agent file in `.claude/agents/`; pass `model` when spawning only on an Opus signal.
 
-- **Default: Sonnet.**
 - **Opus** when the Ticket designs something new, not when it follows an existing pattern:
   - a migration with a backfill or a change to existing data;
   - a locking, multi-step transaction or realtime ordering mechanism;
@@ -25,16 +36,16 @@ Decide when writing the brief, record it there with a one-line reason, and pass 
   - a design decision the Ticket and Spec leave open.
 - Package count, line count and Ticket length are not signals. Most Tickets touch several packages, so they would send nearly everything to Opus.
 - If a Sonnet run gets stuck or keeps failing, run it again on Opus and say why in the handoff note.
+- An Implementer fixing review findings stays on its default unless a finding hits an Opus signal.
 - No Haiku until there are numbers to support it.
-- Other Roles: Reviewer on Opus; Explorer and an Implementer fixing review findings on Sonnet, unless a finding hits an Opus signal.
 
 ## Hand-off
 
-The spawn prompt is the absolute path of the brief and one sentence. The brief points at documents instead of copying them. It states directly only what a sub-agent can't find itself: new decisions and the current state of the Feature Branch.
+Spawn each Role by its `subagent_type` (`implementer`, `reviewer`, `explorer`, `doc-sync`), never a general-purpose agent. The spawn prompt is the absolute path of the brief and one sentence. The brief points at documents instead of copying them. It states directly only what a sub-agent can't find itself: new decisions and the current state of the Feature Branch.
 
 ### Implementer brief
 
-Write it to the scratchpad, about 25 lines:
+Write it to the scratchpad, about 15 lines. The rules are in the [Implementer Role file](../factory/roles/implementer.md).
 
 ```markdown
 Ticket: <path>
@@ -49,15 +60,6 @@ Latest migration: <number, if the Ticket changes the schema>
 Decisions since the Ticket was written: <human answers, packages allowed, or None>
 Handoff notes to read: <absolute paths, only Tickets in Blocked by, or None>
 Handoff note: <absolute path>/<NNNNN>-<NN>.md
-
-Rules:
-
-- Read what this brief names, plus a doc from the root AGENTS.md table when you reach its step. A link in a doc is not an instruction to read it: follow it only when the condition beside it holds, or when stuck.
-- Docs outside your read scope are denied when read whole, and so is the whole Spec. Grep and read the section you need, and say so in the PR body if it wasn't in this brief.
-- Stop when the PR is open. Do not merge. When stuck, follow docs/workflow/escalation.md.
-- Commit work in progress and update your note at each milestone.
-- Handoff note, at most 15 lines: new helpers or seams with paths, migration number, gotchas, what is unfinished. Do not retell the work.
-- Final report, at most 10 lines: PR, check results, anything to decide.
 ```
 
 ### Other Roles
@@ -73,9 +75,17 @@ An agent blocked on a question continues through `SendMessage` with the answer, 
 
 ## Read scope
 
-Before spawning, write the docs the Implementer may read whole to `<git-common-dir>/read-scope/<task-branch>.txt`, one glob per line: the `AGENTS.md` and conventions of each package it touches, plus [browser-check](browser-check.md) and [worktree](worktree.md) if it needs them. Handoff notes sit outside the repo and need no entry. Delete the file when cleaning up the worktree.
+Before spawning an Implementer, write three facts about its Ticket to `<git-common-dir>/scope/<task-branch>.txt`, one per line:
 
-[guard-reads.ts](../../scripts/hooks/guard-reads.ts) enforces it and always allows the Ticket and the docs every PR needs. The Spec is left out on purpose, so the Implementer reads only the named sections. A PR body that reports a read outside the scope means the scope or the brief was missing something: fix it for the next Ticket.
+```
+packages: api contracts
+browser-check: yes
+worktree: no
+```
+
+Copy `packages` from the Ticket's _What to build_. A missing line means `no`, or no packages. Write facts, not globs: a file of globs reads as no facts. Only the Implementer gets a scope file; an Implementer fixing findings gets one built from the packages the findings touch. Handoff notes sit outside the repo and need no entry. Delete the file at hand-off cleanup, whether or not there is a worktree.
+
+[guard-reads.ts](../../scripts/hooks/guard-reads.ts) derives from the facts which docs are readable whole: the `AGENTS.md` and convention of each package, plus the general convention, plus [browser-check](browser-check.md) or [worktree](worktree.md) when its fact is `yes`. It always allows the Ticket, the docs every PR needs and the sub-agent's own Role file. The Spec is left out on purpose, so the Implementer reads only the named sections. A PR body that reports a read outside the scope means the scope or the brief was missing something: fix it for the next Ticket.
 
 ## Merging
 
@@ -90,14 +100,12 @@ On a conflict or a missing Feature Branch tip, send the PR back to its Implement
 
 ## Doc Sync
 
-After the review findings are fixed and before the feature PR, run `pnpm docs:check`, then decide whether the change needs a Doc Sync agent on Sonnet. A script can't tell whether new code made a hand-written doc wrong.
+After the review findings are fixed and before the feature PR, run `pnpm docs:check`, then decide whether the change needs a Doc Sync agent. A script can't tell whether new code made a hand-written doc wrong.
 
 - **Run it** when the diff changes behaviour, a runtime flow or a term, or adds a new pattern.
 - **Skip it** when the diff only changes tests, refactors without changing behaviour, or only changes docs. Say why in the feature PR.
 - **Compare against:** [runtime flows](../architecture/runtime-flows.md), the [architecture overview](../architecture/overview.md), the [glossary](../../GLOSSARY.md) and the [conventions](../conventions/general.md).
-- **A Descriptive Doc that is wrong:** it fixes the doc in a task PR on `agent/<NNNNN>-doc-sync`.
-- **An Intent Doc that contradicts the code:** it reports this and changes nothing, because the code may be the defect ([ADR 0008](../adr/0008-documents-are-classed-by-how-they-are-maintained.md)). Take it to the human.
-- It changes no Spec and no code.
+- Its rules are in its [Role file](../factory/roles/doc-sync.md); read it only to change them.
 
 ## Keeping the main session small
 

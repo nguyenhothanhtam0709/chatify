@@ -2,7 +2,7 @@
 
 Input for a `grill-with-docs` session that ends in `spec.md` in this folder. It records what the human has already decided, so the session spends its questions on the open points. This is not the Spec.
 
-Part 3 of 3 Factory hardening Specs: 00016 Agent Roles → 00017 Ticket Gates → **00018 Learning Loop**. Enforcement tags (D2) need to know which rules 00017 turned into hooks, so grill this after 00017. The doc-only parts (D4, D5) don't depend on it.
+Part 3 of 3 Factory hardening Specs: 00016 Agent Roles → 00017 Ticket Gates → **00018 Learning Loop**. Enforcement tags (D2) need to know which rules 00017 turned into hooks, so grill this after 00017. The doc-only parts (D4, D5) don't depend on it. Its Spec and Tickets go into a Spec PR on the Feature Branch (ADR 0011), not to `main`; grill it after 00016 is merged.
 
 ## Problem
 
@@ -15,6 +15,7 @@ Part 3 of 3 Factory hardening Specs: 00016 Agent Roles → 00017 Ticket Gates �
 
 ## Decided
 
+- **Writes**: the Learning section (D1) and the metrics (D3) extend the Orchestrator's and the Implementer's Writes in Spec 00016's Writes column.
 - **D1 – A Learning section in the feature PR to `main`**: repeated review findings (a candidate convention), reads outside the read scope (fix the brief or scope), and guesses or assumptions (a doc to fill in). "None" is a valid answer; the section is never omitted. This gives Stage 11 a Gate.
 - **D2 – Enforcement tags** on each rule, saying how it is enforced, plus "broken twice, automate it". D1 records what was broken; the tags show what to automate next.
 - **D3 – A per-Ticket metrics line**: model, escalated or not, failed checks, review findings, re-run or not.
@@ -26,10 +27,12 @@ Part 3 of 3 Factory hardening Specs: 00016 Agent Roles → 00017 Ticket Gates �
 
 1. **D1, where it lives**: a section the `pr` skill writes into the feature PR body, a line in `git-workflow.md#finishing-the-feature` (skill-generated: ask first), or in sdlc.md's Stage 11 row? Who writes it, the Orchestrator?
 2. **D1, its inputs**: does it read handoff notes, PR bodies ("read outside scope" lines), review findings? Do Implementer handoff notes get a fixed "had to guess" line so D1 can collect them?
+   - Settled by Spec 00016: the "had to guess" line goes into the Implementer's Role file, not the brief. What is left is how D1 collects it.
 3. **D1, what happens to it**: does each item become a Laters entry, a convention edit, or a Ticket? Who decides?
 4. **D2, the tag format**: an inline marker on each rule (for example `(hook)`, `(check)`, `(prose)`), or a table per doc? Which docs get tagged in this Spec: all of `docs/workflow/`, or only the definition of done?
 5. **D2, counting breaks**: where is "broken once" recorded so the second break is noticed? D1's Learning section, a file, the Laters entry?
 6. **D3, where metrics are stored**: a CSV in the repo (which file, who appends), handoff notes outside the repo, or the Ticket's closing summary? A file in the repo makes every task PR touch it, which 00017's diff-scope check must allow.
+   - Spec 00016's Writes column is where a new file is allowed: this Spec's Learning section and metrics extend the Orchestrator's and the Implementer's Writes.
 7. **D3, who writes them**: the Implementer (knows check failures, not review findings) or the Orchestrator at merge (knows both)?
 8. **D3, the fields**: are the five above right? Tokens or cost if they can be read? Time to PR?
 9. **D4, replacing step 2**: does the report replace step 2 of "How to escalate", or add to it? Does the same format go in the draft PR body?

@@ -19,14 +19,18 @@ See the Spec's "Briefs of Specs 00017 and 00018".
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Both briefs describe the Spec PR into the Feature Branch
-- [ ] 00017's questions 4, 7 and 8 each point to what Spec 00016 settled or handed over
-- [ ] 00018 names the Implementer's Role file for the "had to guess" line and the Writes column for its new files
+- [x] Both briefs describe the Spec PR into the Feature Branch
+- [x] 00017's questions 4, 7 and 8 each point to what Spec 00016 settled or handed over
+- [x] 00018 names the Implementer's Role file for the "had to guess" line and the Writes column for its new files
 
 **Verification:** `pnpm docs:check` passes.
 
 **Out of scope:** Answering any open question of 00017 or 00018.
 
 ## Comments
+
+Resolved. Delivered in PR #214.
+
+The "question 4" in the Ticket meant Q5 of the 00017 grill brief.

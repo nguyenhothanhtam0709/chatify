@@ -25,13 +25,13 @@ See the Spec's "Spec Writer steps" and "Branch model and Stages", and ADR 0011.
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `/spec-writer` is listed as a skill and is not invoked by the model on its own
-- [ ] The Spec Writer Role file lists the seven steps, with the two points where it asks the human
-- [ ] No doc still says Specs or Tickets go to `main` in their own PR
-- [ ] The SDLC Stages table has one Spec Stage and its Gate is the merge of the Spec PR
-- [ ] The root `AGENTS.md` names the Factory's own skills as an exception to the skill-generated list
+- [x] `/spec-writer` is listed as a skill and is not invoked by the model on its own
+- [x] The Spec Writer Role file lists the seven steps, with the two points where it asks the human
+- [x] No doc still says Specs or Tickets go to `main` in their own PR
+- [x] The SDLC Stages table has one Spec Stage and its Gate is the merge of the Spec PR
+- [x] The root `AGENTS.md` names the Factory's own skills as an exception to the skill-generated list
 
 **Verification:** `grep` the docs for "straight to `main`", "Ticket PR" and "Ticket Writer" and find no hit outside Specs and ADRs. `pnpm docs:check` passes. Running `/spec-writer` on a real idea happens with Spec 00017, not here.
 

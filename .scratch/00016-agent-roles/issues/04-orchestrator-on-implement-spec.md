@@ -21,12 +21,12 @@ See the Spec's "Orchestrator and `implement-spec`".
 
 **Blocked by:** 02, 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `/orchestrator` is listed as a skill and is not invoked by the model on its own
-- [ ] The orchestrator page lists four overrides and one addition by step name, with the skill version, and no longer says "this page wins"
-- [ ] Every Role in the SDLC table links to its Role file
-- [ ] The root `AGENTS.md` points the Orchestrator to `/orchestrator` and still forbids a merger sub-agent
+- [x] `/orchestrator` is listed as a skill and is not invoked by the model on its own
+- [x] The orchestrator page lists four overrides and one addition by step name, with the skill version, and no longer says "this page wins"
+- [x] Every Role in the SDLC table links to its Role file
+- [x] The root `AGENTS.md` points the Orchestrator to `/orchestrator` and still forbids a merger sub-agent
 
 **Verification:** Read `implement-spec` 1.3.1 and check that each override names a step that exists in it. `pnpm docs:check` passes. Running `/orchestrator` on a real Spec happens with Spec 00017.
 

@@ -49,3 +49,4 @@ See the Spec's "Ticket template and scope file".
 - scripts/hooks/scope-facts.ts: `scopeFacts(lines)` returns the six facts; `readScopeFile(commonDir, branch)` reads the lines. guard-reads.ts uses both. Docs updated: ticket-template.md, orchestrator.md (Read scope).
 - Assumption: `packages: scripts` still maps to packages/scripts/AGENTS.md in the read guard (a path that doesn't exist, harmless), to keep the guard's answers unchanged.
 - pnpm lint fails only on untracked overview.md (prettier), not committed.
+- Exception, accepted by the human: the tests were written alongside the implementation, not first. They were shown red after the fact by making scopeFacts return the empty value for every fact: "reads all six facts by name" and "a missing line gives the empty value" failed; the file was then restored (git diff empty) and all 5 pass.

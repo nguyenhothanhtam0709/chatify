@@ -18,7 +18,7 @@ const scoped: ReadContext = {
 const withFacts = (...scope: string[]): ReadContext => ({ ...scoped, scope });
 const read = (path: string, limit?: number, agentType?: string) => ({
   tool_name: 'Read',
-  tool_input: { file_path: `${repo}/${path}`, limit },
+  tool_input: { file_path: `${repo}/${path}`, ...(limit === undefined ? {} : { limit }) },
   ...(agentType === undefined ? {} : { agent_type: agentType }),
 });
 const bash = (command: string) => ({ tool_name: 'Bash', tool_input: { command } });

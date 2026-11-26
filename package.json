@@ -29,12 +29,14 @@
     "lint:scripts": "GOMAXPROCS=2 oxlint --type-aware --threads=2 -c .oxlintrc.json scripts",
     "format": "prettier --write .",
     "docs:generate": "pnpm build:contracts && pnpm --filter @chat/api build && node scripts/docs/generate.ts",
-    "typecheck": "pnpm build:contracts && pnpm -r typecheck",
+    "typecheck": "pnpm build:contracts && pnpm -r typecheck && pnpm typecheck:scripts",
+    "typecheck:scripts": "tsc -p scripts --checkers 2",
     "test:scripts": "node --test scripts/*/*.test.ts",
     "docs:check": "pnpm docs:generate && git diff --exit-code docs/architecture && node scripts/docs/check.ts",
     "metrics:tokens": "node scripts/metrics/token-report.ts"
   },
   "devDependencies": {
+    "@types/node": "^26.6.5",
     "oxlint": "^1.94.0",
     "oxlint-tsgolint": "^7.0.2007",
     "prettier": "^3.9.10",

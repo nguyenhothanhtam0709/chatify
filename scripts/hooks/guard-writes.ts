@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { coversChange } from '../docs/covers.ts';
+import { gitContext, gitContextOfPath } from './git-context.ts';
 import { repoPath } from './guard-reads.ts';
 import { readScopeFile, scopeFacts, type ScopeFacts } from './scope-facts.ts';
 
@@ -111,14 +112,11 @@ const decideFor = (input: HookInput): string | null => {
   const filePath = input.tool_input?.file_path;
   if (!filePath || !input.agent_type) return null;
   const cwd = input.cwd ?? process.cwd();
-  const [root = cwd, gitCommonDir = '.git', branch = ''] = execFileSync(
-    'git',
-    ['rev-parse', '--show-toplevel', '--git-common-dir', '--abbrev-ref', 'HEAD'],
-    { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
-  )
-    .trim()
-    .split('\n');
-  const commonDir = resolve(cwd, gitCommonDir);
+  // The file says which checkout and branch it belongs to; `cwd` may be the main checkout while
+  // the sub-agent edits its worktree. A file outside any repo falls back to `cwd`.
+  const context = gitContextOfPath(filePath, cwd) ?? gitContext(cwd);
+  if (context === null) return null;
+  const { root, commonDir, branch } = context;
   const scope = readScopeFile(commonDir, branch);
   // No scope file means no Ticket to hold the Writes against.
   if (scope === null && input.agent_type === 'implementer') return null;
@@ -128,7 +126,7 @@ const decideFor = (input: HookInput): string | null => {
     ...scopeFacts(scope ?? []),
     specNumber,
     kindOf: frontMatterKind(root),
-    coveredByChange: coveredByChange(root, changedSinceFeature(cwd, specNumber)),
+    coveredByChange: coveredByChange(root, changedSinceFeature(root, specNumber)),
   });
 };
 

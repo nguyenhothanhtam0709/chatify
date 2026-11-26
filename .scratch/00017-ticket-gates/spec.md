@@ -132,7 +132,11 @@ Recorded in ADR 0012.
 - **Stop check**: a `SubagentStop` hook that acts only for `agent_type: implementer`. It runs `checkDiff` on the branch's diff against the Feature Branch tip, then the fast checks: lint and typecheck of the scope's packages, and the test files changed on the branch. No changed test file means no tests run. On a failure it blocks once with the output; when `stop_hook_active` is set it lets the agent stop. Its time budget is 180 s; a timeout is reported to the agent and does not block.
 - **PR guard**: `guard-pr.ts` also runs `checkDiff` and the `covers:` check, for sub-agent sessions, and denies the PR with the reasons.
 - No `Stop` hook: it would fire in the main session. No git hook: human PRs stay unchecked until CI.
-- Every hook fails open, like the read and PR guards today.
+- Every hook fails open, like the read and PR guards today. One exception: the PR guard denies an Implementer PR whose Task Branch it can't find (Ticket 09).
+- Added after Ticket 08's live probes:
+  - A sub-agent in a worktree gets the main checkout as its hook `cwd`. The hooks therefore find the Task Branch from the file path, from the PR's head, or from the single `agent/` worktree (Ticket 09).
+  - A stop block doesn't keep the Implementer working. The PR guard therefore also runs the fast checks and is their gate (Ticket 10).
+  - A `SessionStart` hook warns when Node is below `engines` (Ticket 10).
 
 ### `covers:` and Doc Sync
 

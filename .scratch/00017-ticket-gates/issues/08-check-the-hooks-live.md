@@ -7,9 +7,13 @@
 3. Spawn an `implementer` with a probe brief and ask it, one at a time, to:
    - edit a file under the web package (expect `guard-writes` to deny);
    - add a lint error under the API and end its turn (expect the stop check to block once, then let it stop);
-   - change covered API code without the doc and open a draft PR (expect the PR guard to deny, naming the doc).
+   - change covered API code without the doc and open a draft PR (expect the PR guard to deny, naming the doc);
+   - commit a lint error under the API and open a draft PR (expect the PR guard to deny with the lint output, Ticket 10).
+
+   Then repeat these with the probe branch in a worktree and the main checkout on the Feature Branch (Ticket 09). Expect the same results.
 4. Run `pnpm preflight` on the probe branch with a modified tracked file (expect a failure) and clean (expect it to pass).
-5. Delete the probe branch, its scope file and any draft PR. Nothing from the probe is merged.
+5. Start one session on Node 24 (expect the `SessionStart` warning, Ticket 10), then exit it.
+6. Delete the probe branch, its scope file and any draft PR. Nothing from the probe is merged.
 
 **Packages:** None
 
@@ -17,7 +21,7 @@
 
 **Allowed packages:** None
 
-**Blocked by:** 03, 04, 05, 06, 07
+**Blocked by:** 03, 04, 05, 06, 07, 09, 10
 
 **Status:** ready-for-human
 
@@ -25,6 +29,9 @@
 - [ ] The stop check blocked once on the lint error and then let the agent stop
 - [x] The PR guard denied the PR and named the uncovered doc
 - [x] `pnpm preflight` failed on the modified file and passed when clean
+- [ ] The PR guard denied a PR with a lint error, with the output
+- [ ] In a worktree, `guard-writes`, the stop check and the PR guard gave the same results as in the main checkout
+- [ ] A session started on Node 24 showed the `SessionStart` warning
 - [x] The probe branch, scope file and draft PR are gone
 
 **Verification:** The human records what each step showed under `## Comments`. A hook that doesn't fire becomes a fix Ticket on this Feature Branch.

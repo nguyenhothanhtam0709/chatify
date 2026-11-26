@@ -19,3 +19,4 @@ source: docs/adr/*.md
 - [0009: Client signals are HTTP writes with a socket push, durable or ephemeral](../adr/0009-client-signals-are-http-writes-with-socket-push.md): ADR [0001](../adr/0001-websocket-is-server-push-only.md) makes the socket server-push only.
 - [0010: The API uses relative imports; `tsc` compiles and `ttsc` only loads](../adr/0010-api-uses-relative-imports-no-path-aliases.md): The API has no tsconfig path aliases.
 - [0011: A Spec and its Tickets merge into their Feature Branch, not `main`](../adr/0011-specs-merge-into-their-feature-branch.md): The Spec Writer cuts `feat/NNNNN-<slug>` from `main` and pushes it before grilling starts.
+- [0012: A Role's Writes are enforced on each edit, when a sub-agent stops and when a PR opens](../adr/0012-writes-are-enforced-on-edit-agent-stop-and-pr-open.md): The Writes column of the SDLC page is enforced by scripts, not by the agent ticking a checklist.

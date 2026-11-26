@@ -33,13 +33,13 @@ See the Spec's "Ticket template and scope file".
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The Ticket template has `Packages:` and `Also writes:` after *What to build*, each described in the Fields list
-- [ ] The shared module reads `ticket`, `packages`, `writes`, `spec-status`, `browser-check` and `worktree`, and a missing line gives the empty value
-- [ ] A scope file in the old glob format still reads as no facts
-- [ ] Every existing read guard test passes unchanged in meaning
-- [ ] The orchestrator page's *Read scope* section names all six facts and their sources
+- [x] The Ticket template has `Packages:` and `Also writes:` after *What to build*, each described in the Fields list
+- [x] The shared module reads `ticket`, `packages`, `writes`, `spec-status`, `browser-check` and `worktree`, and a missing line gives the empty value
+- [x] A scope file in the old glob format still reads as no facts
+- [x] Every existing read guard test passes unchanged in meaning
+- [x] The orchestrator page's *Read scope* section names all six facts and their sources
 
 **Verification:** Script tests (`node --test`, run by `pnpm test:scripts`) for the shared module, driven with scope file lines: each fact present, missing, and the old glob format. The read guard suite stays green.
 

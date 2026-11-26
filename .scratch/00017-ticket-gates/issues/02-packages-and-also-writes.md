@@ -46,3 +46,6 @@ See the Spec's "Ticket template and scope file".
 **Out of scope:** Any guard that reads `writes`, `ticket` or `spec-status` (Tickets 03 to 06); rewriting existing Tickets with the new fields.
 
 ## Comments
+- scripts/hooks/scope-facts.ts: `scopeFacts(lines)` returns the six facts; `readScopeFile(commonDir, branch)` reads the lines. guard-reads.ts uses both. Docs updated: ticket-template.md, orchestrator.md (Read scope).
+- Assumption: `packages: scripts` still maps to packages/scripts/AGENTS.md in the read guard (a path that doesn't exist, harmless), to keep the guard's answers unchanged.
+- pnpm lint fails only on untracked overview.md (prettier), not committed.

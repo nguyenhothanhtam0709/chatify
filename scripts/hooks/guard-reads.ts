@@ -3,7 +3,8 @@
 // leaves an agent stuck. Any failure in here lets the call through.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, relative, resolve } from 'node:path';
+import { readScopeFile, scopeFacts } from './scope-facts.ts';
 
 const MAX_READ_LINES = 80;
 
@@ -40,24 +41,15 @@ interface HookInput {
 
 const NAME = /^[\w-]+$/;
 
-// A fact line is `<name>: <value>`. Any other line, such as an old-format glob, is no fact.
-const facts = (scope: string[]): Map<string, string> =>
-  new Map(
-    scope.flatMap((line) => {
-      const match = /^([\w-]+):\s*(.*)$/.exec(line);
-      return match?.[1] === undefined ? [] : [[match[1], (match[2] ?? '').trim()] as const];
-    }),
-  );
-
 // The docs a scope file's facts make readable whole. A missing fact means no.
 const docsFromFacts = (scope: string[]): string[] => {
-  const fact = facts(scope);
-  const packages = (fact.get('packages') ?? '').split(/\s+/).filter((name) => NAME.test(name));
+  const { packages, browserCheck, worktree } = scopeFacts(scope);
+  const names = packages.filter((name) => NAME.test(name));
   return [
-    ...packages.flatMap((name) => [`packages/${name}/AGENTS.md`, `docs/conventions/${name}.md`]),
-    ...(packages.length > 0 ? ['docs/conventions/general.md'] : []),
-    ...(fact.get('browser-check') === 'yes' ? ['docs/workflow/browser-check.md'] : []),
-    ...(fact.get('worktree') === 'yes' ? ['docs/workflow/worktree.md'] : []),
+    ...names.flatMap((name) => [`packages/${name}/AGENTS.md`, `docs/conventions/${name}.md`]),
+    ...(names.length > 0 ? ['docs/conventions/general.md'] : []),
+    ...(browserCheck ? ['docs/workflow/browser-check.md'] : []),
+    ...(worktree ? ['docs/workflow/worktree.md'] : []),
   ];
 };
 
@@ -190,17 +182,6 @@ export const decide = (input: HookInput, context: ReadContext): string | null =>
   return path !== null && guardedFile(path, context, allowed) ? denial(path, context) : null;
 };
 
-const readScope = (commonDir: string, branch: string): string[] | null => {
-  try {
-    return readFileSync(join(commonDir, 'scope', `${branch}.txt`), 'utf8')
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith('#'));
-  } catch {
-    return null;
-  }
-};
-
 const contextFor = (cwd: string): ReadContext => {
   const [root = cwd, gitCommonDir = '.git', branch = ''] = execFileSync(
     'git',
@@ -210,7 +191,12 @@ const contextFor = (cwd: string): ReadContext => {
     .trim()
     .split('\n');
   const commonDir = resolve(cwd, gitCommonDir);
-  return { roots: [root, dirname(commonDir)], cwd, branch, scope: readScope(commonDir, branch) };
+  return {
+    roots: [root, dirname(commonDir)],
+    cwd,
+    branch,
+    scope: readScopeFile(commonDir, branch),
+  };
 };
 
 if (import.meta.main) {

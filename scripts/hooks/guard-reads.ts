@@ -1,9 +1,9 @@
 // PreToolUse hook: denies whole-file reads an agent doesn't need, to save tokens. Cost control, not
 // security: searching and short reads stay allowed, so a brief that is missing something never
 // leaves an agent stuck. Any failure in here lets the call through.
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
+import { gitContext, gitContextOfPath } from './git-context.ts';
 import { readScopeFile, scopeFacts } from './scope-facts.ts';
 
 const MAX_READ_LINES = 80;
@@ -182,15 +182,17 @@ export const decide = (input: HookInput, context: ReadContext): string | null =>
   return path !== null && guardedFile(path, context, allowed) ? denial(path, context) : null;
 };
 
-const contextFor = (cwd: string): ReadContext => {
-  const [root = cwd, gitCommonDir = '.git', branch = ''] = execFileSync(
-    'git',
-    ['rev-parse', '--show-toplevel', '--git-common-dir', '--abbrev-ref', 'HEAD'],
-    { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
-  )
-    .trim()
-    .split('\n');
-  const commonDir = resolve(cwd, gitCommonDir);
+/**
+ * The checkout and scope the call is judged in. A `Read` resolves from its file, since a sub-agent
+ * in a worktree gets the main checkout as `cwd`; a file outside any repo, and Bash, resolve from
+ * `cwd`.
+ */
+const contextFor = (input: HookInput): ReadContext | null => {
+  const cwd = input.cwd ?? process.cwd();
+  const filePath = input.tool_name === 'Read' ? input.tool_input?.file_path : undefined;
+  const context = (filePath ? gitContextOfPath(filePath, cwd) : null) ?? gitContext(cwd);
+  if (context === null) return null;
+  const { root, commonDir, branch } = context;
   return {
     roots: [root, dirname(commonDir)],
     cwd,
@@ -202,7 +204,8 @@ const contextFor = (cwd: string): ReadContext => {
 if (import.meta.main) {
   try {
     const input = JSON.parse(readFileSync(0, 'utf8')) as HookInput;
-    const reason = decide(input, contextFor(input.cwd ?? process.cwd()));
+    const context = contextFor(input);
+    const reason = context && decide(input, context);
     if (reason) {
       process.stdout.write(
         JSON.stringify({

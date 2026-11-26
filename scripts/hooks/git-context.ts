@@ -26,7 +26,13 @@ const git = (cwd: string, args: string[]): string | null => {
 /** The checkout, shared git dir and branch of `dir`, or null when it is not in a repo. */
 export const gitContext = (dir: string): GitContext | null => {
   if (!existsSync(dir)) return null;
-  const out = git(dir, ['rev-parse', '--show-toplevel', '--git-common-dir', '--abbrev-ref', 'HEAD']);
+  const out = git(dir, [
+    'rev-parse',
+    '--show-toplevel',
+    '--git-common-dir',
+    '--abbrev-ref',
+    'HEAD',
+  ]);
   const [root, commonDir, branch] = out?.trim().split('\n') ?? [];
   if (!root || !commonDir || !branch) return null;
   return { root, commonDir: resolve(dir, commonDir), branch };
@@ -57,13 +63,11 @@ export interface Worktree {
 
 /** Every worktree of the repo `dir` is in, the main checkout first. Empty when git fails. */
 export const worktrees = (dir: string): Worktree[] =>
-  (git(dir, ['worktree', 'list', '--porcelain']) ?? '')
-    .split('\n\n')
-    .flatMap((block) => {
-      const path = /^worktree (.+)$/m.exec(block)?.[1];
-      const branch = /^branch refs\/heads\/(.+)$/m.exec(block)?.[1] ?? null;
-      return path ? [{ path, branch }] : [];
-    });
+  (git(dir, ['worktree', 'list', '--porcelain']) ?? '').split('\n\n').flatMap((block) => {
+    const path = /^worktree (.+)$/m.exec(block)?.[1];
+    const branch = /^branch refs\/heads\/(.+)$/m.exec(block)?.[1] ?? null;
+    return path ? [{ path, branch }] : [];
+  });
 
 /** The worktree checked out on `branch`, or the main checkout when none is. */
 export const worktreeOf = (dir: string, branch: string): string | null => {

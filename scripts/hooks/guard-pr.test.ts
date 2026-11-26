@@ -242,7 +242,7 @@ test('with no head, the PR guard checks the branch of the cd before gh pr create
   assert.match(reason, /packages\/web\/b\.ts/);
 });
 
-test("an Implementer PR whose head is not a Task Branch with a scope file is denied, saying why", () => {
+test('an Implementer PR whose head is not a Task Branch with a scope file is denied, saying why', () => {
   const tree = worktreeFixture();
   tree.git(['branch', 'agent/00007-02-noscope'], tree.main);
   const open = (input: object) =>
@@ -263,7 +263,13 @@ test("an Implementer PR whose head is not a Task Branch with a scope file is den
   // Other Roles, and a broken input, still fail open.
   assert.doesNotMatch(open({ agent_type: 'reviewer' }), /Task Branch/);
   assert.equal(
-    reasonOf(guard({ tool_name: 'mcp__github__create_pull_request', agent_type: 'implementer', cwd: '/nonexistent' })),
+    reasonOf(
+      guard({
+        tool_name: 'mcp__github__create_pull_request',
+        agent_type: 'implementer',
+        cwd: '/nonexistent',
+      }),
+    ),
     '',
   );
 });

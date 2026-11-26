@@ -116,6 +116,15 @@ export interface TaskBranch {
   worktree: string;
 }
 
+/** The facts of `branch`, checked out in `worktree` (or the main checkout). */
+export const taskBranch = (branch: string, commonDir: string, worktree: string): TaskBranch => ({
+  branch,
+  specNumber: /^agent\/(\d{5})-/.exec(branch)?.[1] ?? null,
+  commonDir,
+  scope: readScopeFile(commonDir, branch),
+  worktree,
+});
+
 /**
  * The branch a PR opens from: its head, else the branch where the command runs. A sub-agent in
  * a worktree gets the main checkout as `cwd` (Ticket 08), so `cwd` alone can't be trusted. Null
@@ -126,13 +135,7 @@ export const findTaskBranch = (input: HookInput): TaskBranch | null => {
   const context = gitContext(dir);
   if (context === null) return null;
   const branch = prHead(input) ?? context.branch;
-  return {
-    branch,
-    specNumber: /^agent\/(\d{5})-/.exec(branch)?.[1] ?? null,
-    commonDir: context.commonDir,
-    scope: readScopeFile(context.commonDir, branch),
-    worktree: worktreeOf(dir, branch) ?? context.root,
-  };
+  return taskBranch(branch, context.commonDir, worktreeOf(dir, branch) ?? context.root);
 };
 
 /** Why an Implementer's PR has no Task Branch to check, or null when it has one. */

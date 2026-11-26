@@ -47,8 +47,11 @@ test('files are read at a branch ref without its worktree, a missing one left ou
   repo.write('scripts/a.ts', 'on the branch\n');
   repo.commit('change');
   const files = readAtRef(repo.main, repo.branch, ['scripts/a.ts', 'nope.md', 'docs/other.md']);
-  assert.deepEqual([...files], [
-    ['scripts/a.ts', 'on the branch\n'],
-    ['docs/other.md', 'other\n'],
-  ]);
+  assert.deepEqual(
+    [...files],
+    [
+      ['scripts/a.ts', 'on the branch\n'],
+      ['docs/other.md', 'other\n'],
+    ],
+  );
 });

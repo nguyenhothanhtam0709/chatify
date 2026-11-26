@@ -2,26 +2,13 @@
 // typecheck of the scope's packages and the test files changed on the branch, so a breach or a
 // failure reaches the agent before the PR does. Blocks the stop once; a timeout does not block.
 // Fails open, like the other guards.
-import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { BUDGET_MS, fastChecks, runChecks, type Check } from './fast-checks.ts';
 import { featureTip, gitContext, worktrees } from './git-context.ts';
 import { diffScope, gitOut, taskBranch, type HookInput, type TaskBranch } from './guard-pr.ts';
 import { scopeFacts } from './scope-facts.ts';
 
-export const BUDGET_MS = 180_000;
-
-export interface CheckResult {
-  /** 0 passed, 1 failed, null could not run. */
-  status: number | null;
-  output: string;
-  timedOut?: boolean;
-}
-
-export interface Check {
-  name: string;
-  /** Runs the check with at most `budgetMs` to finish. */
-  run: (budgetMs: number) => CheckResult;
-}
+export { BUDGET_MS, stopChecks, type Check, type CheckResult } from './fast-checks.ts';
 
 export interface StopInput extends HookInput {
   stop_hook_active?: boolean;
@@ -39,19 +26,7 @@ export const checkOnStop = (input: StopInput, checks: Check[], now: () => number
   if (input.agent_type !== 'implementer' || input.stop_hook_active) {
     return { block: null, notice: null };
   }
-  const start = now();
-  const failures: string[] = [];
-  const skipped: string[] = [];
-  for (const check of checks) {
-    const left = BUDGET_MS - (now() - start);
-    if (left <= 0) {
-      skipped.push(check.name);
-      continue;
-    }
-    const result = check.run(left);
-    if (result.timedOut) skipped.push(check.name);
-    else if (result.status === 1) failures.push(`${check.name}:\n${result.output}`);
-  }
+  const { failures, skipped } = runChecks(checks, now);
   return {
     block:
       failures.length > 0
@@ -63,63 +38,6 @@ export const checkOnStop = (input: StopInput, checks: Check[], now: () => number
         : null,
   };
 };
-
-export interface Command {
-  name: string;
-  command: string;
-  args: string[];
-}
-
-const TEST_FILE = /\.(?:test|spec)\.tsx?$/;
-
-/** Lint and typecheck of each scope package, then the changed test files. */
-export const stopChecks = (packages: string[], changedFiles: string[]): Command[] => {
-  const commands: Command[] = packages.flatMap((pkg) =>
-    ['lint', 'typecheck'].map((script) =>
-      pkg === 'scripts'
-        ? { name: `${script}:scripts`, command: 'pnpm', args: [`${script}:scripts`] }
-        : {
-            name: `${script} @chat/${pkg}`,
-            command: 'pnpm',
-            args: ['--filter', `@chat/${pkg}`, script],
-          },
-    ),
-  );
-  const tests = changedFiles.filter((file) => TEST_FILE.test(file));
-  const scriptTests = tests.filter((file) => file.startsWith('scripts/'));
-  for (const pkg of new Set(tests.map((file) => /^packages\/([^/]+)\//.exec(file)?.[1]))) {
-    if (pkg === undefined) continue;
-    const files = tests.filter((file) => file.startsWith(`packages/${pkg}/`));
-    commands.push({
-      name: `tests @chat/${pkg}`,
-      command: 'pnpm',
-      args: [
-        '--filter',
-        `@chat/${pkg}`,
-        'exec',
-        'vitest',
-        'run',
-        ...files.map((file) => file.slice(`packages/${pkg}/`.length)),
-      ],
-    });
-  }
-  if (scriptTests.length > 0) {
-    commands.push({ name: 'tests scripts', command: 'node', args: ['--test', ...scriptTests] });
-  }
-  return commands;
-};
-
-const spawned =
-  (cwd: string, { command, args }: Command) =>
-  (budgetMs: number): CheckResult => {
-    const result = spawnSync(command, args, { cwd, encoding: 'utf8', timeout: budgetMs });
-    const code = (result.error as NodeJS.ErrnoException | undefined)?.code;
-    if (code === 'ETIMEDOUT') return { status: null, output: '', timedOut: true };
-    if (result.error || result.status === null) {
-      return { status: null, output: String(result.error ?? 'killed') };
-    }
-    return { status: result.status > 0 ? 1 : 0, output: `${result.stdout}${result.stderr}`.trim() };
-  };
 
 /**
  * The Task Branch whose work is checked. The input names no file or branch, and a sub-agent in a
@@ -164,10 +82,7 @@ const checksFor = (input: StopInput, task: TaskBranch): Check[] => {
       name: "Diff scope (files outside the Role's Writes)",
       run: () => diffScope(input.agent_type, task),
     },
-    ...stopChecks(scopeFacts(scope).packages, changed).map((command) => ({
-      name: command.name,
-      run: spawned(worktree, command),
-    })),
+    ...fastChecks(worktree, scope, changed),
   ];
 };
 

@@ -64,6 +64,27 @@ export const findOpenTickets = (docs: Doc[]): string[] => {
   });
 };
 
+const LATERS_TAGS = new Set(['product', 'debt', 'factory']);
+
+export const findUntaggedLaters = (docs: Doc[]): string[] =>
+  docs
+    .filter(({ path }) => path === 'docs/laters.md')
+    .flatMap(({ path, content }) =>
+      content
+        .split(/^## /m)
+        .slice(1)
+        .flatMap((section) => {
+          const [heading = '', ...rest] = section.split('\n');
+          const first = rest.find((line) => line.trim() !== '');
+          const tag = /^\*\*Tag:\*\*\s*(\S+)\s*$/.exec(first ?? '')?.[1];
+          if (tag === undefined) return [`${path}: "${heading}" has no **Tag:** line`];
+          if (!LATERS_TAGS.has(tag)) {
+            return [`${path}: "${heading}" has tag "${tag}", not product, debt or factory`];
+          }
+          return [];
+        }),
+    );
+
 if (import.meta.main) {
   const root = fileURLToPath(new URL('../../', import.meta.url));
   const docs = execFileSync('git', ['ls-files', '*.md'], { cwd: root, encoding: 'utf8' })
@@ -76,6 +97,7 @@ if (import.meta.main) {
     ...findMissingKinds(docs),
     ...findBadCovers(docs),
     ...findOpenTickets(docs),
+    ...findUntaggedLaters(docs),
   ];
   if (findings.length > 0) {
     console.error(findings.join('\n'));

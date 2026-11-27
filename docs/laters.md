@@ -1,24 +1,34 @@
 # Laters
 
-Notes for a later MVP, not commitments. Any agent may append an entry with `cat >> docs/laters.md`. Remove an entry when it becomes a spec. To find an entry, run `grep -n '^## ' docs/laters.md` and read only that section: whole-file reads are denied.
+Notes for a later MVP, not commitments. Any agent may append an entry with `cat >> docs/laters.md`. Start each entry's first line under its `## ` heading with `**Tag:** product`, `**Tag:** debt` or `**Tag:** factory` (product: a Chat feature users would see; debt: a cleanup or fix in the code or its tests; factory: the workflow, agents, hooks or docs for agents); `pnpm docs:check` fails without it. Remove an entry when it becomes a spec. To find an entry, run `grep -n '^## ' docs/laters.md` and read only that section: whole-file reads are denied.
 
 ## Contract-first development
+
+**Tag:** debt
 
 Today `packages/contracts` (Zod) is shared by the API and SPA, but endpoints are built code-first and there are no generated API docs (OpenAPI is out of scope for MVP1). In a later MVP, move to contract-first: define the HTTP contract (request, response and error shapes) before the implementation, and drive the API and SPA from it. Decide the contract format (extending the Zod contracts vs. OpenAPI) in an ADR when this is picked up.
 
 ## Scale out the API
 
+**Tag:** debt
+
 The API runs as a single instance (ADR [0006](adr/0006-api-runs-as-a-single-instance.md)): commit ordering uses an in-process serializer and Socket.IO rooms are in memory. To run more than one instance, add the Socket.IO Redis adapter and move ordering to the database. Turn that into a spec before starting. Once Presence exists (ADR [0009](adr/0009-client-signals-are-http-writes-with-socket-push.md)), its in-memory connection counts have to move to Redis in the same change.
 
 ## Presence
+
+**Tag:** product
 
 Online and offline status, the later slice of Live Signals (spec 00007). Open questions: how multiple tabs and devices count as online, who can see a User's presence (there are no contacts, so it would mean everyone who shares a Conversation with them), and the offline timeout. It keeps in-memory connection state, so it has to move to Redis together with "Scale out the API" (ADR [0009](adr/0009-client-signals-are-http-writes-with-socket-push.md)). Turn it into a spec after 00007 ships.
 
 ## Stored Unread Count
 
+**Tag:** debt
+
 The Unread Count is computed when the Conversation list is fetched, capped at 100 ("99+"), from an index range scan on `(conversation_id, sequence)` starting at the Member's Read Marker. If the list query turns out slow, store a per-Member counter instead. Cost to weigh: up to 255 extra row updates per Message in a Group, inside the Conversation row lock.
 
 ## Refresh-token rotation can end a session if a refresh is cancelled mid-flight
+
+**Tag:** debt
 
 - **Seen:** reloading the SPA several times quickly in dev gave 401s (`/auth/refresh` 401, or `/users/me` 401 `SESSION_REVOKED` with a valid token). The user tested it and found it happens only in dev mode (`pnpm dev:web`); it does not happen with the production build (`pnpm serve:web`).
 - **Why dev:** `main.tsx` uses `<StrictMode>`, so every mount effect runs twice in dev (`/auth/refresh` and `/conversations` are each sent twice, the first aborted). The extra, aborted refresh can reach the API and rotate the cookie before the page throws the response away.
@@ -28,17 +38,23 @@ The Unread Count is computed when the Conversation list is fetched, capped at 10
 
 ## `owner_changed` System Message in the Conversation preview and list ordering
 
+**Tag:** debt
+
 - **Seen:** ticket 48 added the `owner_changed` System Message kind. The spec says System Messages stay out of the Conversation preview and list ordering, but the 48 diff did not touch that code, so it relies on the existing kind-based filtering. Nobody checked it, and no test covers it for this kind.
 - **Not done:** no check or test yet.
 - **Idea:** add a test (API) that an `owner_changed` message does not become the preview or move the Conversation in the list, or confirm the filter is by `kind` for every System Message.
 
 ## Throttler route strings are duplicated away from the controllers
 
+**Tag:** debt
+
 - **Seen:** in the spec 00002 code review. `throttling/throttling.module.ts` hard-codes `SEARCH_URL`, `SEND_URLS` and `/api/v1/auth/login`, separate from the controllers that define those routes. Renaming a route or the global prefix would silently switch the matching limit off, and no test ties the strings to the real routes.
 - **Not done:** spec 00002 said to move the limits and route rules unchanged, so this was left as it was.
 - **Idea:** derive the throttler routes from the controllers' route metadata, or add a test that each limited route is actually limited.
 
 ## Enforce the doc and convention rules
+
+**Tag:** factory
 
 `pnpm docs:check` covers the Generated Docs, links, `kind` and Ticket Status, and a hook runs it when an agent opens a PR. Nothing checks a human's PR, and the other rules are followed by reading. Enforcement to build in a later MVP:
 
@@ -47,11 +63,15 @@ The Unread Count is computed when the Conversation list is fetched, capped at 10
 
 ## Review the mocks in tests
 
+**Tag:** debt
+
 - **Seen:** while extracting conventions (spec 00004, ticket 05). The [testing policy](workflow/testing-policy.md#mocking) says to test through public seams and to mock only where no seam exists. Four files use `vi.mock` or `vi.spyOn`: `api/src/groups/group-rooms.test.ts`, `api/src/db/database.module.test.ts`, `web/src/realtime/socket-realtime.test.ts` and `web/src/test/layout.ts`.
 - **Not done:** nobody checked whether each mock is needed.
 - **Idea:** for each file, switch to a public seam or note why there is none.
 
 ## `socket-realtime.test.ts` fails now and then
+
+**Tag:** debt
 
 - **Seen:** during Spec 00017. `web/src/realtime/socket-realtime.test.ts` failed once in a full `pnpm test` (Ticket 07, PR #230) and passed on rerun. That Ticket changed no web code.
 - **Not done:** nobody looked for the cause; the failing output wasn't kept.
@@ -59,17 +79,23 @@ The Unread Count is computed when the Conversation list is fetched, capped at 10
 
 ## One shared uuid path pipe in the API
 
+**Tag:** debt
+
 - **Seen:** while extracting conventions (spec 00004, ticket 05). The same `new ZodValidationPipe(z.uuid())` is declared twice: `IdPipe` in `api/src/groups/groups.controller.ts` and `ConversationIdPipe` in `api/src/messages/messages.controller.ts`.
 - **Not done:** left as two copies.
 - **Idea:** export one uuid path pipe from `api/src/common/` and use it in both controllers.
 
 ## API tests redefine `signUp`
 
+**Tag:** debt
+
 - **Seen:** while extracting conventions (spec 00004, ticket 05). `docs/conventions/api.md` says test Users come from `signUp` in `api/test/people.ts`. Four files keep a local copy: `api/src/messages/messages.test.ts`, `api/src/groups/groups.test.ts`, `api/src/realtime/realtime.test.ts` and `api/src/auth/user-search.test.ts`.
 - **Not done:** test-only cleanup, no behaviour change.
 - **Idea:** switch those four files to the shared helper, and add anything they need to it.
 
 ## Web cleanups found while extracting conventions
+
+**Tag:** debt
 
 - **Seen:** while extracting conventions (spec 00004, ticket 05), against `docs/conventions/web.md`:
   - `web/src/realtime/socket-realtime.test.ts` imports `../test/server`, the only upward relative import. It should use `@/test/server`.
@@ -79,17 +105,23 @@ The Unread Count is computed when the Conversation list is fetched, capped at 10
 
 ## Shared request helper for the web API client
 
+**Tag:** debt
+
 - **Seen:** while extracting conventions (spec 00004, ticket 05). Seven files in `web/src/api/` (`auth.ts`, `conversations.ts`, `groups.ts`, `messages.ts`, `profile.ts`, `register.ts`, `users.ts`) repeat the fetch, try and catch block and the strings "Could not reach the server. Try again." and "Something went wrong. Try again." `groups.ts` also declares them as constants and `messages.ts` has its own `post` helper. `api/health.ts` throws instead of returning an `{ ok, ... }` union.
 - **Not done:** an eight-file refactor with no visible change.
 - **Idea:** one request helper in `web/src/api/` that owns the fetch, the error strings and the union, used by every endpoint function, including `health.ts`.
 
 ## Shared test people in web tests
 
+**Tag:** debt
+
 - **Seen:** while extracting conventions (spec 00004, ticket 05). Each web test file (`routing.test.tsx`, `login.test.tsx`, `profile.test.tsx`, ...) redefines its own `alice` user and fake access token.
 - **Not done:** test-only cleanup.
 - **Idea:** a helper in `web/src/test/`, mirroring `api/test/people.ts`.
 
 ## Contracts cleanups found while extracting conventions
+
+**Tag:** debt
 
 - **Seen:** while extracting conventions (spec 00004, ticket 05), against `docs/conventions/contracts.md`:
   - `SearchUsersQuery` (`contracts/src/user.ts:132`) uses `z.input`, but only the API uses it, after parsing, so it should be `z.infer`. Harmless today because the schema has no transform.
@@ -99,49 +131,73 @@ The Unread Count is computed when the Conversation list is fetched, capped at 10
 
 ## Password reset and password change
 
+**Tag:** product
+
 Out of scope for MVP1 along with email verification, account deletion and Username change. Reset needs email delivery, a new external dependency, so the ticket must name the provider. Decide whether reset invalidates existing sessions (the `sessions` table and deny-list already exist).
 
 ## Message edit and delete
+
+**Tag:** product
 
 A Message is defined as immutable in `GLOSSARY.md`, so this changes the domain: update the glossary and add an ADR first. Delete could be a soft delete shown as a tombstone. Decide what Former Members see and whether edits need an `edited` marker and a realtime event.
 
 ## Message search
 
+**Tag:** product
+
 Out of scope for MVP1 (User search exists, see issue 07). Postgres full-text search is the simplest start. Results must respect Former Member history boundaries and the `404` for never-Members.
 
 ## Replies and reactions
+
+**Tag:** product
 
 Replies (and threads) need a reference from a Message to another Message in the same Conversation. Reactions need a new entity and realtime events. Both are blocked by the Message immutability rule if reactions are stored on the Message.
 
 ## Attachments
 
+**Tag:** product
+
 The largest item: storage, upload validation, size limits, and a new look at ADR [0002](adr/0002-validate-input-encode-output-no-sanitizer.md). Rich text and markdown are out of scope for MVP1 too and would need the same output-encoding review.
 
 ## Block and report Users
+
+**Tag:** product
 
 Contacts, friend requests, blocking and reporting were all out of scope for MVP1. Decide how blocking interacts with Direct Conversations (at most one per pair) and with Groups.
 
 ## Group renaming, ownership transfer and invitations
 
+**Tag:** product
+
 MVP1 has only the Owner role and no renaming, deletion or invitations needing acceptance. Admin and moderator roles are a further step. Each changes the Owner and Member rules in `GLOSSARY.md`.
 
 ## Real-time Nickname updates
+
+**Tag:** product
 
 `user.updated` was left out of MVP1; Nickname changes only show after a refetch. Small: one realtime event, pushed to the rooms of the User's Conversations. Respect ADR [0001](adr/0001-websocket-is-server-push-only.md).
 
 ## CI pipeline and deployment
 
+**Tag:** factory
+
 CI, deployment and OpenAPI docs were out of scope for MVP1. The required CI checks are already listed under "Enforce the doc and convention rules" and OpenAPI under "Contract-first development"; this entry is the rest: a hosting target, environment config and a deploy pipeline.
 
 ## Server-side checks on API responses
+
+**Tag:** debt
 
 Strict output doesn't stop the server sending a field: the API never parses its responses. `UserSearchResultSchema` only makes API tests fail on a leak and makes the client throw. Decide whether to parse responses in the API, in tests or at runtime.
 
 ## Other web clients with the malformed 2xx pattern
 
+**Tag:** debt
+
 Ticket 00009-04 made the mutation clients (`login`, `register`, `updateProfile`, `createGroup`, `changeMembers`, `leaveGroup`) `safeParse` a 2xx body. These still `parse` it and can reject with a `ZodError`: `getGroup` (`groups.ts`), `conversations.ts` (`listConversations`, `readReceipt`, `messagesPage`), `messages.ts` (send direct and group), `users.ts` (search) and `health.ts`. `refreshAccessToken` and `fetchCurrentUser` (`auth.ts`) have the pattern too, but a `try/catch` makes them return undefined.
 
 ## Case-insensitive comparison depends on ASCII-only Usernames and Emails
+
+**Tag:** debt
 
 - **Seen:** while grilling spec 00015. Login, User search and the `lower()` unique indexes compare JS `toLowerCase()` with Postgres `lower()`. The two agree only because `UsernameSchema` is `[A-Za-z0-9_]` and Zod 4.6.7's `z.email()` rejects non-ASCII addresses.
 - **Not done:** no bug today, and outside spec 00015.
@@ -149,11 +205,15 @@ Ticket 00009-04 made the mutation clients (`login`, `register`, `updateProfile`,
 
 ## Zero-width-only Message bodies pass validation
 
+**Tag:** debt
+
 - **Seen:** while grilling spec 00015. `"\u200B"` is not `\s`, so `MessageBodySchema` accepts it as not blank, and it gives an invisible Message and Preview.
 - **Not done:** a validation question, not a Preview one.
 - **Idea:** decide whether "not blank" should also reject zero-width and format characters (Unicode `Cf`).
 
 ## Replay past Tickets when the workflow changes
+
+**Tag:** factory
 
 - **Seen:** while planning the Factory hardening Specs. A change to `docs/workflow/` or an agent definition has no way to show whether agents do better or worse afterwards.
 - **Not done:** needs numbers first, from the per-Ticket metrics line planned in the Learning Loop Spec.

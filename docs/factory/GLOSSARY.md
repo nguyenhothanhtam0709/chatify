@@ -57,7 +57,7 @@ The shared branch where one Spec's Tickets are collected before they reach `main
 _Avoid_: Integration branch, epic branch
 
 **Task Branch**:
-The branch for one Ticket's work, or for a Spec's review fixes or Doc Sync, cut from its Feature Branch.
+The branch for one Ticket's work, or for a Spec's review fixes, Doc Sync or Doc Writer, cut from its Feature Branch.
 _Avoid_: Ticket branch, topic branch
 
 **Scope file**:
@@ -79,3 +79,7 @@ _Avoid_: Blocker (that is a Ticket's `Blocked by`), handoff
 **Escalation Report**:
 The fixed-shape question an Escalation leaves in the Ticket and the draft PR: the quoted text, the evidence, why it blocks, the options with a recommendation, and what is blocked and what continues.
 _Avoid_: Spec Issue Report (an Escalation is not always about the Spec), question
+
+**Learning section**:
+The part of a feature PR to `main` that lists what the feature taught the Factory (repeated findings, reads outside scope, guesses, broken rules) and the action the human approved for each, or None.
+_Avoid_: Retro (optional, and not part of the PR), lessons learned

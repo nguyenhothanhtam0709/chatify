@@ -59,6 +59,13 @@ test('the Doc Sync branch name passes', () => {
   );
 });
 
+test('the Doc Writer branch name passes and a longer name fails', () => {
+  const scope = { ...good.scope!, ticket: null };
+  assert.deepEqual(failures({ branch: 'agent/00017-doc-writer', scope }), []);
+  const bad = failures({ branch: 'agent/00017-doc-writers', scope }).join('\n');
+  assert.match(bad, /agent\/NNNNN-doc-writer/);
+});
+
 test('no Feature Branch on origin fails', () => {
   assert.match(
     failures({ featureBranches: ['feat/00016-agent-roles'] }).join('\n'),

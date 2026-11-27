@@ -77,6 +77,13 @@ test('the packages fact allows the AGENTS.md and convention of each named packag
   assert.ok(decide(read('docs/conventions/api.md'), none));
 });
 
+test('a doc listed in writes can be read whole; laters and unlisted docs cannot', () => {
+  const ctx = withFacts('packages: scripts', 'writes: docs/workflow/worktree.md docs/laters.md');
+  assert.equal(decide(read('docs/workflow/worktree.md'), ctx), null);
+  assert.ok(decide(read('docs/laters.md'), ctx));
+  assert.ok(decide(read('docs/workflow/setup.md'), ctx));
+});
+
 test('the browser-check and worktree facts allow their doc only when yes', () => {
   for (const [fact, doc] of [
     ['browser-check', 'docs/workflow/browser-check.md'],

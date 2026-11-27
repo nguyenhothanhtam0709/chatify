@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { findBadCovers, findBrokenLinks, findMissingKinds, findOpenTickets } from './check.ts';
+import {
+  findBadCovers,
+  findBrokenLinks,
+  findMissingKinds,
+  findOpenTickets,
+  findUntaggedLaters,
+} from './check.ts';
 
 const doc = (path: string, content: string) => ({ path, content });
 
@@ -92,5 +98,25 @@ test('covers must be a list of strings, and only on a Descriptive Doc', () => {
   ]);
   assert.deepEqual(findBadCovers([d('docs/c.md', 'intent', '[a]')]), [
     'docs/c.md: covers only belongs on a doc with kind: descriptive',
+  ]);
+});
+
+const laters = (body: string) => [doc('docs/laters.md', `# Laters\n\nHeader.\n\n${body}`)];
+
+test('a Laters entry with a valid tag passes', () => {
+  const body =
+    '## A\n\n**Tag:** product\n\nText.\n\n## B\n\n**Tag:** debt\n\n## C\n\n**Tag:** factory\n';
+  assert.deepEqual(findUntaggedLaters(laters(body)), []);
+});
+
+test('a Laters entry with no tag line is reported by its heading', () => {
+  assert.deepEqual(findUntaggedLaters(laters('## Presence\n\nText.\n')), [
+    'docs/laters.md: "Presence" has no **Tag:** line',
+  ]);
+});
+
+test('a Laters entry with an unknown tag value is reported by its heading', () => {
+  assert.deepEqual(findUntaggedLaters(laters('## Presence\n\n**Tag:** feature\n')), [
+    'docs/laters.md: "Presence" has tag "feature", not product, debt or factory',
   ]);
 });

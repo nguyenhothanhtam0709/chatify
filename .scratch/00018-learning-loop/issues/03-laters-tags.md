@@ -22,17 +22,19 @@ See the Spec's "Laters tags".
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] An entry with a valid tag passes the check
-- [ ] An entry with no tag line fails, and the message names its heading
-- [ ] An entry with an unknown value fails, and the message names its heading
-- [ ] Every existing entry in `docs/laters.md` has exactly one tag line, and no other line in it changed
-- [ ] The Laters header tells an agent to add the tag line and lists the three values
-- [ ] `pnpm docs:check` passes
+- [x] An entry with a valid tag passes the check
+- [x] An entry with no tag line fails, and the message names its heading
+- [x] An entry with an unknown value fails, and the message names its heading
+- [x] Every existing entry in `docs/laters.md` has exactly one tag line, and no other line in it changed
+- [x] The Laters header tells an agent to add the tag line and lists the three values
+- [x] `pnpm docs:check` passes
 
 **Verification:** Script tests in `check.test.ts` for the three check cases, with docs built by hand as the existing cases do. `pnpm docs:check` passes on the branch.
 
 **Out of scope:** Reordering, merging or rewording Laters entries; tags on any other file.
 
 ## Comments
+
+Added `findUntaggedLaters` to `scripts/docs/check.ts` with three script tests, tagged all 30 Laters entries (9 product, 18 debt, 3 factory) and added the tag rule to the header. Judgement call: "CI pipeline and deployment" tagged factory, "Scale out the API" and "Contract-first development" tagged debt.

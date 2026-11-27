@@ -44,8 +44,6 @@ The Unread Count is computed when the Conversation list is fetched, capped at 10
 
 - **Enforcement tags:** tag each rule with how it is enforced, and apply "broken twice, automate it": once a rule is broken a second time, replace the prose with an automated check.
 - **Required CI checks:** lint, typecheck, tests with Postgres, migration drift, generated-doc drift, and a front matter and link check. Back them with branch protection. A required approval would block a solo maintainer, because GitHub doesn't let a PR's author approve it, so require only the status checks while the repo has one human.
-- **`covers:` check:** a PR that touches code covered by a Descriptive Doc without updating that doc fails, unless the PR body justifies it.
-- **Stop hook:** run the fast checks when the agent stops.
 - **Drift audit:** a periodic audit of docs against code that opens Tickets for each drift found.
 
 ## Review the mocks in tests
@@ -136,10 +134,6 @@ MVP1 has only the Owner role and no renaming, deletion or invitations needing ac
 
 CI, deployment and OpenAPI docs were out of scope for MVP1. The required CI checks are already listed under "Enforce the doc and convention rules" and OpenAPI under "Contract-first development"; this entry is the rest: a hosting target, environment config and a deploy pipeline.
 
-## Type-checking `scripts/`
-
-`scripts/` is outside every package's `tsc` run. An ad hoc run under the strict flags found 25 errors. 24 have one cause: a helper in the read guard's test. The docs generator's import of the API needs a design choice, because the API's `dist` has no declarations and `@ts-` comments are banned.
-
 ## Server-side checks on API responses
 
 Strict output doesn't stop the server sending a field: the API never parses its responses. `UserSearchResultSchema` only makes API tests fail on a leak and makes the client throw. Decide whether to parse responses in the API, in tests or at runtime.
@@ -165,3 +159,9 @@ Ticket 00009-04 made the mutation clients (`login`, `register`, `updateProfile`,
 - **Seen:** while planning the Factory hardening Specs. A change to `docs/workflow/` or an agent definition has no way to show whether agents do better or worse afterwards.
 - **Not done:** needs numbers first, from the per-Ticket metrics line planned in the Learning Loop Spec.
 - **Idea:** keep one or two `resolved` Tickets as benchmarks, replay them from their starting commit with the new docs, and compare escalations, check failures and diff size with the original run.
+
+## The read guard denies a Ticket's Also writes files whole
+
+- **Seen:** in Ticket 00017-09. `docs/workflow/worktree.md` was under the Ticket's Also writes, so in the scope file's `writes:`, but the read guard denied reading it whole because `worktree: no`.
+- **Not done:** outside that Ticket; a Read with a limit worked.
+- **Idea:** let `docsFromFacts` in `scripts/hooks/guard-reads.ts` also allow every path in `writes:`.

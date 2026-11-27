@@ -57,8 +57,20 @@ The shared branch where one Spec's Tickets are collected before they reach `main
 _Avoid_: Integration branch, epic branch
 
 **Task Branch**:
-The branch for one Ticket's work, cut from its Feature Branch.
+The branch for one Ticket's work, or for a Spec's review fixes or Doc Sync, cut from its Feature Branch.
 _Avoid_: Ticket branch, topic branch
+
+**Scope file**:
+The facts about one Task Branch that the Orchestrator writes before spawning, read by the guards: its Ticket, packages, files it also writes, whether it may set the Spec's status, and whether it needs a browser check or a worktree.
+_Avoid_: Read scope (only one guard's use of it), allowlist
+
+**Preflight**:
+The script an Implementer runs right after creating its Task Branch, which checks that the environment and the branch are ready for the Ticket to start.
+_Avoid_: Setup (that is installing the environment), pre-check
+
+**Diff-scope check**:
+The script that checks every file changed on a Task Branch against the Role's Writes.
+_Avoid_: Write guard (that blocks a single edit as it happens), scope check
 
 **Escalation**:
 An agent stopping work on a Ticket and asking the human a question it cannot settle itself.

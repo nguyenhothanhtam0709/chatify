@@ -8,7 +8,7 @@ From a clean checkout to green tests. Run every command from the repo root.
 
 ## Prerequisites
 
-- Node at the version in `engines` in [package.json](../../package.json). Below it, pnpm stops every command with `This project requires Node.js >=26`. `nvm use` picks the version from [.nvmrc](../../.nvmrc).
+- Node at the version in `engines` in [package.json](../../package.json). Below it, pnpm stops every command with `This project requires Node.js >=26`. `nvm use` picks the version from [.nvmrc](../../.nvmrc). Run it before you start Claude Code: a session started on a lower Node warns at once, and pnpm, the stop check and the PR guard fail in it. Exit, run `nvm use` and start again.
 - pnpm at the version in `packageManager` in the same file. If pnpm is not installed, `corepack enable` provides it. That replaces any global `pnpm` shim, so skip it if pnpm is already there.
 - Docker with the daemon running. The local database and the API tests both need it.
 
@@ -45,6 +45,16 @@ pnpm db:seed           # optional dev data, safe to rerun, refuses in production
 `pnpm db:down` stops it. The data stays in the `pgdata` volume. The seeded Users are listed in [seed.ts](../../packages/api/src/db/seed.ts).
 
 Gotcha: `db:up` fails if something else already listens on port 5432. Stop that service or point `DATABASE_URL` at it.
+
+## Before a Ticket
+
+Right after creating the Task Branch, an Implementer runs:
+
+```sh
+pnpm preflight
+```
+
+It reports, and fixes nothing. It fails when Node is below `engines`, the branch is not `agent/NNNNN-NN-<slug>` or `agent/NNNNN-doc-sync`, the Feature Branch tip on `origin` is not merged in, a tracked file is modified or staged, there are untracked files (escalate to the human), Docker is not running, the Spec PR is not merged, or a Ticket in `Blocked by` is not `resolved`. Any unexpected error also fails it.
 
 ## A second worktree
 

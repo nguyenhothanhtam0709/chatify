@@ -1,5 +1,12 @@
 ---
 kind: descriptive
+covers:
+  - packages/*/package.json
+  - packages/api/src/app.ts
+  - packages/api/src/db/schema.ts
+  - packages/api/drizzle/**
+  - packages/contracts/src/index.ts
+  - packages/web/vite.config.ts
 ---
 
 # Architecture overview

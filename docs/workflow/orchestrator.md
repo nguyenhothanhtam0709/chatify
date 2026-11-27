@@ -21,7 +21,6 @@ Every other step runs as the skill says, including using the existing Feature Br
 ## Before spawning
 
 - Build the task graph with `grep` on each Ticket's `**Blocked by:**` and `**Status:**` lines. Read a whole Ticket only when writing its brief.
-- Check that Docker is running.
 - If a Ticket may change a dependency (for example `shadcn add`) and its Allowed packages don't cover it, ask the human first.
 - Run Tickets one at a time when both change the schema (they would take the same migration number) or both need a browser check (they would share ports). Everything else on the frontier may run at once.
 
@@ -75,15 +74,29 @@ An agent blocked on a question continues through `SendMessage` with the answer, 
 
 ## Read scope
 
-Before spawning an Implementer, write three facts about its Ticket to `<git-common-dir>/scope/<task-branch>.txt`, one per line:
+Before spawning an Implementer or Doc Sync, write six facts about its Ticket to `<git-common-dir>/scope/<task-branch>.txt`, one per line:
 
 ```
+ticket: .scratch/00017-ticket-gates/issues/03-guard-writes.md
 packages: api contracts
+writes: .claude/settings.json docs/factory/sdlc.md
+spec-status: no
 browser-check: yes
 worktree: no
 ```
 
-Copy `packages` from the Ticket's _What to build_. A missing line means `no`, or no packages. Write facts, not globs: a file of globs reads as no facts. Only the Implementer gets a scope file; an Implementer fixing findings gets one built from the packages the findings touch. Handoff notes sit outside the repo and need no entry. Delete the file at hand-off cleanup, whether or not there is a worktree.
+Where each is copied from:
+
+- `ticket`: the Ticket's repo path, or `none` for a branch with no Ticket (the review-fix branch).
+- `packages`: the Ticket's _Packages_, space-separated. For a Ticket without that field, read them from _What to build_.
+- `writes`: the Ticket's _Also writes_ paths, space-separated.
+- `spec-status`: `yes` only for the review-fix PR, which sets the Spec's `Status:` line.
+- `browser-check`: the brief's _Browser check_.
+- `worktree`: `yes` when the Implementer works in a worktree.
+
+A missing line means `no`, `none` or empty. Write facts, not globs: a file of globs reads as no facts. The Implementer and Doc Sync get a scope file; Doc Sync's has `ticket: none` and the packages of the diff it compares. An Implementer fixing findings gets one built from the packages the findings touch. Handoff notes sit outside the repo and need no entry. Delete the file at hand-off cleanup, whether or not there is a worktree.
+
+[scope-facts.ts](../../scripts/hooks/scope-facts.ts) reads the facts by name for every hook.
 
 [guard-reads.ts](../../scripts/hooks/guard-reads.ts) derives from the facts which docs are readable whole: the `AGENTS.md` and convention of each package, plus the general convention, plus [browser-check](browser-check.md) or [worktree](worktree.md) when its fact is `yes`. It always allows the Ticket, the docs every PR needs and the sub-agent's own Role file. The Spec is left out on purpose, so the Implementer reads only the named sections. A PR body that reports a read outside the scope means the scope or the brief was missing something: fix it for the next Ticket.
 
@@ -100,11 +113,12 @@ On a conflict or a missing Feature Branch tip, send the PR back to its Implement
 
 ## Doc Sync
 
-After the review findings are fixed and before the feature PR, run `pnpm docs:check`, then decide whether the change needs a Doc Sync agent. A script can't tell whether new code made a hand-written doc wrong.
+After the review findings are fixed and before the feature PR, run `pnpm docs:check` and `pnpm docs:covers`. The second lists each Descriptive Doc whose `covers:` matches a file the Feature Branch changed against `main` while the doc is unchanged. Any doc it lists means Doc Sync runs. The glossary and the conventions are Intent Docs with no `covers:`, so you still judge those.
 
-- **Run it** when the diff changes behaviour, a runtime flow or a term, or adds a new pattern.
+- **Run it** when `pnpm docs:covers` lists a doc, or when the diff changes behaviour, a runtime flow or a term, or adds a new pattern.
 - **Skip it** when the diff only changes tests, refactors without changing behaviour, or only changes docs. Say why in the feature PR.
 - **Compare against:** [runtime flows](../architecture/runtime-flows.md), the [architecture overview](../architecture/overview.md), the [glossary](../../GLOSSARY.md) and the [conventions](../conventions/general.md).
+- Before spawning it, write its scope file, as in [Read scope](#read-scope).
 - Its rules are in its [Role file](../factory/roles/doc-sync.md); read it only to change them.
 
 ## Keeping the main session small

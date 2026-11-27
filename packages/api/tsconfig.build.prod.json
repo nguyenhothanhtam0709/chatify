@@ -3,7 +3,7 @@
   "compilerOptions": {
     "sourceMap": true,
     "removeComments": true,
-    "declaration": false,
+    "declaration": true,
     "declarationMap": false,
     "incremental": false
   }

@@ -15,6 +15,7 @@ Written against `mattpocock-skills` 1.3.1. When the installed version differs, t
 - "mark it ready for review": the Spec's Status is set to `resolved` by the Implementer of the review-fix task PR, in its last commit, once every Ticket is `resolved`; tell it so in its brief. Never push to the Feature Branch directly.
 - "each in its own worktree": one Implementer works in the main checkout; use a worktree when two or more run at once.
 - Addition to "implementer subagents": spawn by `subagent_type`, pass the brief path, write the scope file, and pass `model` only on an Opus signal.
+- Addition before "mark it ready for review": write the [Learning](#learning) section and spawn the Doc Writer, as in [The order at the end of a feature](#the-order-at-the-end-of-a-feature).
 
 Every other step runs as the skill says, including using the existing Feature Branch as the integration branch and opening a draft feature PR after the first merge.
 
@@ -36,11 +37,11 @@ Decide when writing the brief and record it there with a one-line reason. Each R
 - Package count, line count and Ticket length are not signals. Most Tickets touch several packages, so they would send nearly everything to Opus.
 - If a Sonnet run gets stuck or keeps failing, run it again on Opus and say why in the handoff note.
 - An Implementer fixing review findings stays on its default unless a finding hits an Opus signal.
-- No Haiku until there are numbers to support it.
+- No Haiku until there are numbers to support it: read the feature `metrics.md` files (see [The metrics](#the-metrics)).
 
 ## Hand-off
 
-Spawn each Role by its `subagent_type` (`implementer`, `reviewer`, `explorer`, `doc-sync`), never a general-purpose agent. The spawn prompt is the absolute path of the brief and one sentence. The brief points at documents instead of copying them. It states directly only what a sub-agent can't find itself: new decisions and the current state of the Feature Branch.
+Spawn each Role by its `subagent_type` (`implementer`, `reviewer`, `explorer`, `doc-sync`, `doc-writer`), never a general-purpose agent. The spawn prompt is the absolute path of the brief and one sentence. The brief points at documents instead of copying them. It states directly only what a sub-agent can't find itself: new decisions and the current state of the Feature Branch.
 
 ### Implementer brief
 
@@ -67,6 +68,7 @@ Handoff note: <absolute path>/<NNNNN>-<NN>.md
 - **Implementer fixing findings**: the approved findings. It does not re-read the Tickets.
 - **Explorer**: one specific question and the path of the note to write.
 - **Doc Sync**: the diff range, the Spec path and the hand-written docs to compare, as in [Doc Sync](#doc-sync).
+- **Doc Writer**: the approved actions and the metrics rows, as in [The Doc Writer's brief](#the-doc-writers-brief).
 
 ### Resume or respawn
 
@@ -74,7 +76,7 @@ An agent blocked on a question continues through `SendMessage` with the answer, 
 
 ## Read scope
 
-Before spawning an Implementer or Doc Sync, write six facts about its Ticket to `<git-common-dir>/scope/<task-branch>.txt`, one per line:
+Before spawning an Implementer, Doc Sync or Doc Writer, write six facts about its Ticket to `<git-common-dir>/scope/<task-branch>.txt`, one per line:
 
 ```
 ticket: .scratch/00017-ticket-gates/issues/03-guard-writes.md
@@ -94,7 +96,7 @@ Where each is copied from:
 - `browser-check`: the brief's _Browser check_.
 - `worktree`: `yes` when the Implementer works in a worktree.
 
-A missing line means `no`, `none` or empty. Write facts, not globs: a file of globs reads as no facts. The Implementer and Doc Sync get a scope file; Doc Sync's has `ticket: none` and the packages of the diff it compares. An Implementer fixing findings gets one built from the packages the findings touch. Handoff notes sit outside the repo and need no entry. Delete the file at hand-off cleanup, whether or not there is a worktree.
+A missing line means `no`, `none` or empty. Write facts, not globs: a file of globs reads as no facts. The Implementer, Doc Sync and Doc Writer get a scope file; Doc Sync's and the Doc Writer's have `ticket: none`. Doc Sync's has the packages of the diff it compares; the Doc Writer's has no packages. An Implementer fixing findings gets one built from the packages the findings touch. Handoff notes sit outside the repo and need no entry. Delete the file at hand-off cleanup, whether or not there is a worktree.
 
 [scope-facts.ts](../../scripts/hooks/scope-facts.ts) reads the facts by name for every hook.
 
@@ -120,6 +122,47 @@ After the review findings are fixed and before the feature PR, run `pnpm docs:ch
 - **Compare against:** [runtime flows](../architecture/runtime-flows.md), the [architecture overview](../architecture/overview.md), the [glossary](../../GLOSSARY.md) and the [conventions](../conventions/general.md).
 - Before spawning it, write its scope file, as in [Read scope](#read-scope).
 - Its rules are in its [Role file](../factory/roles/doc-sync.md); read it only to change them.
+
+## Learning
+
+Every feature PR to `main` has a `## Learning` section in its body. The Orchestrator writes it; it is never left out. It has these five headings, in this order, each with its items or `None`:
+
+1. **Repeated findings**: review or merge-check findings that came up in two or more Tickets.
+2. **Reads outside scope**: from the task PR bodies and the handoff notes' `Read outside scope:` lines.
+3. **Guesses**: from the handoff notes' `Guessed:` lines and the PR bodies' assumptions.
+4. **Broken rules**: rules broken during the feature, each with its enforcement tag: `(hook: ...)`, `(check: ...)` or `(prose)`. A `(prose)` rule that already has a `factory` Laters entry with a `Broken:` line is broken for the second time: propose automating it.
+5. **Metrics**: a link to `.scratch/NNNNN-<slug>/metrics.md`.
+
+Each item ends with the action the human approved and the PR that did it, or "rejected".
+
+### The order at the end of a feature
+
+1. Review, then the review-fix Implementer, then [Doc Sync](#doc-sync) if you decide so (as before).
+2. The Orchestrator drafts the Learning section and runs `pnpm metrics:tokens` once.
+3. The Orchestrator asks the human about each item with `AskUserQuestion`, proposing one of `Laters entry`, `convention edit`, `fix brief/scope` or `no action`.
+4. The Orchestrator writes the Doc Writer's brief and scope file, and spawns it with `subagent_type: doc-writer`. It runs even when every item is `None`.
+5. The Orchestrator merges the Doc Writer's task PR, as in [Merging](#merging).
+6. The Orchestrator opens or updates the feature PR with the Learning section.
+
+### The Doc Writer's brief
+
+The brief holds each approved action with its kind, target path and wording, and the metrics rows. Its scope file has `ticket: none`, no packages, and `writes:` with `.scratch/NNNNN-<slug>/metrics.md` plus each approved action's target path, exactly ([ADR 0013](../adr/0013-doc-writer-writes-what-the-human-approved-in-the-session.md)). The human's answers in the session are the approval.
+
+### The metrics
+
+The Doc Writer writes `.scratch/NNNNN-<slug>/metrics.md` from the rows in its brief: one table, one row per Ticket, with these columns and sources:
+
+| Column               | Source                                                 |
+| -------------------- | ------------------------------------------------------ |
+| Ticket               | The Ticket                                             |
+| model                | The Orchestrator                                       |
+| escalated            | The Orchestrator (yes or no)                           |
+| PR guard denials     | The handoff note's `PR guard denials:` line (a count)  |
+| merge-check findings | The Orchestrator (a count)                             |
+| re-run               | The Orchestrator (no, or yes and why)                  |
+| tokens               | That Ticket's agents' total from `pnpm metrics:tokens` |
+
+One more row is for the branch, with the number of review findings.
 
 ## Keeping the main session small
 

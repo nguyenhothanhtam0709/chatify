@@ -29,18 +29,20 @@ See the Spec's "The Learning section", "The order at the end of a feature", "The
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The orchestrator page has a Learning section with the five headings, the "None" rule and the per-item outcome
-- [ ] The orchestrator page states the end-of-feature order, including asking the human per item and always spawning the Doc Writer
-- [ ] The orchestrator page states the Doc Writer's brief, its scope file and the metrics table's columns and sources
-- [ ] The list of changes to `implement-spec` has the new entry
-- [ ] Stage 10's row in the SDLC page has the new Actor, Output, Gate, Checked by and Rules link
-- [ ] The Implementer Role file names the three handoff note lines
-- [ ] `pnpm docs:check` passes
+- [x] The orchestrator page has a Learning section with the five headings, the "None" rule and the per-item outcome
+- [x] The orchestrator page states the end-of-feature order, including asking the human per item and always spawning the Doc Writer
+- [x] The orchestrator page states the Doc Writer's brief, its scope file and the metrics table's columns and sources
+- [x] The list of changes to `implement-spec` has the new entry
+- [x] Stage 10's row in the SDLC page has the new Actor, Output, Gate, Checked by and Rules link
+- [x] The Implementer Role file names the three handoff note lines
+- [x] `pnpm docs:check` passes
 
 **Verification:** `pnpm docs:check` passes. Re-read the orchestrator page's end-of-feature steps as an Orchestrator who hasn't seen this Spec and check that each step says who acts and what it writes.
 
 **Out of scope:** The merge check and enforcement tags (Ticket 07); the Escalation Report (Ticket 06); `docs/workflow/git-workflow.md` (skill-generated).
 
 ## Comments
+
+Resolved. `pnpm docs:check`, lint, typecheck and test pass. Re-read the end-of-feature steps: each says who acts and what it writes. Assumption: none open; the implement-spec entry is worded before "mark it ready for review".

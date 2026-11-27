@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { coversChange } from '../docs/covers.ts';
-import { gitContext, gitContextOfPath } from './git-context.ts';
+import { featureTip, gitContext, gitContextOfPath } from './git-context.ts';
 import { repoPath } from './guard-reads.ts';
 import { readScopeFile, scopeFacts, type ScopeFacts } from './scope-facts.ts';
 
@@ -20,7 +20,8 @@ export interface WriteFacts extends ScopeFacts {
 
 const ALWAYS_WRITABLE = ['docs/laters.md', 'pnpm-lock.yaml'];
 
-const isPackageJson = (path: string) => path === 'package.json' || path.endsWith('/package.json');
+export const isPackageJson = (path: string) =>
+  path === 'package.json' || path.endsWith('/package.json');
 
 const inPackage = (path: string, name: string) =>
   path.startsWith(name === 'scripts' ? 'scripts/' : `packages/${name}/`);
@@ -100,7 +101,7 @@ const changedSinceFeature = (cwd: string, specNumber: string | null): string[] =
   try {
     const git = (...args: string[]) =>
       execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-    const tip = git('branch', '-r', '--list', `origin/feat/${specNumber}-*`).split('\n')[0]?.trim();
+    const tip = specNumber === null ? null : featureTip(cwd, specNumber);
     if (!tip) return [];
     const base = git('merge-base', tip, 'HEAD').trim();
     return [

@@ -14,7 +14,7 @@ See the Spec's "Typechecking `scripts/`".
 
 **Also writes:** package.json, docs/laters.md
 
-**Allowed packages:** None
+**Allowed packages:** `@types/node ^26.6.5`
 
 **Blocked by:** None
 

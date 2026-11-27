@@ -6,7 +6,8 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { type Check as FastCheck, type CheckResult as FastResult } from './fast-checks.ts';
-import { checkBeforePr, checkFastOnPr, opensPr, prBody, type RunResult } from './guard-pr.ts';
+import { type RunResult } from './git-context.ts';
+import { checkBeforePr, checkFastOnPr, opensPr, prBody } from './guard-pr.ts';
 import { worktreeFixture } from './worktree-fixture.ts';
 
 const ok: RunResult = { status: 0, output: '' };
@@ -286,6 +287,7 @@ test('a failing fast check denies an Implementer PR, with the output', () => {
     { agent_type: 'implementer' },
     [fastCheck('lint:scripts', { status: 1, output: 'no-unused-vars in a.ts' })],
     clockAt(0),
+    0,
   );
   assert.match(reason ?? '', /lint:scripts/);
   assert.match(reason ?? '', /no-unused-vars in a\.ts/);
@@ -293,23 +295,46 @@ test('a failing fast check denies an Implementer PR, with the output', () => {
 
 test('clean fast checks let the PR through, and other Roles run none', () => {
   const clean = [fastCheck('lint', { status: 0, output: '' })];
-  assert.deepEqual(checkFastOnPr({ agent_type: 'implementer' }, clean, clockAt(0)), {
+  assert.deepEqual(checkFastOnPr({ agent_type: 'implementer' }, clean, clockAt(0), 0), {
     reason: null,
     notice: null,
   });
   const ran: string[] = [];
   const spy: FastCheck = { name: 'x', run: () => (ran.push('x'), { status: 1, output: 'bad' }) };
   for (const input of [{ agent_type: 'reviewer' }, { agent_type: 'doc-sync' }, {}]) {
-    assert.equal(checkFastOnPr(input, [spy], clockAt(0)).reason, null);
+    assert.equal(checkFastOnPr(input, [spy], clockAt(0), 0).reason, null);
   }
   assert.deepEqual(ran, []);
 });
 
 test('a fast check over the budget is reported and does not deny', () => {
   const timedOut = fastCheck('tests scripts', { status: null, output: '', timedOut: true });
-  const result = checkFastOnPr({ agent_type: 'implementer' }, [timedOut], clockAt(0));
+  const result = checkFastOnPr({ agent_type: 'implementer' }, [timedOut], clockAt(0), 0);
   assert.equal(result.reason, null);
   assert.match(result.notice ?? '', /tests scripts/);
+});
+
+test('the fast checks get only what is left of the budget since the hook started', () => {
+  const seen: number[] = [];
+  const check: FastCheck = {
+    name: 'x',
+    run: (left) => (seen.push(left), { status: 0, output: '' }),
+  };
+  // The hook started at 0; the docs steps took 100 s, so 80 s of the 180 s are left.
+  checkFastOnPr({ agent_type: 'implementer' }, [check], clockAt(100_000), 0);
+  assert.deepEqual(seen, [80_000]);
+});
+
+test('fast checks started after the budget is spent are reported and do not deny', () => {
+  const ran: string[] = [];
+  const check: FastCheck = {
+    name: 'lint',
+    run: () => (ran.push('lint'), { status: 1, output: 'bad' }),
+  };
+  const result = checkFastOnPr({ agent_type: 'implementer' }, [check], clockAt(190_000), 0);
+  assert.deepEqual(ran, []);
+  assert.equal(result.reason, null);
+  assert.match(result.notice ?? '', /lint/);
 });
 
 test('the hook denies an Implementer PR whose scope package fails lint', () => {

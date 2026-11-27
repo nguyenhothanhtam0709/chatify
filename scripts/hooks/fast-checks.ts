@@ -27,9 +27,12 @@ export interface RunOutcome {
   skipped: string[];
 }
 
-/** Runs the checks in order, each with only the time left of the budget. */
-export const runChecks = (checks: Check[], now: () => number): RunOutcome => {
-  const start = now();
+/** Runs the checks in order, each with only the time left of the budget since `start`. */
+export const runChecks = (
+  checks: Check[],
+  now: () => number,
+  start: number = now(),
+): RunOutcome => {
   const failures: string[] = [];
   const skipped: string[] = [];
   for (const check of checks) {

@@ -61,7 +61,7 @@ The branch for one Ticket's work, or for a Spec's review fixes or Doc Sync, cut 
 _Avoid_: Ticket branch, topic branch
 
 **Scope file**:
-The facts about one Task Branch that the Orchestrator writes before spawning, read by the guards: its Ticket, packages, files it also writes, and whether it needs a browser check or a worktree.
+The facts about one Task Branch that the Orchestrator writes before spawning, read by the guards: its Ticket, packages, files it also writes, whether it may set the Spec's status, and whether it needs a browser check or a worktree.
 _Avoid_: Read scope (only one guard's use of it), allowlist
 
 **Preflight**:

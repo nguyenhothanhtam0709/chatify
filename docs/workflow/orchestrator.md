@@ -74,7 +74,7 @@ An agent blocked on a question continues through `SendMessage` with the answer, 
 
 ## Read scope
 
-Before spawning an Implementer, write six facts about its Ticket to `<git-common-dir>/scope/<task-branch>.txt`, one per line:
+Before spawning an Implementer or Doc Sync, write six facts about its Ticket to `<git-common-dir>/scope/<task-branch>.txt`, one per line:
 
 ```
 ticket: .scratch/00017-ticket-gates/issues/03-guard-writes.md
@@ -94,7 +94,7 @@ Where each is copied from:
 - `browser-check`: the brief's _Browser check_.
 - `worktree`: `yes` when the Implementer works in a worktree.
 
-A missing line means `no`, `none` or empty. Write facts, not globs: a file of globs reads as no facts. Only the Implementer gets a scope file; an Implementer fixing findings gets one built from the packages the findings touch. Handoff notes sit outside the repo and need no entry. Delete the file at hand-off cleanup, whether or not there is a worktree.
+A missing line means `no`, `none` or empty. Write facts, not globs: a file of globs reads as no facts. The Implementer and Doc Sync get a scope file; Doc Sync's has `ticket: none` and the packages of the diff it compares. An Implementer fixing findings gets one built from the packages the findings touch. Handoff notes sit outside the repo and need no entry. Delete the file at hand-off cleanup, whether or not there is a worktree.
 
 [scope-facts.ts](../../scripts/hooks/scope-facts.ts) reads the facts by name for every hook.
 
@@ -118,6 +118,7 @@ After the review findings are fixed and before the feature PR, run `pnpm docs:ch
 - **Run it** when `pnpm docs:covers` lists a doc, or when the diff changes behaviour, a runtime flow or a term, or adds a new pattern.
 - **Skip it** when the diff only changes tests, refactors without changing behaviour, or only changes docs. Say why in the feature PR.
 - **Compare against:** [runtime flows](../architecture/runtime-flows.md), the [architecture overview](../architecture/overview.md), the [glossary](../../GLOSSARY.md) and the [conventions](../conventions/general.md).
+- Before spawning it, write its scope file, as in [Read scope](#read-scope).
 - Its rules are in its [Role file](../factory/roles/doc-sync.md); read it only to change them.
 
 ## Keeping the main session small

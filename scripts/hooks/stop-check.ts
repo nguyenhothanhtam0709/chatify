@@ -4,11 +4,17 @@
 // Fails open, like the other guards.
 import { readFileSync } from 'node:fs';
 import { BUDGET_MS, fastChecks, runChecks, type Check } from './fast-checks.ts';
-import { featureTip, gitContext, worktrees } from './git-context.ts';
-import { diffScope, gitOut, taskBranch, type HookInput, type TaskBranch } from './guard-pr.ts';
+import { diffScope } from './check-diff.ts';
+import {
+  featureTip,
+  gitContext,
+  gitOut,
+  taskBranch,
+  worktrees,
+  type HookInput,
+  type TaskBranch,
+} from './git-context.ts';
 import { scopeFacts } from './scope-facts.ts';
-
-export { BUDGET_MS, stopChecks, type Check, type CheckResult } from './fast-checks.ts';
 
 export interface StopInput extends HookInput {
   stop_hook_active?: boolean;

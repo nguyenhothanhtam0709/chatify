@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { checkOnStop, stopChecks, type Check, type CheckResult } from './stop-check.ts';
+import { stopChecks, type Check, type CheckResult } from './fast-checks.ts';
+import { checkOnStop } from './stop-check.ts';
 import { worktreeFixture } from './worktree-fixture.ts';
 
 const pass: CheckResult = { status: 0, output: '' };

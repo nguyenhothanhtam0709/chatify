@@ -4,6 +4,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
+import { readScopeFile } from './scope-facts.ts';
 
 export interface GitContext {
   /** The root of the checkout the directory sits in: a worktree or the main checkout. */
@@ -119,3 +120,50 @@ export const featureTip = (dir: string, specNumber: string): string | null =>
   (git(dir, ['branch', '-r', '--list', `origin/feat/${specNumber}-*`]) ?? '')
     .split('\n')[0]
     ?.trim() || null;
+
+export interface RunResult {
+  status: number | null;
+  output: string;
+}
+
+export interface HookInput {
+  tool_name?: string;
+  tool_input?: { command?: string; body?: string; head?: string };
+  cwd?: string;
+  agent_type?: string;
+}
+
+export const gitOut = (cwd: string, args: string[]): string => {
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  if (result.status !== 0) throw new Error(result.stderr);
+  return result.stdout.trim();
+};
+
+export interface TaskBranch {
+  /** The branch the PR opens from. */
+  branch: string;
+  /** The Spec number of an `agent/NNNNN-…` branch, or null. */
+  specNumber: string | null;
+  commonDir: string;
+  /** The lines of the branch's scope file, or null when it has none. */
+  scope: string[] | null;
+  /** The worktree checked out on the branch, or the main checkout: where commands run. */
+  worktree: string;
+}
+
+/** The facts of `branch`, checked out in `worktree` (or the main checkout). */
+export const taskBranch = (branch: string, commonDir: string, worktree: string): TaskBranch => ({
+  branch,
+  specNumber: /^agent\/(\d{5})-/.exec(branch)?.[1] ?? null,
+  commonDir,
+  scope: readScopeFile(commonDir, branch),
+  worktree,
+});
+
+/** The Feature Branch tip's merge-base with the branch and the diff since, read from refs only. */
+export const sinceFeature = (task: TaskBranch, specNumber: string) => {
+  const tip = featureTip(task.worktree, specNumber);
+  if (tip === null) return null;
+  const base = gitOut(task.worktree, ['merge-base', tip, task.branch]);
+  return { base, range: `${base}..${task.branch}` };
+};

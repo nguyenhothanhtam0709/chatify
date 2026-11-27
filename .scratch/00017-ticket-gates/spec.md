@@ -1,6 +1,6 @@
 # Spec: Ticket Gates
 
-Status: ready-for-agent
+Status: resolved
 
 ## Problem Statement
 

@@ -14,7 +14,7 @@ See the Spec's "Typechecking `scripts/`".
 
 **Also writes:** package.json, docs/laters.md
 
-**Allowed packages:** None
+**Allowed packages:** `@types/node ^26.6.5`
 
 **Blocked by:** None
 
@@ -37,3 +37,5 @@ Resolved. Verified with `pnpm typecheck`, `pnpm test` and `pnpm docs:check` (Gen
 Decision (human): root `@types/node` `^26.6.5` (the version api and web use) is an allowed package for this Ticket, so `scripts/tsconfig.json` needs no `typeRoots`.
 
 Assumptions: `scripts/tsconfig.json` sets `allowImportingTsExtensions` (scripts import `.ts` files) and `target: esnext`, like the api's `tsconfig.json`. The API emits declarations by setting `declaration: true` in `tsconfig.build.prod.json`; `declarationMap` stays false.
+
+The lockfile was regenerated from main in the review-fix PR, so @pnpm/exe is gone; the ajv-formats rewrite comes from pnpm 12.23, not a package change.

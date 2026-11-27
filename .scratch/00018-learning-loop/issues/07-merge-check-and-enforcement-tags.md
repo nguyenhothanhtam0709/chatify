@@ -31,4 +31,5 @@ See the Spec's "The merge check" and "Enforcement tags".
 **Out of scope:** Tags on any other doc; automating any `(prose)` rule; the Learning section (Ticket 05).
 
 ## Comments
-Resolved. Verified with `pnpm docs:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`. Tags per item: criteria met, map, testing, migrations, assumptions, branch merged are `(prose)`; dependencies and nothing-outside are `(hook: guard-pr)`; contracts is `(check: pnpm lint)`; docs is `(check: pnpm docs:check)`; the checks item lists its four commands in one tag. No assumptions.
+Resolved. Verified with `pnpm docs:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`. Tags per item: criteria met, map, testing, migrations, assumptions, branch merged are `(prose)`; dependencies and nothing-outside are `(hook: guard-pr)`; contracts is `(check: pnpm lint)`; the checks item lists its four commands in one tag. No assumptions.
+Review fixes: restored the separator in the "Nothing outside the Ticket" item and the "<text>. (<tag>)" form of the dependency item. Human decision: the "Docs affected by the change are updated" item is tagged `(prose)`, not `(check: pnpm docs:check)`; the four-command tag stays.

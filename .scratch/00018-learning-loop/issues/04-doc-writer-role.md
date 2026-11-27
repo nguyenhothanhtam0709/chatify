@@ -25,15 +25,17 @@ See the Spec's "The Doc Writer" and "The metrics file".
 
 **Blocked by:** 01, 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `.claude/agents/doc-writer.md` exists with `name: doc-writer`, `model: sonnet` and Doc Sync's tools, and points to its Role file
-- [ ] `docs/factory/roles/doc-writer.md` states Writes, Never writes, Stops when, Returns, Rules and Inputs as above
-- [ ] The SDLC page's Agent Roles and Hand-off tables have a Doc Writer row, and the sub-agent count is five
-- [ ] `pnpm docs:check` passes
+- [x] `.claude/agents/doc-writer.md` exists with `name: doc-writer`, `model: sonnet` and Doc Sync's tools, and points to its Role file
+- [x] `docs/factory/roles/doc-writer.md` states Writes, Never writes, Stops when, Returns, Rules and Inputs as above
+- [x] The SDLC page's Agent Roles and Hand-off tables have a Doc Writer row, and the sub-agent count is five
+- [x] `pnpm docs:check` passes
 
 **Verification:** `pnpm docs:check` passes. The agent file loads only in a new session, so spawning it is checked in Ticket 08.
 
 **Out of scope:** When the Orchestrator spawns it and what goes in its brief (Ticket 05); Doc Sync's Role.
 
 ## Comments
+- Resolved. Added the agent file, Role file and the SDLC rows (Agent Roles, Hand-off, count five). `pnpm docs:check`, `pnpm lint`, `pnpm typecheck` and `pnpm test` pass. Spawning the agent is checked in Ticket 08.
+- Read `docs/factory/roles/doc-sync.md` (60 lines) and `docs/workflow/definition-of-done.md`, outside the brief's list, to copy the shape.

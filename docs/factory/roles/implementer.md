@@ -21,5 +21,5 @@ Builds one Ticket on one Task Branch and opens its task PR into the Feature Bran
 - Stop when the PR is open. Do not merge. When stuck, follow [escalation](../../workflow/escalation.md): read it only when stuck.
 - Right after creating the Task Branch, run `pnpm preflight`. When it fails, stop and fix what it says it can fix; when it lists untracked files or says to escalate, escalate to the human. Do not start the Ticket until it passes.
 - Commit work in progress and update your note at each milestone.
-- Handoff note, at most 15 lines: new helpers or seams with paths, migration number, gotchas, what is unfinished. Do not retell the work.
+- Handoff note, at most 15 lines: new helpers or seams with paths, migration number, gotchas, what is unfinished. Do not retell the work. It ends with three fixed lines, each `None` or `0` when empty: `Guessed:`, `Read outside scope:`, `PR guard denials: <n>`.
 - Final report, at most 10 lines: PR, check results, anything to decide.

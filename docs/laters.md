@@ -54,6 +54,12 @@ The Unread Count is computed when the Conversation list is fetched, capped at 10
 - **Not done:** nobody checked whether each mock is needed.
 - **Idea:** for each file, switch to a public seam or note why there is none.
 
+## `socket-realtime.test.ts` fails now and then
+
+- **Seen:** during Spec 00017. `web/src/realtime/socket-realtime.test.ts` failed once in a full `pnpm test` (Ticket 07, PR #230) and passed on rerun. That Ticket changed no web code.
+- **Not done:** nobody looked for the cause; the failing output wasn't kept.
+- **Idea:** run the file in a loop (`pnpm --filter @chat/web exec vitest run src/realtime/socket-realtime.test.ts` 50 times), keep the failing output, and look for timing assumptions around the test server or socket events. The file also mocks (see "Review the mocks in tests").
+
 ## One shared uuid path pipe in the API
 
 - **Seen:** while extracting conventions (spec 00004, ticket 05). The same `new ZodValidationPipe(z.uuid())` is declared twice: `IdPipe` in `api/src/groups/groups.controller.ts` and `ConversationIdPipe` in `api/src/messages/messages.controller.ts`.

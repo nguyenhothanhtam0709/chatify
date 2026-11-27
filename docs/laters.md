@@ -48,7 +48,7 @@ The Unread Count is computed when the Conversation list is fetched, capped at 10
 
 ## Review the mocks in tests
 
-- **Seen:** while extracting conventions (spec 00004, ticket 05). The [testing policy](workflow/testing-policy.md#mocking) says to test through public seams and to mock only where no seam exists. Four files use `vi.mock` or `vi.spyOn`: `api/src/groups/group-rooms.test.ts`, `api/src/db/database.module.test.ts`, `web/src/realtime/socket-realtime.test.ts` and `web/src/history-pagination.test.tsx`.
+- **Seen:** while extracting conventions (spec 00004, ticket 05). The [testing policy](workflow/testing-policy.md#mocking) says to test through public seams and to mock only where no seam exists. Four files use `vi.mock` or `vi.spyOn`: `api/src/groups/group-rooms.test.ts`, `api/src/db/database.module.test.ts`, `web/src/realtime/socket-realtime.test.ts` and `web/src/test/layout.ts`.
 - **Not done:** nobody checked whether each mock is needed.
 - **Idea:** for each file, switch to a public seam or note why there is none.
 
@@ -140,7 +140,7 @@ Strict output doesn't stop the server sending a field: the API never parses its 
 
 ## Other web clients with the malformed 2xx pattern
 
-Ticket 00009-04 made the mutation clients (`login`, `register`, `updateProfile`, `createGroup`, `changeMembers`, `leaveGroup`) `safeParse` a 2xx body. These still `parse` it and can reject with a `ZodError`: `getGroup` (`groups.ts`), `conversations.ts` (list, get, messages), `messages.ts` (send direct and group), `users.ts` (search) and `health.ts`. `refreshAccessToken` and `fetchCurrentUser` (`auth.ts`) have the pattern too, but a `try/catch` makes them return undefined.
+Ticket 00009-04 made the mutation clients (`login`, `register`, `updateProfile`, `createGroup`, `changeMembers`, `leaveGroup`) `safeParse` a 2xx body. These still `parse` it and can reject with a `ZodError`: `getGroup` (`groups.ts`), `conversations.ts` (`listConversations`, `readReceipt`, `messagesPage`), `messages.ts` (send direct and group), `users.ts` (search) and `health.ts`. `refreshAccessToken` and `fetchCurrentUser` (`auth.ts`) have the pattern too, but a `try/catch` makes them return undefined.
 
 ## Case-insensitive comparison depends on ASCII-only Usernames and Emails
 

@@ -24,15 +24,17 @@ See the Spec's "The Escalation Report".
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Step 2 names the Escalation Report and its six parts, with a template
-- [ ] Step 4 says the draft PR body holds the same report
-- [ ] "A wrong Spec" says the Spec is fixed through a PR into the Feature Branch
-- [ ] `pnpm docs:check` passes
+- [x] Step 2 names the Escalation Report and its six parts, with a template
+- [x] Step 4 says the draft PR body holds the same report
+- [x] "A wrong Spec" says the Spec is fixed through a PR into the Feature Branch
+- [x] `pnpm docs:check` passes
 
 **Verification:** `pnpm docs:check` passes. Check that `docs/workflow/escalation.md` no longer says a Spec is fixed through a PR to `main`.
 
 **Out of scope:** When to escalate (unchanged); the Factory glossary entry (already on the Feature Branch).
 
 ## Comments
+
+Done. `docs/workflow/escalation.md` step 2 now names the Escalation Report with its six parts and a template; step 4 puts the same report in the draft PR body; "A wrong Spec" fixes the Spec through a PR into the Feature Branch. `pnpm docs:check` passes.

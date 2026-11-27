@@ -75,3 +75,7 @@ _Avoid_: Write guard (that blocks a single edit as it happens), scope check
 **Escalation**:
 An agent stopping work on a Ticket and asking the human a question it cannot settle itself.
 _Avoid_: Blocker (that is a Ticket's `Blocked by`), handoff
+
+**Escalation Report**:
+The fixed-shape question an Escalation leaves in the Ticket and the draft PR: the quoted text, the evidence, why it blocks, the options with a recommendation, and what is blocked and what continues.
+_Avoid_: Spec Issue Report (an Escalation is not always about the Spec), question

@@ -43,13 +43,14 @@ const NAME = /^[\w-]+$/;
 
 // The docs a scope file's facts make readable whole. A missing fact means no.
 const docsFromFacts = (scope: string[]): string[] => {
-  const { packages, browserCheck, worktree } = scopeFacts(scope);
+  const { packages, browserCheck, worktree, writes } = scopeFacts(scope);
   const names = packages.filter((name) => NAME.test(name));
   return [
     ...names.flatMap((name) => [`packages/${name}/AGENTS.md`, `docs/conventions/${name}.md`]),
     ...(names.length > 0 ? ['docs/conventions/general.md'] : []),
     ...(browserCheck ? ['docs/workflow/browser-check.md'] : []),
     ...(worktree ? ['docs/workflow/worktree.md'] : []),
+    ...writes,
   ];
 };
 

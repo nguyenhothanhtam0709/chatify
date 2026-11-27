@@ -149,3 +149,25 @@ test('in the main checkout, a relative path resolves against cwd as before', () 
   assert.match(edit('docs/other.md'), /docs\/other\.md is outside/);
   assert.equal(edit('scripts/b.ts'), '');
 });
+
+test('the Doc Writer may write a path in writes and nothing else', () => {
+  const f = facts({ writes: ['.scratch/00018-x/metrics.md', 'docs/laters.md'] });
+  assert.equal(canWrite('.scratch/00018-x/metrics.md', 'doc-writer', f), null);
+  assert.equal(canWrite('docs/laters.md', 'doc-writer', f), null);
+  for (const path of [
+    'docs/workflow/testing-policy.md',
+    'packages/api/src/a.ts',
+    'docs/factory/descriptive-thing.md',
+    'pnpm-lock.yaml',
+  ]) {
+    assert.match(
+      canWrite(path, 'doc-writer', f) ?? '',
+      new RegExp(`${path}.*only its scope file's .writes:`),
+    );
+  }
+  assert.ok(canWrite('docs/laters.md', 'doc-writer', facts()));
+});
+
+test('the Doc Writer is denied a path outside the repo', () => {
+  assert.ok(canWrite(null, 'doc-writer', facts({ writes: ['docs/laters.md'] })));
+});

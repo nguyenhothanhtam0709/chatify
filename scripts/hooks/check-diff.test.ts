@@ -105,3 +105,20 @@ test('parseDiff reads the added and removed lines of each file', () => {
     { path: 'gone.txt', added: [], removed: ['bye'] },
   ]);
 });
+
+test('Doc Writer branch: a file outside writes is a violation; a changed Laters line passes when in writes', () => {
+  const over = { writes: ['docs/laters.md', '.scratch/00007-typing/metrics.md'] };
+  assert.deepEqual(
+    files([change('packages/api/src/a.ts'), change('docs/workflow/x.md')], over, 'doc-writer'),
+    ['packages/api/src/a.ts', 'docs/workflow/x.md'],
+  );
+  assert.deepEqual(
+    files(
+      [change('docs/laters.md', { removed: ['old'] }), change('.scratch/00007-typing/metrics.md')],
+      over,
+      'doc-writer',
+    ),
+    [],
+  );
+  assert.deepEqual(files([change('docs/laters.md')], {}, 'doc-writer'), ['docs/laters.md']);
+});

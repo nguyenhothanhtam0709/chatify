@@ -17,17 +17,19 @@ See the Spec's "The Doc Writer" and "Approval through the scope file".
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] A `doc-writer` write to a path in `writes` passes
-- [ ] A `doc-writer` write to a convention, code, a Descriptive Doc or `docs/laters.md` not in `writes` is denied with a reason that names the path
-- [ ] A `doc-writer` write outside the repo is denied
-- [ ] The Diff-scope check reports a file changed outside `writes` on a Doc Writer branch, and passes a changed line in `docs/laters.md` when it is in `writes`
-- [ ] Preflight passes `agent/00018-doc-writer` with `ticket: none` and fails `agent/00018-doc-writers`
-- [ ] The existing `guard-writes`, Diff-scope and preflight tests still pass
+- [x] A `doc-writer` write to a path in `writes` passes
+- [x] A `doc-writer` write to a convention, code, a Descriptive Doc or `docs/laters.md` not in `writes` is denied with a reason that names the path
+- [x] A `doc-writer` write outside the repo is denied
+- [x] The Diff-scope check reports a file changed outside `writes` on a Doc Writer branch, and passes a changed line in `docs/laters.md` when it is in `writes`
+- [x] Preflight passes `agent/00018-doc-writer` with `ticket: none` and fails `agent/00018-doc-writers`
+- [x] The existing `guard-writes`, Diff-scope and preflight tests still pass
 
 **Verification:** Script tests in `guard-writes.test.ts`, `check-diff.test.ts` and `preflight.test.ts`, one case per criterion, with facts and changes built by hand as the existing cases do. Pipe a sample `PreToolUse` hook input with `agent_type: doc-writer` into `guard-writes` and check that it denies a path not in `writes`.
 
 **Out of scope:** The Doc Writer's agent file and Role file (Ticket 04); the read guard (Ticket 02); any new scope fact.
 
 ## Comments
+
+Resolved. Verified with `pnpm test:scripts`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm docs:check`, and a sample `PreToolUse` input with `agent_type: doc-writer` that `guard-writes` denied for a path not in `writes`. `check-diff.ts` needed no change: it goes through `canWrite`. Assumption: none. Follow-up: `docs/workflow/setup.md` line on preflight's branch names still lists only `agent/NNNNN-doc-sync`; it is outside this Ticket's Writes, so the Doc Sync run should update it.

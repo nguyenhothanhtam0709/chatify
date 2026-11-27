@@ -10,6 +10,7 @@ Every PR passes this one checklist.
 
 - Copy the checklist into the PR body and tick each item. An item that doesn't apply is ticked with "n/a" and a reason, never deleted.
 - The Implementer ticks the checklist; the Orchestrator checks it before merging. A PR with any unticked item stays in draft.
+- Every checklist item ends with one enforcement tag: `(hook: <name>)` when a hook checks it, `(check: <command>)` when a command the agent runs checks it, `(prose)` when only reading enforces it. Broken twice, automate it: a `(prose)` rule broken twice is proposed for automation in the Learning section.
 - The last commit of the PR closes the Ticket: set `**Status:** resolved` and add a short summary under `## Comments` (what was verified, follow-ups created). A commit that changes only the Ticket file needs no re-run: "final commit" in the checklist means the last commit that changes anything else. Example summary:
 
   ```markdown
@@ -21,16 +22,17 @@ Every PR passes this one checklist.
 ## Checklist
 
 ```markdown
-- [ ] Every acceptance criterion in the Ticket is met and ticked in the Ticket file.
-- [ ] No dependency changed beyond the Ticket's Allowed packages (the PR guard checks this).
-- [ ] Tests follow the testing policy: the right kind, written first, nothing weakened without approval.
-- [ ] `pnpm lint`, `pnpm typecheck` and `pnpm test` pass locally on the final commit, and `pnpm docs:check` passes.
-- [ ] Docs affected by the change are updated in this PR; `pnpm docs:generate` was run and committed if the schema, routes or realtime events changed.
-- [ ] Migrations follow ADR 0003 (never hand-edited).
-- [ ] No limit, code or wire shape is re-declared outside contracts.
-- [ ] Nothing outside the Ticket changed (the PR guard checks this); anything noticed is appended to `docs/laters.md` or raised.
-- [ ] Every assumption is listed in the PR body and under the Ticket's `## Comments`.
-- [ ] The latest feature branch is merged in; the PR targets the feature branch, links the Ticket and says how the change was verified (including the browser check when the testing policy requires one).
+- [ ] Every acceptance criterion in the Ticket is met and ticked in the Ticket file. (prose)
+- [ ] The PR body maps each acceptance criterion of the Ticket to its evidence: a test name, a `file:line` or a command. (prose)
+- [ ] No dependency changed beyond the Ticket's Allowed packages (hook: guard-pr).
+- [ ] Tests follow the testing policy: the right kind, written first, nothing weakened without approval. (prose)
+- [ ] `pnpm lint`, `pnpm typecheck` and `pnpm test` pass locally on the final commit, and `pnpm docs:check` passes. (check: pnpm lint && pnpm typecheck && pnpm test && pnpm docs:check)
+- [ ] Docs affected by the change are updated in this PR; `pnpm docs:generate` was run and committed if the schema, routes or realtime events changed. (check: pnpm docs:check)
+- [ ] Migrations follow ADR 0003 (never hand-edited). (prose)
+- [ ] No limit, code or wire shape is re-declared outside contracts. (check: pnpm lint)
+- [ ] Nothing outside the Ticket changed anything noticed is appended to `docs/laters.md` or raised. (hook: guard-pr)
+- [ ] Every assumption is listed in the PR body and under the Ticket's `## Comments`. (prose)
+- [ ] The latest feature branch is merged in; the PR targets the feature branch, links the Ticket and says how the change was verified (including the browser check when the testing policy requires one). (prose)
 ```
 
 ## Opening the PR

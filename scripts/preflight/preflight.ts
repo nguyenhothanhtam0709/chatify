@@ -25,7 +25,7 @@ export interface PreflightEnv {
   tipFiles: Record<string, string>;
 }
 
-const TASK_BRANCH = /^agent\/(\d{5})-(?:\d{2}-[a-z0-9][a-z0-9-]*|doc-sync)$/;
+const TASK_BRANCH = /^agent\/(\d{5})-(?:\d{2}-[a-z0-9][a-z0-9-]*|doc-sync|doc-writer)$/;
 
 /** The Feature Branch `feat/NNNNN-*` that a Task Branch belongs to, if it exists on origin. */
 export const featureBranchFor = (branch: string, featureBranches: string[]): string | null => {
@@ -75,7 +75,7 @@ export const checkPreflight = (env: PreflightEnv): string[] => {
   const feature = featureBranchFor(env.branch, env.featureBranches);
   if (!TASK_BRANCH.test(env.branch)) {
     failures.push(
-      `Branch "${env.branch}" is not agent/NNNNN-NN-<slug> or agent/NNNNN-doc-sync. Create the Task Branch with that name.`,
+      `Branch "${env.branch}" is not agent/NNNNN-NN-<slug> or agent/NNNNN-doc-sync or agent/NNNNN-doc-writer. Create the Task Branch with that name.`,
     );
   } else if (feature === null) {
     failures.push(

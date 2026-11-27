@@ -48,6 +48,11 @@ export const canWrite = (
       ? null
       : `Doc Sync writes only files with \`kind: descriptive\` front matter, not ${path}.`;
   }
+  if (role === 'doc-writer') {
+    return path !== null && facts.writes.includes(path)
+      ? null
+      : `${path ?? 'A path outside the repo'} is not writable: the Doc Writer writes only its scope file's \`writes:\`, and ${path ?? 'this path'} is not in it.`;
+  }
   if (role !== 'implementer' || path === null) return null;
   if (
     facts.packages.some((name) => inPackage(path, name)) ||

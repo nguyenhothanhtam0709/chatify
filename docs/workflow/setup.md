@@ -54,7 +54,7 @@ Right after creating the Task Branch, an Implementer runs:
 pnpm preflight
 ```
 
-It reports, and fixes nothing. It fails when Node is below `engines`, the branch is not `agent/NNNNN-NN-<slug>` or `agent/NNNNN-doc-sync` or `agent/NNNNN-doc-writer`, the Feature Branch tip on `origin` is not merged in, a tracked file is modified or staged, there are untracked files (escalate to the human), Docker is not running, the Spec PR is not merged, or a Ticket in `Blocked by` is not `resolved`. Any unexpected error also fails it.
+It reports, and fixes nothing. It fails when Node is below `engines`, the branch is not `agent/NNNNN-NN-<slug>` or `agent/NNNNN-doc-sync`, the Feature Branch tip on `origin` is not merged in, a tracked file is modified or staged, there are untracked files (escalate to the human), Docker is not running, the Spec PR is not merged, or a Ticket in `Blocked by` is not `resolved`. Any unexpected error also fails it.
 
 ## A second worktree
 

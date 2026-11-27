@@ -15,7 +15,7 @@ Written against `mattpocock-skills` 1.3.1. When the installed version differs, t
 - "mark it ready for review": the Spec's Status is set to `resolved` by the Implementer of the review-fix task PR, in its last commit, once every Ticket is `resolved`; tell it so in its brief. Never push to the Feature Branch directly.
 - "each in its own worktree": one Implementer works in the main checkout; use a worktree when two or more run at once.
 - Addition to "implementer subagents": spawn by `subagent_type`, pass the brief path, write the scope file, and pass `model` only on an Opus signal.
-- Addition before "open the feature PR": write the [Learning](#learning) section and spawn the Doc Writer, as in [The order at the end of a feature](#the-order-at-the-end-of-a-feature).
+- Addition before "mark it ready for review": write the [Learning](#learning) section and spawn the Doc Writer, as in [The order at the end of a feature](#the-order-at-the-end-of-a-feature).
 
 Every other step runs as the skill says, including using the existing Feature Branch as the integration branch and opening a draft feature PR after the first merge.
 

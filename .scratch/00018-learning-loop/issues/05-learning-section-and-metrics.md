@@ -45,4 +45,4 @@ See the Spec's "The Learning section", "The order at the end of a feature", "The
 
 ## Comments
 
-Resolved. `pnpm docs:check`, lint, typecheck and test pass. Re-read the end-of-feature steps: each says who acts and what it writes. Assumption: the implement-spec entry reads "before open the feature PR".
+Resolved. `pnpm docs:check`, lint, typecheck and test pass. Re-read the end-of-feature steps: each says who acts and what it writes. Assumption: none open; the implement-spec entry is worded before "mark it ready for review".

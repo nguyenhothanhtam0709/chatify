@@ -18,16 +18,18 @@ See the Spec's "The merge check" and "Enforcement tags".
 
 **Blocked by:** 05
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The definition of done has the acceptance-criteria map item
-- [ ] Every checklist item ends with exactly one enforcement tag
-- [ ] "How to use it" explains the tags and "broken twice, automate it"
-- [ ] Merging step 1 in the orchestrator page describes the map check and sending a miss back
-- [ ] `pnpm docs:check` passes
+- [x] The definition of done has the acceptance-criteria map item
+- [x] Every checklist item ends with exactly one enforcement tag
+- [x] "How to use it" explains the tags and "broken twice, automate it"
+- [x] Merging step 1 in the orchestrator page describes the map check and sending a miss back
+- [x] `pnpm docs:check` passes
 
 **Verification:** `pnpm docs:check` passes. This PR's own body maps each acceptance criterion to its evidence, as the new item asks.
 
 **Out of scope:** Tags on any other doc; automating any `(prose)` rule; the Learning section (Ticket 05).
 
 ## Comments
+Resolved. Verified with `pnpm docs:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`. Tags per item: criteria met, map, testing, migrations, assumptions, branch merged are `(prose)`; dependencies and nothing-outside are `(hook: guard-pr)`; contracts is `(check: pnpm lint)`; the checks item lists its four commands in one tag. No assumptions.
+Review fixes: restored the separator in the "Nothing outside the Ticket" item and the "<text>. (<tag>)" form of the dependency item. Human decision: the "Docs affected by the change are updated" item is tagged `(prose)`, not `(check: pnpm docs:check)`; the four-command tag stays.

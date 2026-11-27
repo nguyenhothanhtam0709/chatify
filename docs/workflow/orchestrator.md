@@ -106,7 +106,7 @@ A missing line means `no`, `none` or empty. Write facts, not globs: a file of gl
 
 The Orchestrator merges task PRs itself and spawns no merger sub-agent:
 
-1. Read the PR.
+1. Check the PR body's acceptance-criteria map against the diff, criterion by criterion, opening a file only when the evidence is unclear. A criterion the diff doesn't meet: send the PR back to its Implementer through `SendMessage`, and count it as one merge-check finding for the [metrics](#the-metrics).
 2. Check the conditions in the [git workflow](git-workflow.md#rules).
 3. Squash-merge, pinned to the head SHA.
 4. Delete the Task Branch.
